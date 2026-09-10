@@ -1,0 +1,15 @@
+{
+  "name": "boson-explore-marketplace",
+  "description": "Design-space and power exploration skills for the boson EDA toolchain.",
+  "owner": {
+    "name": "partcl",
+    "url": "https://partcl.com"
+  },
+  "plugins": [
+    {
+      "name": "boson-explore",
+      "source": ".",
+      "description": "Design-space and power exploration skills for the boson EDA toolchain."
+    }
+  ]
+}

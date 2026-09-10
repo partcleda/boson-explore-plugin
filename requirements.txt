@@ -1,0 +1,4 @@
+numpy>=1.24
+pillow>=10.1
+matplotlib>=3.7
+imageio-ffmpeg>=0.4  # MP4 output only; GIF needs just pillow

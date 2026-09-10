@@ -1,0 +1,8 @@
+.boson_dse_*/
+.local-assets/
+.runs*/
+runs*/
+.ppa_*/
+.probe_*/
+*.vcd
+__pycache__/

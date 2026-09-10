@@ -1,0 +1,9 @@
+{"version": 2, "width": 80, "height": 24, "timestamp": 1788970008, "idle_time_limit": 2.0, "env": {"SHELL": "/bin/bash", "TERM": "screen"}}
+[0.027685, "o", "[boson_dse] min-area @ 6.0ns ...\r\n"]
+[238.664639, "o", "[boson_dse]   -> ok\r\n[boson_dse] min-area @ 20.0ns ...\r\n"]
+[460.049676, "o", "[boson_dse]   -> ok\r\n[boson_dse] balanced @ 6.0ns ...\r\n"]
+[761.481631, "o", "[boson_dse]   -> ok\r\n[boson_dse] balanced @ 20.0ns ...\r\n"]
+[1035.542601, "o", "[boson_dse]   -> ok\r\n[boson_dse] max-perf @ 6.0ns ...\r\n"]
+[1323.369077, "o", "[boson_dse]   -> ok\r\n[boson_dse] max-perf @ 20.0ns ...\r\n"]
+[1630.820974, "o", "[boson_dse]   -> ok\r\n"]
+[1630.823375, "o", "| Preset | Period (ns) | Timing | WNS (ns) | Cells | Area (um^2) | Power (mW) |\r\n|---|---|---|---|---|---|---|\r\n| min-area | 6.0 | VIOLATED | -6.596 | 5310 | 52042.4 | 13.0898 |\r\n| min-area | 20.0 | MET | 7.404 | 5310 | 52042.4 | 3.9270 |\r\n| balanced | 6.0 | VIOLATED | -7.208 | 14811 | 140850.1 | 33.9247 |\r\n| balanced | 20.0 | MET | 6.792 | 14811 | 140850.1 | 10.1774 |\r\n| max-perf | 6.0 | VIOLATED | -14.467 | 18845 | 198915.8 | 38.9075 |\r\n| max-perf | 20.0 | VIOLATED | -0.467 | 18845 | 198915.8 | 11.6723 |\r\n"]

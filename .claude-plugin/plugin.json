@@ -1,0 +1,11 @@
+{
+  "name": "boson-explore",
+  "description": "Design-space and power exploration skills for the boson EDA toolchain — sweep RTL parameters and clock periods through boson's synthesis/place/STA/power flow, get back an area/power/timing tradeoff table, render the whole sweep as an animated PPA video (terminal replay + Pareto scatter + placements), or close timing at a target clock with the cheapest optimisation recipe that works.",
+  "version": "0.1.0",
+  "author": {
+    "name": "partcl",
+    "url": "https://partcl.com"
+  },
+  "license": "Apache-2.0",
+  "keywords": ["eda", "chip-design", "rtl", "synthesis", "power", "design-space-exploration", "boson"]
+}
