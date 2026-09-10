@@ -29,6 +29,20 @@ nor a testbench — see below.
   search. Hands back the ladder table and the recommended compile Tcl.
   Triggers on "close timing at X ns", "what's the fmax", "which effort
   should I use".
+  Sample run (picorv32 @ 7 ns on sky130, `--target-ns 7 --find-fmax --max-rung 2`):
+
+  | recipe | period (ns) | timing | WNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
+  |---|---|---|---|---|---|---|---|
+  | medium | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
+  | high | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
+  | high+draws3 | 7 | VIOLATED | -0.899 | 127 | 14,364 | 139,405 | 22.0 |
+  | medium | 7.9 | MET | +0.001 | 127 | 14,366 | 139,414 | 19.5 |
+  | medium | 7.74 | VIOLATED | -0.159 | 127 | 14,364 | 139,406 | 19.9 |
+
+  Verdict: no rung closes 7 ns; **fmax ≈ 127 MHz** (closes at 7.9 ns, fails at
+  7.74). On this core the extra effort and placement draws changed nothing —
+  the critical path is architectural, which is what `boson-rtl-timing-closure`
+  is for.
 - **`skills/boson-rtl-timing-closure`** — when settings can't close timing
   and the RTL has to change: `timing_probe.py` turns a fast boson compile
   into critical paths that map back to source (launch/capture register
