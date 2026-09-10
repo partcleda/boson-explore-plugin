@@ -89,11 +89,24 @@ or at SkyWater's open sky130 `sky130_fd_sc_hd` corner libs
 
 ## Demo
 
-**Sweep video** (`boson-sweep-video`, picorv32 on sky130: `ENABLE_MUL` × `BARREL_SHIFTER` × {8, 20 ns}, 8 real compile+place+STA+power runs):
+**Sweep video** (`boson-sweep-video`, picorv32 on sky130: `ENABLE_FAST_MUL` ×
+`TWO_CYCLE_ALU` × `COMPRESSED_ISA` × {4, 6, 12 ns} — 24 real
+compile+place+STA+power runs, 4 in parallel, ~2 h wall on a busy host):
 
-![picorv32_sweep.gif](demo/picorv32_sweep.gif)
+[![picorv32 24-point sweep — final frame](demo/picorv32_sweep24.png)](demo/picorv32_sweep24.mp4)
 
-(`demo/picorv32_sweep.mp4` is the 1080p version.) Made with:
+(Still frame; **[▶ demo/picorv32_sweep24.mp4](demo/picorv32_sweep24.mp4)** is the
+1080p video — the GIF of this one is ~60 MB, so it isn't checked in; render
+it yourself with `--gif`.) What it showed: the
+iterative multiplier configs reach **148–169 MHz** when pushed with a 4 ns
+target, while `ENABLE_FAST_MUL` (a combinational multiplier) costs ~7K extra
+cells (+50 %) and *lowers* achieved clock to 100–120 MHz — its product path
+becomes the critical path. `TWO_CYCLE_ALU` and the C extension are within
+noise of each other. And the target matters: the same RTL lands at ~125 MHz
+with a 12 ns target because the timing-driven loop stops once it's met.
+
+The smaller 8-point run (`ENABLE_MUL` × `BARREL_SHIFTER` × {8, 20 ns}) is
+in `demo/picorv32_sweep.{gif,mp4}`; it was made with:
 
 ```
 S=skills/boson-sweep-video/scripts
