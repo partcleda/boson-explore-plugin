@@ -61,8 +61,19 @@ nor a testbench — see below.
   - slowest stages: sky130_fd_sc_hd__or4_1 0.659 ns, sky130_fd_sc_hd__or4_1 0.653 ns, sky130_fd_sc_hd__a22oi_4 0.498 ns
   - high fanout: `n2972` drives 86 loads
   ```
+- **`skills/boson-rtl-evolve`** — an evolutionary RTL-optimisation loop
+  with boson as the evaluator. The objective is max Fmax
+  (1/(T − WNS)), min area or min power, optionally with caps on the
+  others, e.g. area ≤ +15 %. Each candidate is one hypothesis, committed,
+  passed through an equivalence gate (lint, sound formal miter, lockstep
+  co-simulation with directed corners), then scored by boson: compile →
+  place → repair → timing/area/power. The skill includes anti-gaming
+  rules, a results ledger and a budget. It ends with a declared final
+  that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
+  "run an RTL optimisation loop".
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
-  `/boson-rtl-fix` slash commands, direct shortcuts into the four skills.
+  `/boson-rtl-fix`, `/boson-rtl-evolve` slash commands, direct shortcuts into
+  the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
