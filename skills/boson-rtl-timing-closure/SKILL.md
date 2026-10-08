@@ -1,6 +1,6 @@
 ---
 name: boson-rtl-timing-closure
-description: Use when timing can't be closed by tool settings alone and the user wants the RTL CHANGED to make it work — "fix the RTL so it meets X ns", "pipeline whatever's on the critical path", "get this block to N MHz, edit the design if you have to". An edit → boson probe → edit loop driven by real critical-path reports; every change is a reviewable diff with a before/after timing table. Behaviour-changing edits (pipelining) are flagged and need the user's OK.
+description: Use when timing can't be closed by tool settings alone and the user wants the RTL CHANGED to make it work — "fix the RTL so it meets X ns", "pipeline whatever's on the critical path", "get this block to N MHz, edit the design if you have to". An edit → boson probe → edit loop driven by native RTL traceback and JSON timing reports; every change is a reviewable diff with a before/after timing table. Behaviour-changing edits (pipelining) are flagged and need the user's OK.
 ---
 
 # RTL timing closure with boson
@@ -40,28 +40,62 @@ skill in this plugin, so the rules come first.
 
 ## The loop
 
+Prefer Boson's native RTL traceback over manually stripping register
+suffixes or scraping the text report. Before the first probe, read the
+[native timing traceback guide](references/rtl-traceback.md). Check
+`help report_timing rtl` and `help report_timing json` in the installed
+Boson; they describe source matching and the JSON schema.
+
+After compiling the candidate in the same session and running the chosen
+flow, collect these reports before editing its source files:
+
+```tcl
+update_timing
+if {[report_timing_status -quiet] ne "complete"} { error "Timing did not complete" }
+puts [report_qor]
+report_timing -format rtl -max_paths 10 -file timing.rtl
+report_timing -format json -max_paths 10 -file timing.json
 ```
+
+Save outputs in a separate directory for each candidate. Read
+`timing.json`: validate `schema_version`, `timing_complete` and `warnings`,
+then inspect `paths[].start_rtl`, `end_rtl` and `points[].rtl`. Follow the
+matched file/line and snippet in the matching candidate revision. Use
+`groups` to recognize repeated bus-bit paths, then inspect the individual
+path points to decide ONE edit (rules 1–3). Recompile and re-probe under
+the same constraints; compare design-wide WNS from `report_qor`, path
+slacks and endpoint changes before keeping or reverting the edit.
+Repeat until the target is met, then perform the final confirmation in
+rule 6. An empty path sample or null slack is not evidence that timing met.
+
+### Existing Python probe
+
+`timing_probe.py` remains available for its text-derived stage summaries
+and `--diff` workflow, or an older Boson without native traceback:
+
+```sh
 S=skills/boson-rtl-timing-closure/scripts
 python3 $S/timing_probe.py --rtl <files> --top <top> --liberty <lib> \
     --period-ns <target> --paths 5 --json probe0.json          # baseline
-# read the report: launching/capturing registers, logic depth, RTL-named nets
-# find those registers/nets in the RTL, decide ONE edit (rules 1-3), make it
+# inspect the text-derived path summary, decide ONE edit (rules 1-3), make it
 python3 $S/timing_probe.py ... --json probe1.json --diff probe0.json
 # WNS better and no new worst endpoint? keep; else revert (git checkout) and try the next idea
 # repeat until WNS >= 0 at fast, then:
 python3 $S/timing_probe.py ... --effort medium --lef <tech.tlef> --lef <cells.lef> --diff probeN.json
 ```
 
-`timing_probe.py` prints, per path: slack, number of combinational stages,
-the launch and capture registers (their RTL names survive synthesis — that
-is how you find the path in the source), the RTL-named nets along the path,
-the slowest cells, and the highest-fanout net. Exit code 0 = timing met.
+Its `--json probe.json` is the helper's own schema, parsed from
+`report_timing -format pt`; it is **not** Boson's native `-format json` and
+does not contain native file/line matches. Do not pass native
+`timing.json` to the helper's `--diff`. Its stage counts and retained net
+names are heuristics; it may not recover a source signal after synthesis.
 
 ### Reading a path
 
-- Launch `..._q_reg[3]/QN` → capture `..._result_q_reg[17]/D` with 30+
-  stages: the combinational block between those two registers is the
-  target. `grep` for both names (minus `_reg[..]`) in the RTL.
+- Start with the native launch/capture matches and source snippets. Use
+  `kind` to distinguish a signal match from a nearby region or module
+  hint. If a point is unmapped, search the reported net/cell names in the
+  correct hierarchy; do not invent a source line by stripping a suffix.
 - Slowest cells are wide AOI/OAI or mux cells with an RTL-named net like
   `alu_out`/`mem_wordsize` next to them: usually a priority `if/else if`
   chain or a case with overlapping conditions → restructure to parallel.

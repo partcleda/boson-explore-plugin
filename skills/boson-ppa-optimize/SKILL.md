@@ -57,8 +57,11 @@ defaults its workdir to `.ppa_*` under cwd for that reason).
   and report rungs as they land (the script prints each rung to stderr).
 - If nothing closes, the script says what *was* achieved and names the
   levers left: relax the target, pipeline the critical path in RTL (run
-  `report_timing -max_paths 3` in a boson session on the winning
-  workdir's `flow.tcl` to name it), or `--eco`.
+  `report_timing -format rtl -max_paths 3` after the winning flow to
+  locate it in the source), or `--eco`. For an agent's next iteration,
+  export `report_timing -format json -max_paths 10 -file timing.json`
+  in that same session. Read the [native timing traceback guide](../boson-rtl-timing-closure/references/rtl-traceback.md)
+  before interpreting matches or handing the path to an RTL-editing skill.
 - Hold: `report_qor` prints Hold WNS; boson's `repair_timing -hold` is
   post-CTS, so on a pre-CTS netlist a hold number is ideal-clock only —
   say so rather than "fixing" it.
