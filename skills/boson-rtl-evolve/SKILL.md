@@ -80,9 +80,14 @@ something different is not a result.
 
 ## The loop
 
-1. **Read the critical path first.** It is in `report_timing` of the last
-   run: startpoint, endpoint, logic depth and the dominant cells. Map it
-   back to the RTL. Register and RTL net names survive synthesis.
+1. **Read the critical path first.** Prefer Boson's native
+   `report_timing -format json` from the last candidate run, and
+   `-format rtl` for a readable summary. Inspect `start_rtl`, `end_rtl`
+   and `points[].rtl` for source files, lines and snippets; use path
+   delays and bus-bit groups to choose a hypothesis. Before the first
+   evaluation, read the [native timing traceback guide](../boson-rtl-timing-closure/references/rtl-traceback.md)
+   for availability checks, match kinds and missing-data handling. A
+   name match is a source hint, not proof of exact compiler provenance.
 2. **One hypothesis per candidate.** Make one change (or one small
    coherent set) that targets that path. Run the free gate if the change
    is not trivial.
@@ -125,8 +130,11 @@ something different is not a result.
 
 ## Running boson
 
-Verify flags with `help <cmd>` in the boson shell. Run the same script for
-every candidate (`boson --no-color -f eval.tcl > boson.log`):
+Verify flags with `help <cmd>` in the boson shell, including
+`help report_timing rtl` and `help report_timing json`. Run the same script
+for every candidate in its own output directory
+(`boson --no-color -f eval.tcl > boson.log`), retaining the report files with
+the candidate commit and frozen input hashes:
 
 ```tcl
 foreach lib $LIBS { read_liberty $lib }
@@ -138,8 +146,10 @@ place_design -density 0.6
 repair_design -max_fanout 32
 repair_timing -setup
 update_timing
+if {[report_timing_status -quiet] ne "complete"} { error "Timing did not complete" }
 puts [report_qor]                ;# setup WNS / TNS -> Fmax
-puts [report_timing -max_paths 5] ;# critical paths for the next hypothesis
+puts [report_timing -format rtl -max_paths 10]
+report_timing -format json -max_paths 10 -file timing.json
 puts [report_area]               ;# total cell area
 puts [report_power -vcd sim.vcd] ;# add -vcd_rtl if the VCD names RTL signals
 write_verilog placed.v
@@ -150,6 +160,10 @@ write_verilog placed.v
 - Power without activity is leakage only. For a power objective, use a
   VCD (or SAIF) from the **same workload** for every candidate, and
   regenerate it from that candidate's own simulation.
+- Read `timing.json` before editing the next candidate. Check
+  `schema_version`, `timing_complete` and `warnings`; do not turn null
+  slack or an empty path sample into a passing score. Keep `report_qor`
+  for design-wide WNS/TNS: traceback groups summarize the reported sample.
 
 ## Optional: cross-check the final
 
