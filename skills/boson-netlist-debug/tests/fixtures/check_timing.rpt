@@ -1,0 +1,11 @@
+check_timing:
+  Pins: 40
+  Endpoints: 4
+  Startpoints: 5
+Information: Checking 'no_clock'.
+Information: Checking 'no_input_delay'.
+Information: Checking 'unconstrained_endpoints'.
+Warning: 1 unconstrained endpoint(s):
+  dout_valid
+Warning: 1 input port(s) without input delay: rst_n
+Information: Checking 'loops'.
