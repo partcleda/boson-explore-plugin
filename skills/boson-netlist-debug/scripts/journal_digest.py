@@ -205,6 +205,14 @@ def digest(path: Path, crit: dict, top: int = 15) -> dict:
                         n_probe += 1
                     continue
                 area_d = next((v for kk, v in deltas.items() if kk.startswith(("area", "power"))), None)
+                if r.get("applied") is False:
+                    b = dict(brief)
+                    b["alternatives"] = [{"option": "applied", "verdict": "rejected", "why": r.get("reason"),
+                                          "metrics": None}]
+                    if len(rolled) < CAP:
+                        rolled.append(b)
+                    n_rolled += 1
+                    continue
                 if score < -EPS or (area_d is not None and area_d > EPS and score <= EPS and any(
                         kk in deltas for kk in TIMING_KEYS)):
                     _keep(worst, brief, score)

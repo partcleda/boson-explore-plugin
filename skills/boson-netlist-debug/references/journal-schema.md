@@ -57,6 +57,12 @@ Only `kind`, `seq`, `t_s`, `domain` and `action` are guaranteed.
 - `impact`: {metric: {before, after, delta}}, `delta = after − before`.
   Whether a positive delta is good depends on the metric: for wns/tns/slack
   higher is better; for area/power/delay/cells/violators lower is better.
+- `applied`: present on keep/reject/rollback judgements. `true` = the
+  change is in the design afterwards; `false` = it was tried and rejected
+  or undone, so its `impact` is what the trial *would* have done (a trial's
+  negative impact is not damage to the shipped netlist — but a rejected
+  trial with a positive impact is a missed opportunity worth reporting).
+  Absent = the decision is not a trial (a structure pick, a gate verdict).
 - `probe: true`: the decision happened inside an internal what-if
   evaluation. It is **not** in the shipped netlist; compare it with the
   shipped decision on the same subject.
