@@ -82,9 +82,11 @@ checkpoint lost WNS owns the decisions with seq between the two.
 
 ## After anonymization
 
-`anonymize.py` keeps `kind`, `domain`, `action`, `chosen`, `option`,
-`verdict`, `id`, `severity`, `stage`, `pass`, `label`, numbers and metric
-names (boson vocabulary), except that cell types in `chosen` get the
+`anonymize.py` keeps `kind`, `domain`, `action`, `verdict`, `id`,
+`severity`, numbers and metric / app-var names raw — boson's static
+vocabulary. `chosen`, `option`, `stage`, `label`, `pass`, `reason`, `why`,
+`text`, `inputs` strings and `app_vars` values go through the text
+anonymizer, because real journals carry design names there
+(`"chosen":"merged into decoded_imm_j[20]"`); cell types in them get the
 library tag replaced. `subjects` are tokenized like every other design
-name; `reason`, `why`, `text` and `app_vars` values go through the text
-anonymizer (names, paths, dates replaced).
+name.

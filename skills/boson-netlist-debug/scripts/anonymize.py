@@ -703,7 +703,11 @@ class Mapper:
             for line in f:
                 line = _sdc_strip_comment(line)
                 if line.strip():
-                    o.write(self.anon_text(line, strict=True))
+                    # unit values (-time ns) are SDC vocabulary, never design names
+                    units: list[str] = []
+                    line = SDC_UNIT_OPT.sub(lambda m: units.append(m.group(2)) or m.group(1) + f"\x01{len(units) - 1}\x01", line)
+                    line = self.anon_text(line, strict=True)
+                    o.write(re.sub("\x01(\\d+)\x01", lambda m: units[int(m.group(1))], line))
 
     def write_timing_text(self, src: Path, dst: Path) -> None:
         pt = re.compile(r"^(\s+)(\S+)(\s+\()([^)\s]+)(\).*)$", re.S)
@@ -726,8 +730,10 @@ class Mapper:
             for line in f:
                 o.write(self.anon_text(line))
 
-    JSON_KEEP = {"kind", "domain", "action", "chosen", "option", "verdict", "id", "severity", "stage", "pass", "label",
-                 "tool", "schema", "schema_version", "path_type", "kind_", "unit", "units", "version", "source_lookup"}
+    # boson's static vocabulary: compile-time strings that never carry design names.  `chosen`, `option`,
+    # `stage`, `label`, `pass` are NOT here: real journals put names in them ("merged into decoded_imm_j[20]").
+    JSON_KEEP = {"kind", "domain", "action", "verdict", "id", "severity", "tool", "schema", "schema_version",
+                 "path_type", "unit", "units", "version", "source_lookup", "timing_complete"}
     JSON_STRICT = {"subjects", "startpoint", "endpoint", "point", "net", "pin", "instance", "name", "module",
                    "start_rtl_name", "end_rtl_name", "cell_name", "object", "clock", "path_group", "launch_clock",
                    "capture_clock", "design", "top"}
@@ -871,13 +877,61 @@ def _iter_bundle(target: Path):
                     yield m.name, t.extractfile(m).read()
 
 
+_SCRIPT_WORDS: set[str] | None = None
+BUNDLE_DIRS = ("digests", "reports", "constraints", "logs", "journal", "netlist", "boson-debug-bundle")
+SDC_UNIT_OPT = re.compile(r"(-(?:time|capacitance|resistance|current|voltage|power|unit)\s+)(\S+)")
+JSON_STATIC = ("domain", "action", "verdict", "kind", "severity", "id", "tool")
+
+
+def script_words() -> set[str]:
+    """Every word in a string literal of this skill's own scripts.
+
+    The digests, MANIFEST.md and environment.json are generated from fixed
+    templates in these scripts; their template text ("still running",
+    "boson debug bundle", "clk<N>") is tool vocabulary, never customer data,
+    so a customer identifier that happens to equal one of these words is not
+    identifying in prose.  Only exact whole words count: a distinctive
+    identifier never appears in the templates.
+    """
+    global _SCRIPT_WORDS
+    if _SCRIPT_WORDS is None:
+        import ast
+        ws: set[str] = set()
+        for f in Path(__file__).resolve().parent.glob("*.py"):
+            try:
+                tree = ast.parse(f.read_text())
+            except (OSError, SyntaxError):
+                continue
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Constant) and isinstance(n.value, str):
+                    ws.update(WORD.findall(n.value))
+        _SCRIPT_WORDS = ws
+    return _SCRIPT_WORDS
+
+
+def _words_of(m) -> list[str]:
+    if m.lastgroup == "esc":
+        return WORD.findall(m.group(0))
+    if m.lastgroup == "id":
+        return [m.group(0)]
+    return []
+
+
 def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
+    """Leak scan of a bundle directory or tarball.
+
+    Two strictness levels.  STRUCTURED positions (netlist, SDC object names,
+    report point / start / end columns, journal subjects and object fields)
+    must contain no original name at all.  PROSE (everything else: digests,
+    REPORT.md, logs, free-text journal fields) must contain no original name
+    either, except whole-word matches on generic vocabulary (VOCAB, the
+    scripts' own template words, boson's static journal vocabulary, library
+    pin names, single letters) - those are listed, not failed.
+    """
     words, subs = mapper.forbidden()
     pins = mapper.pins
-    exempt_vocab = {w for w in words if w in VOCAB or w.lower() in VOCAB or len(w) < 2 or w in pins}
-    # boson vocabulary seen in the bundle's journal fields is exempt too
-    journal_vocab: set[str] = set()
     files = list(_iter_bundle(target))
+    static_vocab: set[str] = set()       # boson's static strings: domain/action names, metric and app-var names
     for name, data in files:
         if name.endswith(".jsonl"):
             for line in data.decode("utf-8", "replace").splitlines():
@@ -887,20 +941,39 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
                     continue
                 if not isinstance(r, dict):
                     continue
-                for k in ("domain", "action", "chosen", "stage", "label"):
+                for k in ("domain", "action"):
                     if isinstance(r.get(k), str):
-                        journal_vocab.update(WORD.findall(r[k]))
-                for a in r.get("alternatives") or []:
-                    if isinstance(a, dict) and isinstance(a.get("option"), str):
-                        journal_vocab.update(WORD.findall(a["option"]))
+                        static_vocab.update(WORD.findall(r[k]))
                 for k in ("metrics", "inputs", "impact", "counts", "app_vars"):
                     if isinstance(r.get(k), dict):
                         for kk in r[k]:
-                            journal_vocab.update(WORD.findall(kk))
-    exempt = exempt_vocab | (words & journal_vocab)
-    hard = words - exempt
+                            static_vocab.update(WORD.findall(kk))
+    sw = script_words()
+    generic = {w for w in words if w in VOCAB or w.lower() in VOCAB or len(w) < 2 or w in pins
+               or w in sw or w in static_vocab}
+    hard_struct = words - {w for w in words if len(w) < 2 and w in pins}
+    hard_prose = words - generic
+    own_paths = set()
+    for name, _ in files:
+        rel = name.split("/", 1)[1] if name.startswith("boson-debug-bundle/") else name
+        own_paths.add(rel)
+        own_paths.add(re.sub(r"\.[A-Za-z]+$", "", rel))
     leaks, warns = [], []
     unmapped_hier = re.compile(r"(?<![\w<$/])([A-Za-z_][\w$]*(?:\[\d+\])*(?:/[A-Za-z_][\w$]*(?:\[\d+\])*)+)")
+
+    def scan(text: str, where: tuple, structured: bool, sdc: bool = False):
+        hard = hard_struct if structured else hard_prose
+        if sdc:
+            text = SDC_UNIT_OPT.sub(lambda m: m.group(1) + " " * len(m.group(2)), text)
+        for m in MASTER.finditer(text):
+            for w in _words_of(m):
+                prev = text[m.start() - 1] if m.start() else ""
+                if structured and (prev == "-" or (sdc and w in SDC_WORDS) or (prev in "/." and w in pins)):
+                    continue
+                base, _ = split_suffix(w)
+                if base in hard or w in hard:
+                    leaks.append((*where, f"original identifier {w!r}" + (" (structured position)" if structured else "")))
+
     for name, data in files:
         low = name.lower()
         if "name_map" in low:
@@ -913,8 +986,16 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
             continue
         if '"salt"' in text and '"names"' in text:
             leaks.append((name, 0, "looks like a name map (salt+names)"))
-        if any(w in name for w in hard if len(w) >= 4) or any(s in name for s in subs):
-            leaks.append((name, 0, "original name in the file name"))
+        if any(s in name for s in subs):
+            leaks.append((name, 0, "original path/literal in the file name"))
+        scan(name.replace("/", " "), (name, 0), False)
+        is_v, is_sdc = low.endswith((".v", ".vg", ".sv")), low.endswith(".sdc")
+        is_json, is_jsonl, is_rpt = low.endswith(".json"), low.endswith(".jsonl"), low.endswith(".rpt")
+        if is_json:
+            try:
+                scan_json(json.loads(text), name, scan)
+            except json.JSONDecodeError:
+                is_json = False
         for ln, line in enumerate(text.splitlines(), 1):
             for s in subs:
                 if s.lower() in line.lower():
@@ -931,28 +1012,40 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
                 leaks.append((name, ln, f"IP address {m.group(0)!r}"))
             for m in DATE.finditer(line):
                 warns.append((name, ln, f"date/timestamp {m.group(0)!r}"))
-            for m in MASTER.finditer(line):
-                if m.lastgroup == "esc":
-                    ws = WORD.findall(m.group(0))
-                elif m.lastgroup == "id":
-                    ws = [m.group(0)]
+            if is_json:
+                pass                                   # scanned field by field above
+            elif is_jsonl:
+                try:
+                    scan_json(json.loads(line), name, scan, ln)
+                except json.JSONDecodeError:
+                    scan(line, (name, ln), False)
+            elif is_v or is_sdc:
+                scan(line, (name, ln), True, sdc=is_sdc)
+            elif is_rpt:
+                mm = re.match(r"^(\s*(?:Startpoint|Endpoint|Path Group|Design)\s*:\s*)(\S+)(.*)$", line) or \
+                    re.match(r"^(\s+)(\S+)(\s+\(.*)$", line)
+                if mm and not re.match(r"\s*(?:clock|data|library|slack|input|output)\b", line):
+                    scan(mm.group(2), (name, ln), True)
+                    scan(mm.group(1) + mm.group(3), (name, ln), False)
                 else:
-                    continue
-                for w in ws:
-                    base, _ = split_suffix(w)
-                    if base in hard or w in hard:
-                        leaks.append((name, ln, f"original identifier {w!r}"))
+                    scan(line, (name, ln), False)
+            else:
+                scan(line, (name, ln), False)
             for m in unmapped_hier.finditer(line):
-                segs = m.group(1).split("/")
-                bad = [s for s in segs[:-1] if not (TOKEN_RE.match(split_suffix(re.sub(r"\[\d+\]", "", s))[0])
-                       or TOOL_ANON.match(re.sub(r"\[\d+\]", "", s)) or s.lower() in VOCAB or s in journal_vocab)]
+                cand = m.group(1)
+                if cand in own_paths or cand.split("/", 1)[0] in BUNDLE_DIRS:
+                    continue                           # the bundle's own file names
+                segs = cand.split("/")
+                bad = [x for x in segs[:-1] if not (TOKEN_RE.match(split_suffix(re.sub(r"\[\d+\]", "", x))[0])
+                       or TOOL_ANON.match(re.sub(r"\[\d+\]", "", x)) or x.lower() in VOCAB or x in static_vocab or x in sw)]
                 if bad and not all(len(x) <= 4 and x.isalpha() for x in segs):
-                    warns.append((name, ln, f"unmapped-looking hierarchical name {m.group(1)!r}"))
-    print(f"check: scanned {len(files)} file(s) in {target}; {len(hard)} original identifiers, {len(subs)} literals/paths/tags")
-    if exempt:
-        ex = sorted(exempt)
-        print(f"check: {len(ex)} original names collide with generic/boson vocabulary and are NOT flagged "
-              f"(review that they read as vocabulary, not design names): {', '.join(ex[:30])}{' ...' if len(ex) > 30 else ''}")
+                    warns.append((name, ln, f"unmapped-looking hierarchical name {cand!r}"))
+    print(f"check: scanned {len(files)} file(s) in {target}; {len(hard_struct)} original identifiers "
+          f"({len(hard_prose)} distinctive), {len(subs)} literals/paths/tags")
+    coll = sorted(words & generic)
+    if coll:
+        print(f"check: {len(coll)} original names are generic words; they must not appear in structured positions "
+              f"(checked) and are allowed as whole words in prose: {', '.join(coll[:30])}{' ...' if len(coll) > 30 else ''}")
     for n, ln, msg in warns[:verbose]:
         print(f"  WARN {n}:{ln}: {msg}")
     if len(warns) > verbose:
@@ -967,6 +1060,21 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
         return 1
     print(f"check: PASSED - no original identifiers, paths, literals or library tags found ({len(warns)} warning(s) to eyeball)")
     return 0
+
+
+def scan_json(o, name: str, scan, ln: int = 0, key: str | None = None) -> None:
+    """Scan JSON string values: object fields strictly, free text as prose, boson's static fields not at all."""
+    if isinstance(o, dict):
+        for k, v in o.items():
+            scan(str(k), (name, ln), False)
+            scan_json(v, name, scan, ln, k)
+    elif isinstance(o, list):
+        for v in o:
+            scan_json(v, name, scan, ln, key)
+    elif isinstance(o, str):
+        if key in JSON_STATIC:
+            return
+        scan(o, (name, ln), key in Mapper.JSON_STRICT)
 
 
 # ---------------------------------------------------------------- main

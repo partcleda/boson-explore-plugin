@@ -15,8 +15,9 @@ in the bundle; `--check` fails if it, or anything that looks like it, does.
   analysis signal.
 - Library pin names (`A1`, `Y`, `QN`, `CLK`).
 - boson vocabulary: message IDs (`SYN-301`), journal `kind`, `domain`,
-  `action`, `chosen`, `option`, `verdict`, `severity`, `stage`, `pass`,
-  `label`, metric names, command and option names, boson's own report text.
+  `action`, `verdict`, `severity`, metric names, command and option names,
+  SDC unit values (`-time ns`). Free-text journal fields (`chosen`,
+  `option`, `stage`, `reason`, ...) are anonymized like prose.
 - boson's own name suffixes on design names (`_reg`, `__qn_bsn`, `_bsn`,
   `_gs<N>`), so a register and its output net share a token.
 - Tool-generated names with no design information (`n1234`, `gs56`,
@@ -66,9 +67,15 @@ ones.
   and nowhere structured is unknown to the anonymizer. Give it the RTL and
   the full log so it learns the names, and pass project or company names
   with `--literal`.
-- Names that are ordinary words (`data`, `valid`, `state`) are mapped in
-  structured positions but left alone in prose, so report text stays
-  readable; `--check` lists these collisions instead of failing.
+- Names that are ordinary words (`data`, `valid`, `clk`, `debug`,
+  `running`) are mapped in structured positions but left alone in prose, so
+  report text stays readable. `--check` has two levels: in structured
+  positions (netlist, SDC objects, report start/end/point columns, journal
+  subjects and object fields) any original name fails, generic or not; in
+  prose a whole-word match on generic vocabulary (the built-in word list,
+  the words of the scripts' own report templates, boson's static journal
+  vocabulary, library pins, single letters) is listed but allowed. Every
+  distinctive name (with `_`, digits, or not in those lists) fails anywhere.
 - RTL names that are English words are mapped in prose too (safe side), so
   a log sentence may read oddly.
 - Structure is information. The anonymized netlist, path shapes and cell

@@ -31,8 +31,8 @@ negotiable.
    `anonymize.py --check` on the directory and the tarball and writes no
    tarball if it fails. Fix the cause (add `--literal` for a project
    codename, `--lib-tag` for a library prefix it missed, reword REPORT.md);
-   never hand-edit the check away. Read its "collide with vocabulary" and
-   WARN lines too.
+   never hand-edit the check away. Read its "generic words" and WARN lines
+   too: generic words are allowed only as prose, never as object names.
 5. **The customer sees everything before it goes.** Show them MANIFEST.md
    (the file list) and REPORT.md in full, say whether the anonymized
    netlist is included and what that reveals, and let them decide.

@@ -106,6 +106,46 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(n["nets"]["undriven"], 0)
 
 
+    def test_generic_rtl_words_and_names_in_chosen(self):
+        """Regression (real picorv32 run): RTL identifiers that are ordinary words (debug, clk, running) must not
+        fail the check on the scripts' own boilerplate, names inside journal `chosen` must be mapped, and a
+        generic word in a STRUCTURED position must still fail."""
+        t = self.tmp / "generic"
+        t.mkdir()
+        rtl = t / "words.sv"
+        rtl.write_text("module acme_words (input clk, input debug, output running, output report);\n"
+                       "  reg decoded_imm_j; assign running = debug; assign report = decoded_imm_j;\nendmodule\n")
+        jr = t / "decisions.jsonl"
+        lines = (F / "decisions.jsonl").read_text().splitlines()
+        lines.insert(-2, json.dumps({"kind": "decision", "seq": 99, "t_s": 6.2, "stage": "medium: fast baseline",
+                                     "domain": "sequential", "action": "register_removed",
+                                     "subjects": ["u_acme_dsp/acc_q_reg[1]"], "chosen": "merged into decoded_imm_j[20]",
+                                     "alternatives": [{"option": "keep", "verdict": "rejected"}], "inputs": {"kind": "merged"},
+                                     "reason": "register is equivalent to another register"}))
+        jr.write_text("\n".join(lines) + "\n")
+        args = [a for a in self.args]
+        args[args.index("--journal") + 1] = jr
+        args[args.index("--rtl") + 1] = rtl
+        for flag, val in (("--map", t / "name_map.json"), ("--work", t / "work"), ("--bundle-dir", t / "boson-debug-bundle")):
+            args[args.index(flag) + 1] = val
+        args += ["--rtl", F / "acme_dsp.sv"]
+        report = t / "REPORT.md"
+        report.write_text("# Summary\nThe debug bundle shows the flow still running hold repair on the clk domain.\n")
+        p = run(S / "make_bundle.py", *args, "--report", report)
+        self.assertIn("PASSED", p.stdout)
+        self.assertNotIn("WARN", p.stdout)                      # no warnings on the bundle's own file names
+        b = t / "boson-debug-bundle"
+        alltext = "".join(f.read_text() for f in b.rglob("*") if f.is_file())
+        self.assertNotIn("decoded_imm_j", alltext)
+        self.assertRegex((b / "journal" / "decisions.jsonl").read_text(), r'"chosen":"merged into [a-z]+\d+\[20\]"')
+        # a generic word that is a design name, in a structured position: must fail
+        sdc = next((b / "constraints").glob("*.sdc"))
+        with open(sdc, "a") as f:
+            f.write("set_false_path -to [get_ports running]\n")
+        p = run(S / "anonymize.py", "--map", t / "name_map.json", "--check", b, ok=False)
+        self.assertEqual(p.returncode, 1, p.stdout)
+        self.assertIn("'running' (structured position)", p.stdout)
+
     def test_hierarchical_netlist(self):
         v = self.tmp / "hier.v"
         v.write_text("module zorg_leaf (a, b, y);\n  input a; input b; output y;\n"
