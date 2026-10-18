@@ -63,28 +63,28 @@ def make_placed_report(path: Path) -> dict:
          "  Endpoint: zlane[1].u_zl.zdst_reg (rising edge-triggered flip-flop clocked by clk)",
          "  Path Group: clk", "  Path Type: max", "", HEADER, "  " + "-" * 137,
          _clk("clock clk (rise edge)", 0.0, 0.0), _clk("clock network delay (ideal)", 0.0, 0.0),
-         _row("zorp_src_reg[3]/CP", "DFQD1ZQ7SVT", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": 0}, "r", (48.678, 1.840)),
-         _row("zorp_src_reg[3]/Q", "DFQD1ZQ7SVT", {"Trans": .009, "Derate": 1, "Incr": .044, "Path": .044}, "f", (48.336, 1.800)),
+         _row("zorp_src_reg[3]/CP", "DFF_X1_ZQ7", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": 0}, "r", (40.000, 2.000)),
+         _row("zorp_src_reg[3]/Q", "DFF_X1_ZQ7", {"Trans": .009, "Derate": 1, "Incr": .044, "Path": .044}, "f", (40.500, 2.000)),
          _net("zorp_src[3]", 1, .001),
-         _row("fanout_repair_b1/I", "BUFFD5ZQ7ULVT", {"DTrans": .009, "Trans": .009, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .044}, "f", (48.507, 2.320)),
-         _row("fanout_repair_b1/Z", "BUFFD5ZQ7ULVT", {"Trans": .007, "Derate": 1, "Incr": .012, "Path": .056}, "f", (48.735, 2.280)),
+         _row("fanout_repair_b1/I", "BUF_X5_ZQ7", {"DTrans": .009, "Trans": .009, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .044}, "f", (41.000, 3.000)),
+         _row("fanout_repair_b1/Z", "BUF_X5_ZQ7", {"Trans": .007, "Derate": 1, "Incr": .012, "Path": .056}, "f", (41.500, 3.000)),
          _net("net", 4, .005),
-         _row("fanout_repair_b2/I", "BUFFD8ZQ7ULVT", {"DTrans": .007, "Trans": .024, "Derate": 1, "Delta": 0, "Incr": .009, "Path": .065}, "f", (31.065, 38.480)),
-         _row("fanout_repair_b2/Z", "BUFFD8ZQ7ULVT", {"Trans": .009, "Derate": 1, "Incr": .015, "Path": .080}, "f", (31.407, 38.540)),
+         _row("fanout_repair_b2/I", "BUF_X8_ZQ7", {"DTrans": .007, "Trans": .024, "Derate": 1, "Delta": 0, "Incr": .009, "Path": .065}, "f", (20.000, 40.000)),
+         _row("fanout_repair_b2/Z", "BUF_X8_ZQ7", {"Trans": .009, "Derate": 1, "Incr": .015, "Path": .080}, "f", (20.500, 40.000)),
          _net("fanout_repair_n2", 2, .009),
-         _row("gs50300/C1", "AOI222D1ZQ7LVT", {"DTrans": .009, "Trans": .038, "Derate": 1, "Delta": 0, "Incr": .014, "Path": .094}, "f", (30.894, 78.400)),
-         _row("gs50300/ZN", "AOI222D1ZQ7LVT", {"Trans": .027, "Derate": 1, "Incr": .024, "Path": .118}, "r", (30.552, 78.440)),
-         _net("n13236", 1, .000),
-         _row("zlane[1].u_zl.zdst_reg/D", "DFQD2ZQ7SVT", {"DTrans": .027, "Trans": .027, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .118}, "r", (30.324, 78.480)),
+         _row("gs900/C1", "AOI222_X1_ZQ7", {"DTrans": .009, "Trans": .038, "Derate": 1, "Delta": 0, "Incr": .014, "Path": .094}, "f", (21.000, 80.000)),
+         _row("gs900/ZN", "AOI222_X1_ZQ7", {"Trans": .027, "Derate": 1, "Incr": .024, "Path": .118}, "r", (21.500, 80.000)),
+         _net("n77", 1, .000),
+         _row("zlane[1].u_zl.zdst_reg/D", "DFF_X2_ZQ7", {"DTrans": .027, "Trans": .027, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .118}, "r", (22.000, 80.000)),
          "  data arrival time".ljust(COLS["Path"] - 5) + "0.118", "",
          _clk("clock clk (rise edge)", .100, .100), _clk("clock network delay (ideal)", 0.0, .100),
-         _row("zlane[1].u_zl.zdst_reg/CP", "DFQD2ZQ7SVT", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": .100}, "r", (30.0, 78.0)),
+         _row("zlane[1].u_zl.zdst_reg/CP", "DFF_X2_ZQ7", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": .100}, "r", (22.000, 80.500)),
          _clk("clock uncertainty", -.020, .080), _clk("library setup time", -.007, .073),
          "  data required time".ljust(COLS["Path"] - 5) + "0.073", "  " + "-" * 137,
          "  slack (VIOLATED)".ljust(COLS["Path"] - 6) + "-0.045", ""]
     path.write_text("\n".join(L) + "\n")
     return {"arrival_ns": 0.118, "slack_ns": -0.045, "stages": 3, "slowest": 0.024, "skew_ns": 0.0,
-            "longest_wire_um": round(abs(48.735 - 31.065) + abs(2.280 - 38.480), 3), "fanout_net": 4}
+            "longest_wire_um": round(abs(41.5 - 20.0) + abs(3.0 - 40.0), 3), "fanout_net": 4}
 
 
 class EndToEnd(unittest.TestCase):
@@ -219,8 +219,8 @@ class EndToEnd(unittest.TestCase):
                        "  wire net, ohm, res, load, limit, clear, signal, sinks, fF;\nendmodule\n")
         net = t / "netlist.v"
         net.write_text("module zorp_math_top (clk, zorp_in, zorp_out);\n  input clk;\n  input zorp_in;\n  output zorp_out;\n"
-                       "  wire net;\n  BUFFD5ZQ7ULVT fanout_repair_b1 (.I(zorp_in), .Z(net));\n"
-                       "  BUFFD8ZQ7ULVT fanout_repair_b2 (.I(net), .Z(zorp_out));\nendmodule\n")
+                       "  wire net;\n  BUF_X5_ZQ7 fanout_repair_b1 (.I(zorp_in), .Z(net));\n"
+                       "  BUF_X8_ZQ7 fanout_repair_b2 (.I(net), .Z(zorp_out));\nendmodule\n")
         log = t / "boson.log"
         log.write_text("set_layer_rc: layer M2 registered at cap 0.2640 fF/um, res 68.5000 ohm/um\n"
                        "set_wire_rc: clock-network wire RC set; signal nets keep their own model; load limit 0.08\n"
@@ -228,7 +228,7 @@ class EndToEnd(unittest.TestCase):
                        "Warning: net 'net' has 4 loads\n")
         work, mp = t / "work", t / "map.json"
         run(S / "make_bundle.py", "--work", work, "--map", mp, "--netlist", net, "--timing", rpt, "--log", log,
-            "--rtl", rtl, "--lib-tag", "(?P<tag>ZQ7)", "--bundle-dir", t / "bundle")
+            "--rtl", rtl, "--lib-tag", "(?P<tag>_ZQ7)", "--bundle-dir", t / "bundle")
         anon = (work / "anon" / "timing_1.rpt").read_text()
         self.assertEqual(anon.count("(net)"), 4)
         self.assertIn("(rise edge)", anon)
