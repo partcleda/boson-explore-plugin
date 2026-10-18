@@ -685,6 +685,8 @@ class Mapper:
                 trail, p = p[-1] + trail, p[:-1]
             if len(p) < 2:
                 return m.group(0)
+            if is_bundle_path(p):
+                return protect(p) + trail
             return protect(self.path_token(p)) + trail
 
         s = URL.sub(url, s)
@@ -859,6 +861,17 @@ class Mapper:
         words -= set(self.names.values())  # our own tokens are never originals (finalize guarantees it)
         subs = [p for p in self.paths if "/" in p or Path(p).stem in self.path_stems] + list(self.literals) + [t.strip("_") for t in self.lib_tags if len(t.strip("_")) >= 3]
         return words, [s for s in subs if len(s) >= 3]
+
+
+BUNDLE_DIRS = ("digests", "reports", "constraints", "logs", "journal")
+BUNDLE_FILE = re.compile(r"(?:(?:digests|reports|constraints|logs|journal)/)?(?:[A-Za-z_]+_\d+\.(?:rpt|json|sdc|log)"
+                         r"|(?:journal|timing|netlist)_(?:digest|stats)\.(?:md|json)|decisions\.jsonl|truncation\.json"
+                         r"|environment\.json|MANIFEST\.md|REPORT\.md|netlist\.v)")
+
+
+def is_bundle_path(p: str) -> bool:
+    p = p.strip("`'\"")
+    return p.rstrip("/") in BUNDLE_DIRS or bool(BUNDLE_FILE.fullmatch(p))
 
 
 def _realign(head: str, orig_len: int, tail: str) -> str:
