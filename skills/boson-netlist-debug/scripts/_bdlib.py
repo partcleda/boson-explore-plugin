@@ -41,15 +41,17 @@ _CLASSES = [
     ("clock_gate", r"ICG|CKGT|CLKGATE|^GCK|LATCHGATE|^CGL|CKLNQ|CKLHQ|PREICG|^SDLCLK|^DLCLK"),
     ("tie", r"^TIE|^CONB"),
     ("physical", r"FILL|DECAP|^TAP|ANTENNA|DCAP|ENDCAP|WELLTAP|^PHY"),
-    ("clock_buffer", r"^CLKBUF|^CKB|^CKBUF|^CLKBUFF"),
-    ("clock_inverter", r"^CLKINV|^CKND|^CKINV"),
+    # clock cells by function stem (TSMC-style: CKND2 = clock nand2, CKND/CKN = clock inverter, CKBD/DCCK = buffer)
+    ("clock_logic", r"^CKND\d|^CKNR\d|^CKAN\d|^CKOR\d|^CKXOR|^CKXNR|^CKMUX|^CKAND|^CLK(?:AND|NAND|MUX|XOR|XNOR|OR|NOR)"),
+    ("clock_buffer", r"^CLKBUF|^CKB|^CKBUF|^CLKBUFF|^DCCK"),
+    ("clock_inverter", r"^CLKINV|^CKN$|^CKND$|^CKINV"),
     ("sequential", r"DFF|SDF|EDFF|^DF|LATCH|^LAT|^DLH|^DLL|^DHL|^DL[NP]|MBFF|^FF|^SDFF|^DLX|^SRFF"),
     ("buffer", r"^BUF|^HB|^BF$|^BUFH|^BUFZ"),
     ("inverter", r"^INV|^IN$|^INX|^INVERTER"),
-    ("adder", r"^FA|^HA|^FADD|^HADD|^ADDF|^ADDH|^MAJ|FULLADD|HALFADD"),
+    ("adder", r"^FA|^HA|^FADD|^HADD|^ADDF|^ADDH|^MAJ|FULLADD|HALFADD|^FCI|^CMPE\d"),
     ("xor", r"XOR|XNOR|XNR|^XR|^XN"),
     ("mux", r"MUX|^MX|^MXI"),
-    ("complex", r"^AOI|^OAI|^AO\d|^OA\d|^A\d+O|^O\d+A|^AOAI|^OAOI"),
+    ("complex", r"^AOI|^OAI|^AO\d|^OA\d|^A\d+O|^O\d+A|^AOAI|^OAOI|^IOA|^IAO"),
     ("nand_nor", r"^NAND|^ND\d|^NOR|^NR\d|^IND|^INR"),
     ("and_or", r"^AND|^AN\d|^OR|^O\d$"),
 ]
@@ -102,6 +104,8 @@ OUTPUT_PIN = re.compile(
 def is_output_pin(pin: str, cell_outputs: dict | None = None, celltype: str | None = None) -> bool:
     if cell_outputs is not None and celltype in cell_outputs:
         return pin in cell_outputs[celltype]
+    if pin in ("S", "SN", "S0", "S1") and celltype and parse_cell(celltype)["class"] in ("mux", "sequential", "clock_gate", "clock_logic"):
+        return False          # mux select / flop set; on adders and other cells S is the sum output
     return bool(OUTPUT_PIN.match(pin))
 
 

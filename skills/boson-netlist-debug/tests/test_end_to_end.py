@@ -7,6 +7,7 @@ Everything in fixtures/ is fake ("acme", "jdoe", "secret_sauce_sum" are the
 names that must never reach a bundle).
 """
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,64 @@ def run(*args, ok=True):
     if ok and p.returncode != 0:
         raise AssertionError(f"{args[0]} exited {p.returncode}\n{p.stdout}\n{p.stderr}")
     return p
+
+
+# ---- synthetic placed report in boson 1.823's full_clock_expanded column layout (fake cells, fake names) ----
+COLS = {"Fanout": 67, "Cap": 75, "DTrans": 83, "Trans": 90, "Derate": 98, "Delta": 105, "Incr": 115, "Path": 127}
+HEADER = ("  Point" + " " * 54 + "Fanout     Cap  DTrans  Trans  Derate  Delta      Incr        Path    Location")
+
+
+def _row(obj, cell, vals, edge, loc):
+    line = f"  {obj} ({cell})"
+    for col in ("DTrans", "Trans", "Derate", "Delta", "Incr", "Path"):
+        if col in vals:
+            v = f"{vals[col]:.3f}"
+            line = line.ljust(COLS[col] - len(v)) + v
+            if col == "Incr":
+                line += " &"
+    return line + f" {edge}  ({loc[0]:.3f},{loc[1]:.3f})"
+
+
+def _net(name, fo, cap):
+    line = f"  {name} (net)"
+    line = line.ljust(COLS["Fanout"] - len(str(fo))) + str(fo)
+    return line.ljust(COLS["Cap"] - 5) + f"{cap:.3f}"
+
+
+def _clk(text, incr, path):
+    return f"  {text}".ljust(COLS["Incr"] - 5) + f"{incr:.3f}" + f"{path:.3f}".rjust(COLS["Path"] - COLS["Incr"])
+
+
+def make_placed_report(path: Path) -> dict:
+    """One violating reg->reg path through two buffers, a long wire and an AOI; returns the expected digest."""
+    L = ["****************************************", "Report : timing", "    -path_type full_clock_expanded",
+         "    -max_paths 1", "Design : zorp_math_top", "Tool   : boson 1.823.9", "****************************************", "", "",
+         "  Startpoint: zorp_src_reg[3] (rising edge-triggered flip-flop clocked by clk)",
+         "  Endpoint: zlane[1].u_zl.zdst_reg (rising edge-triggered flip-flop clocked by clk)",
+         "  Path Group: clk", "  Path Type: max", "", HEADER, "  " + "-" * 137,
+         _clk("clock clk (rise edge)", 0.0, 0.0), _clk("clock network delay (ideal)", 0.0, 0.0),
+         _row("zorp_src_reg[3]/CP", "DFQD1ZQ7SVT", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": 0}, "r", (48.678, 1.840)),
+         _row("zorp_src_reg[3]/Q", "DFQD1ZQ7SVT", {"Trans": .009, "Derate": 1, "Incr": .044, "Path": .044}, "f", (48.336, 1.800)),
+         _net("zorp_src[3]", 1, .001),
+         _row("fanout_repair_b1/I", "BUFFD5ZQ7ULVT", {"DTrans": .009, "Trans": .009, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .044}, "f", (48.507, 2.320)),
+         _row("fanout_repair_b1/Z", "BUFFD5ZQ7ULVT", {"Trans": .007, "Derate": 1, "Incr": .012, "Path": .056}, "f", (48.735, 2.280)),
+         _net("net", 4, .005),
+         _row("fanout_repair_b2/I", "BUFFD8ZQ7ULVT", {"DTrans": .007, "Trans": .024, "Derate": 1, "Delta": 0, "Incr": .009, "Path": .065}, "f", (31.065, 38.480)),
+         _row("fanout_repair_b2/Z", "BUFFD8ZQ7ULVT", {"Trans": .009, "Derate": 1, "Incr": .015, "Path": .080}, "f", (31.407, 38.540)),
+         _net("fanout_repair_n2", 2, .009),
+         _row("gs50300/C1", "AOI222D1ZQ7LVT", {"DTrans": .009, "Trans": .038, "Derate": 1, "Delta": 0, "Incr": .014, "Path": .094}, "f", (30.894, 78.400)),
+         _row("gs50300/ZN", "AOI222D1ZQ7LVT", {"Trans": .027, "Derate": 1, "Incr": .024, "Path": .118}, "r", (30.552, 78.440)),
+         _net("n13236", 1, .000),
+         _row("zlane[1].u_zl.zdst_reg/D", "DFQD2ZQ7SVT", {"DTrans": .027, "Trans": .027, "Derate": 1, "Delta": 0, "Incr": 0, "Path": .118}, "r", (30.324, 78.480)),
+         "  data arrival time".ljust(COLS["Path"] - 5) + "0.118", "",
+         _clk("clock clk (rise edge)", .100, .100), _clk("clock network delay (ideal)", 0.0, .100),
+         _row("zlane[1].u_zl.zdst_reg/CP", "DFQD2ZQ7SVT", {"Derate": 1, "Delta": 0, "Incr": 0, "Path": .100}, "r", (30.0, 78.0)),
+         _clk("clock uncertainty", -.020, .080), _clk("library setup time", -.007, .073),
+         "  data required time".ljust(COLS["Path"] - 5) + "0.073", "  " + "-" * 137,
+         "  slack (VIOLATED)".ljust(COLS["Path"] - 6) + "-0.045", ""]
+    path.write_text("\n".join(L) + "\n")
+    return {"arrival_ns": 0.118, "slack_ns": -0.045, "stages": 3, "slowest": 0.024, "skew_ns": 0.0,
+            "longest_wire_um": round(abs(48.735 - 31.065) + abs(2.280 - 38.480), 3), "fanout_net": 4}
 
 
 class EndToEnd(unittest.TestCase):
@@ -145,6 +204,75 @@ class EndToEnd(unittest.TestCase):
         p = run(S / "anonymize.py", "--map", t / "name_map.json", "--check", b, ok=False)
         self.assertEqual(p.returncode, 1, p.stdout)
         self.assertIn("'running' (structured position)", p.stdout)
+
+    def test_placed_report_columns_and_report_vocabulary(self):
+        """Regression (boson 1.823.9 physical run): the Location '(x,y)' column must not be read as delay, fanout
+        comes from the (net) rows, wire lengths come from Location; and RTL identifiers that are report / unit
+        words (net, ohm, res, load, limit, clear, signal) must not be mapped inside report or log prose, while a
+        real net named `net` is still mapped in structured positions."""
+        t = self.tmp / "placed"
+        t.mkdir()
+        rpt = t / "timing.rpt"
+        exp = make_placed_report(rpt)
+        rtl = t / "zorp.v"
+        rtl.write_text("module zorp_math_top (input clk, input zorp_in, output zorp_out);\n"
+                       "  wire net, ohm, res, load, limit, clear, signal, sinks, fF;\nendmodule\n")
+        net = t / "netlist.v"
+        net.write_text("module zorp_math_top (clk, zorp_in, zorp_out);\n  input clk;\n  input zorp_in;\n  output zorp_out;\n"
+                       "  wire net;\n  BUFFD5ZQ7ULVT fanout_repair_b1 (.I(zorp_in), .Z(net));\n"
+                       "  BUFFD8ZQ7ULVT fanout_repair_b2 (.I(net), .Z(zorp_out));\nendmodule\n")
+        log = t / "boson.log"
+        log.write_text("set_layer_rc: layer M2 registered at cap 0.2640 fF/um, res 68.5000 ohm/um\n"
+                       "set_wire_rc: clock-network wire RC set; signal nets keep their own model; load limit 0.08\n"
+                       "Information: library preset/clear arc ignored; 12 sinks\n"
+                       "Warning: net 'net' has 4 loads\n")
+        work, mp = t / "work", t / "map.json"
+        run(S / "make_bundle.py", "--work", work, "--map", mp, "--netlist", net, "--timing", rpt, "--log", log,
+            "--rtl", rtl, "--lib-tag", "(?P<tag>ZQ7)", "--bundle-dir", t / "bundle")
+        anon = (work / "anon" / "timing_1.rpt").read_text()
+        self.assertEqual(anon.count("(net)"), 4)
+        self.assertIn("(rise edge)", anon)
+        self.assertIn("slack (VIOLATED)", anon)
+        for line in anon.splitlines():         # anonymized rows keep their columns: Path still ends under 'Path'
+            m = re.search(r"(-?\d+\.\d{3}) [rf]  \(", line)
+            if m:
+                self.assertEqual(m.end(1), COLS["Path"], line)
+        alog = (work / "anon" / "boson_1.log").read_text()
+        for phrase in ("fF/um, res 68.5000 ohm/um", "signal nets keep their own model", "load limit 0.08",
+                       "preset/clear arc", "12 sinks"):
+            self.assertIn(phrase, alog)
+        self.assertNotIn("'net'", alog)          # quoted object name: mapped
+        self.assertNotIn("(net)", (work / "anon" / "netlist.v").read_text())
+        self.assertRegex((work / "anon" / "netlist.v").read_text(), r"\.Z\(w\d+\)")
+        d = json.loads((work / "digests" / "timing_digest.json").read_text())["paths"][0]
+        raw = json.loads(run(S / "timing_digest.py", "--timing", rpt, "--out-json", t / "raw.json").returncode == 0
+                         and (t / "raw.json").read_text())["paths"][0]
+        for k in ("arrival_ns", "slack_ns", "stages", "skew_ns", "total_wire_um", "cell_delay_ns", "max_fanout"):
+            self.assertEqual(d[k], raw[k], k)
+        self.assertAlmostEqual(d["arrival_ns"], exp["arrival_ns"])
+        self.assertAlmostEqual(d["slack_ns"], exp["slack_ns"])
+        self.assertEqual(d["stages"], exp["stages"])
+        self.assertAlmostEqual(d["slowest"][0]["delay_ns"], exp["slowest"])
+        self.assertAlmostEqual(d["skew_ns"], exp["skew_ns"])
+        self.assertAlmostEqual(d["longest_wires"][0]["wire_um"], exp["longest_wire_um"])
+        self.assertEqual(d["longest_wires"][0]["fanout"], exp["fanout_net"])
+        self.assertTrue(d["placed"])
+
+    def test_clock_cells_by_function(self):
+        v = self.tmp / "ck.v"
+        v.write_text("module ck_top (clk, a, b, y);\n  input clk; input a; input b; output y;\n  wire gclk, x, q;\n"
+                     "  CKBD4BWP99LVT ckb (.I(clk), .Z(gclk));\n"
+                     "  CKND2D4BWP99ULVT ckn2 (.A1(a), .A2(b), .ZN(x));\n"
+                     "  CKND4BWP99LVT cki (.I(x), .ZN(y));\n"
+                     "  DFQD1BWP99SVT r_reg (.CP(gclk), .D(x), .Q(q));\nendmodule\n")
+        n = json.loads(run(S / "netlist_stats.py", v, "--out-json", self.tmp / "ck.json").returncode == 0
+                       and (self.tmp / "ck.json").read_text())
+        self.assertEqual(n["by_class"].get("clock_logic"), 1)       # CKND2 = clock NAND2, not an inverter
+        self.assertEqual(n["by_class"].get("clock_inverter"), 1)
+        ck = n["clock_network"]
+        self.assertEqual(ck["cells_on_clock"], 1)                    # the CKBD buffer
+        self.assertEqual(ck["clock_class_cells_on_data_nets"], 2)    # CKND2 and CKND on data
+        self.assertEqual(ck["clock_class_on_data_by_function"], {"CKND2": 1, "CKN": 1})
 
     def test_hierarchical_netlist(self):
         v = self.tmp / "hier.v"

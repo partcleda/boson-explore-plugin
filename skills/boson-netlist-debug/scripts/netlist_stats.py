@@ -36,6 +36,8 @@ CONN_RE = re.compile(r"\.\s*(\\\S+|[A-Za-z_][\w$]*)\s*\(\s*((?:[^()]|\([^()]*\))
 DECL_KW = {"input", "output", "inout", "wire", "reg", "logic", "tri", "supply0", "supply1", "wand", "wor", "tri0", "tri1"}
 CONST = re.compile(r"^\d*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_?]+$|^\d+$")
 ATTR = re.compile(r"\(\*\s*(.*?)\s*\*\)")
+CLOCK_CLASSES = ("clock_buffer", "clock_inverter", "clock_logic", "clock_gate")
+CLOCK_PINS = {"CLK", "CK", "CP", "CPN", "CKN", "CLKN", "C", "G", "GN", "E", "GATE"}
 
 
 def parse_liberty(paths, cell_map: dict) -> tuple[dict, dict, dict]:
@@ -113,6 +115,8 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
     cur = None
     n_inst = 0
     sub_conns = []
+    clockish: dict = {}
+    clock_pin_nets: set = set()
     multi = len(modules) > 1
 
     def q(mod, n):  # per-module net namespace in hierarchical netlists
@@ -178,7 +182,7 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
         for cm in CONN_RE.finditer(conns):
             pin = strip_escape(cm.group(1))
             ns = _nets(cm.group(2))
-            isout = is_output_pin(pin, outputs if outputs else None, typ if outputs else None)
+            isout = is_output_pin(pin, outputs if outputs else None, typ)
             if not ns:
                 if not cm.group(2).strip():
                     if isout:
@@ -186,6 +190,8 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
                     else:
                         unconnected_in[f"{info['function']}.{pin}"] += 1
                 continue
+            if cls in ("sequential", "clock_gate") and not isout and pin.upper() in CLOCK_PINS:
+                clock_pin_nets.update(q(cur, x) for x in ns)
             for n in ns:
                 n = q(cur, n)
                 if isout:
@@ -198,6 +204,8 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
                     ins.append(n)
         if cls in ("buffer", "inverter", "clock_buffer", "clock_inverter") and len(ins) == 1 and len(outs) == 1:
             bufinv[inst] = (ins[0], outs[0], typ)
+        if cls in CLOCK_CLASSES or cls in ("buffer", "inverter"):
+            clockish[inst] = (cls, tuple(ins), tuple(outs), info["function"])
     # top module and its ports
     roots = [m for m in modules if m not in instantiated]
     top = roots[0] if len(roots) == 1 else None
@@ -273,7 +281,9 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
     # buffer trees: buf/inv whose output feeds >=2 buf/inv
     trees = sum(1 for inst, (i, o, t) in bufinv.items() if len(by_in.get(o, [])) >= 2)
     # nets
-    undriven = [n for n in loads if n not in driver_type]
+    bit_bases = {re.sub(r"\[\d+\]$", "", n) for n in loads if n.endswith("]")} | \
+        {re.sub(r"\[\d+\]$", "", n) for n in driver_type if n.endswith("]")}
+    undriven = [n for n in loads if n not in driver_type and n not in bit_bases]  # a vector port's base name is not a net
     dangling = [n for n, t in driver_type.items() if loads.get(n, 0) == 0 and not t.startswith("<")]
     hf = sorted(loads.items(), key=lambda kv: -kv[1])[:top_nets]
     hf_rows = []
@@ -306,6 +316,27 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
         for m in sorted(modules, key=lambda x: -total(x)):
             mod_rows.append({"module": m, "own_cells": sum(mod_cells[m].values()), "total_cells": total(m),
                              "instantiations": inst_count.get(m, 0 if m != top else 1)})
+    # clock network: backwards from sequential / ICG clock pins through buffers, inverters and clock cells
+    clock_nets = set(clock_pin_nets)
+    drives = defaultdict(list)
+    for inst, (cls, ins, outs, fn_) in clockish.items():
+        for o_ in outs:
+            drives[o_].append(inst)
+    work = list(clock_nets)
+    on_clock = set()
+    while work:
+        n_ = work.pop()
+        for inst in drives.get(n_, []):
+            if inst in on_clock:
+                continue
+            on_clock.add(inst)
+            for i_ in clockish[inst][1]:
+                if i_ not in clock_nets:
+                    clock_nets.add(i_)
+                    work.append(i_)
+    clock_on_data = Counter(clockish[i][3] for i in clockish if clockish[i][0] in CLOCK_CLASSES and i not in on_clock
+                            and clockish[i][0] != "clock_gate")
+    data_on_clock = Counter(clockish[i][3] for i in on_clock if clockish[i][0] not in CLOCK_CLASSES)
     fanouts = list(loads.values())
     fo_hist = Counter()
     for v in fanouts:
@@ -317,6 +348,13 @@ def stats(path: Path, outputs=None, area=None, lib_kind=None, top_nets=25, fo_th
         "sequential": {"total": by_class.get("sequential", 0), "multibit": multibit, "by_function": dict(seq_by_fn.most_common()),
                        "clock_gates": by_class.get("clock_gate", 0)},
         "ties": by_class.get("tie", 0),
+        "clock_network": {"traced": bool(clock_pin_nets), "clock_pin_nets": len(clock_pin_nets), "cells_on_clock": len(on_clock),
+                          "clock_class_cells_on_data_nets": sum(clock_on_data.values()),
+                          "clock_class_on_data_by_function": dict(clock_on_data.most_common(10)),
+                          "data_buffers_on_clock": sum(data_on_clock.values()),
+                          "data_buffers_on_clock_by_function": dict(data_on_clock.most_common(10)),
+                          "note": "traced backwards from sequential/ICG clock pins through buf/inv/clock cells; "
+                                  "stops at module ports in hierarchical netlists"},
         "buffers": {"buffers": by_class.get("buffer", 0) + by_class.get("clock_buffer", 0),
                     "inverters": by_class.get("inverter", 0) + by_class.get("clock_inverter", 0),
                     "chains_ge2": len(chains), "cells_in_chains": sum(len(c) for c in chains),
@@ -343,6 +381,11 @@ def to_md(d: dict) -> str:
              + (f", area {fmt(d['area_um2'])} um2" if d["area_um2"] else "") + f"; pin directions from {d['pin_directions']}")
     s = d["sequential"]
     o.append(f"- sequential {s['total']:,} (multibit {s['multibit']:,}), clock gates {s['clock_gates']:,}, tie cells {d['ties']:,}")
+    ck = d.get("clock_network") or {}
+    if ck.get("traced"):
+        o.append(f"- clock network (traced from {ck['clock_pin_nets']:,} clock-pin nets): {ck['cells_on_clock']:,} cells on it; "
+                 f"clock-class cells on data nets {ck['clock_class_cells_on_data_nets']:,} {ck['clock_class_on_data_by_function'] or ''}; "
+                 f"data buffers/inverters on the clock {ck['data_buffers_on_clock']:,} {ck['data_buffers_on_clock_by_function'] or ''}")
     b = d["buffers"]
     o.append(f"- buffers {b['buffers']:,}, inverters {b['inverters']:,}; {b['chains_ge2']:,} buf/inv chains of length >=2 "
              f"({b['cells_in_chains']:,} cells, longest {b['max_chain']}), {b['inverter_pairs']:,} back-to-back inverter pairs, "

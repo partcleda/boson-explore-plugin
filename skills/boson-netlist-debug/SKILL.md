@@ -185,7 +185,11 @@ unconstrained endpoints and missing I/O delays (check_timing), undriven /
 multi-driven nets, unconnected input pins, dangling outputs, tie cells on
 functional nets, long buffer/inverter chains, back-to-back inverter pairs,
 unbuffered high-fanout nets, weak drivers on large loads, clock skew on the
-failing paths, VT mix.
+failing paths, VT mix, clock-class cells used in data logic (e.g. `CKND2`
+clock NAND2s on data nets) and data buffers on the clock. On a placed run the
+timing digest gives every driver->load wire length from the report's
+Location column: a long wire behind a weak driver, or a chain of buffers
+each driving tens of um, is the placement-side explanation of a slow path.
 
 ### 5. Boson's fault, or the design / constraints?
 

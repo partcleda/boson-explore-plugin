@@ -67,9 +67,16 @@ ones.
   and nowhere structured is unknown to the anonymizer. Give it the RTL and
   the full log so it learns the names, and pass project or company names
   with `--literal`.
-- Names that are ordinary words (`data`, `valid`, `clk`, `debug`,
-  `running`) are mapped in structured positions but left alone in prose, so
-  report text stays readable. `--check` has two levels: in structured
+- Names that are ordinary words (`data`, `valid`, `load`, `limit`, `clear`,
+  `net`) are mapped in structured positions but left alone in prose unless
+  they are used as an identifier there (part of `a/b_c`, `x[3]`, `u.v_w`,
+  or quoted as an object name); `set/clear` and `fF/um` stay prose. Units
+  (fF, ohm, kohm, ps, ns, um, mW, ...) and boson's report phrases (`(net)`,
+  `(rise edge)`, `clock network delay`, `data arrival time`, `slack
+  (VIOLATED)`, column headers, ...) are never mapped. Top, module and clock
+  names are mapped even as plain words. A journal subject is an object name
+  optionally followed by boson's annotation (`n6495 (load 11.8 fF, ...)`):
+  only the name is tokenized. Report rows keep their column alignment. `--check` has two levels: in structured
   positions (netlist, SDC objects, report start/end/point columns, journal
   subjects and object fields) any original name fails, generic or not; in
   prose a whole-word match on generic vocabulary (the built-in word list,

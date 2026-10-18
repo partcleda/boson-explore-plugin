@@ -156,6 +156,56 @@ KNOWN_TAGS = [
 SEQ_HINT = re.compile(r"(?i)dff|sdf|latch|dlh|dll|^df|__df|__sdf|__dl|__edf|lat[a-z]?\d|mbff")
 
 
+# Units never name design objects.
+UNITS = set("""
+fs ps ns us ms s fF pF nF aF uF F ohm ohms kohm Kohm kOhm Mohm mohm Ohm um um2 nm mm cm m mW uW nW pW W kW mV uV V kV
+mA uA nA A GHz MHz kHz Hz dB C K
+""".split())
+# boson report / log phrases protected by context in reports and logs (the words may also be RTL names)
+REPORT_PHRASES = re.compile(
+    r"\((?:net|in|out|inout|rise edge|fall edge|ideal|propagated|MET|VIOLATED|UNCONSTRAINED)\)"
+    r"|clock network delay|data (?:arrival|required) time|library (?:setup|hold|recovery|removal) time"
+    r"|clock (?:uncertainty|reconvergence pessimism|gating (?:setup|hold) time)|(?:input|output) external delay"
+    r"|(?:rising|falling) edge-triggered flip-flop|clocked by|(?:input|output|inout) port|slack(?= \()"
+    r"|^\s*Point\s+Fanout.*$|^\s*(?:Startpoint|Endpoint|Path Group|Path Type|Report|Design|Tool)\s*:"
+    r"|^\s*-path_type \S+|^\s*-max_paths\b|Information: Checking '\w+'", re.M)
+_PLAIN = re.compile(r"[a-z]+|[A-Z]+|[A-Z][a-z]+")
+_CHAIN = re.compile(r"[\w$\[\]/.:\\]")
+_DISTINCT = re.compile(r"[_\d$\[]")      # a segment that looks like a design name, not a word (KoggeStone is a word)
+
+
+def is_plain(w: str) -> bool:
+    """An ordinary word: letters only, lower / UPPER / Capitalized (no '_', digits, camelCase)."""
+    return bool(_PLAIN.fullmatch(w))
+
+
+def ident_context(s: str, start: int, end: int) -> bool:
+    """Is the word at s[start:end] part of an identifier-like chain (a/b, x[3], u.v) with a distinctive segment
+    ('_', digit, '$', bus index)?  'set/clear', 'fF/um', 'Array/Dadda/KoggeStone' and a sentence-final '.' are prose."""
+    i, j = start, end
+    while i > 0 and _CHAIN.match(s[i - 1]):
+        i -= 1
+    while j < len(s) and _CHAIN.match(s[j]):
+        j += 1
+    chain = s[i:j].rstrip(".:")
+    if chain == s[start:end]:
+        return False
+    if "[" in chain:
+        return True
+    segs = [x for x in re.split(r"[/.:\\]", chain) if x]
+    return any(_DISTINCT.search(x) for x in segs)
+
+
+def prose_keeps(w: str, s: str, start: int, end: int, roles: dict) -> bool:
+    """In prose, leave a word alone if it is a unit, or a plain word used as a word (not as an identifier).
+    Top, module and clock names are always mapped: they identify the design or are cross-referenced everywhere."""
+    if w in UNITS:
+        return True
+    if not is_plain(w) or roles.get(w) in ("top", "module", "clock"):
+        return False
+    return not ident_context(s, start, end)
+
+
 def split_suffix(word: str) -> tuple[str, str]:
     m = ROLE_SUFFIX.search(word)
     if m:
@@ -441,7 +491,7 @@ class Mapper:
         for tok in line.split():
             if "/" in tok and not tok.startswith(("/", "~", "http")) and not REL_PATH.search(tok):
                 t = tok.strip(",;:()'\"`")
-                if re.match(r"^[\\A-Za-z_][\w$\[\]/.\\]*$", t):
+                if re.match(r"^[\\A-Za-z_][\w$\[\]/.\\]*$", t) and any(_DISTINCT.search(x) for x in t.split("/")):
                     self.add_name(t, "other")
 
     def harvest_journal(self, path: Path) -> None:
@@ -455,8 +505,10 @@ class Mapper:
                 if not isinstance(r, dict):
                     continue
                 for s in r.get("subjects") or []:
-                    if isinstance(s, str):
-                        self.add_name(s, "other")
+                    if isinstance(s, str) and s.split():
+                        # a subject is an object name, optionally followed by boson's annotation
+                        # ("n6495 (load 11.8 fF, limit 42.0 fF, 16 sinks): 2x BUF..."): only the name is a name
+                        self.add_name(s.split()[0], "other")
                 for k in ("text", "reason"):
                     if isinstance(r.get(k), str):
                         self._harvest_line(r[k])
@@ -607,12 +659,15 @@ class Mapper:
             self.paths[p] = f"<path{len(self.paths) + 1}>{ext}"
         return self.paths[p]
 
-    def anon_text(self, s: str, strict: bool = False) -> str:
+    def anon_text(self, s: str, strict: bool = False, report: bool = False) -> str:
         prot: list[str] = []
 
         def protect(rep: str) -> str:
             prot.append(rep)
             return f"\x00{len(prot) - 1}\x00"
+
+        if report:      # boson's own report wording is vocabulary even where the RTL reuses the words
+            s = REPORT_PHRASES.sub(lambda m: protect(m.group(0)), s)
 
         def url(m):
             u = m.group(0)
@@ -667,7 +722,8 @@ class Mapper:
                 return w
             if prev in "/." and w in self.pins:
                 return w
-            if not strict and (len(w) < 2 or w in VOCAB or w.lower() in VOCAB):
+            if not strict and (len(w) < 2 or w in VOCAB or w.lower() in VOCAB
+                               or prose_keeps(w, s, m.start(), m.end(), self.roles)):
                 return w
             base, suf = split_suffix(w)
             tok = self.names.get(base)
@@ -716,19 +772,25 @@ class Mapper:
             for line in f:
                 m = se.match(line)
                 if m:
-                    o.write(m.group(1) + self.anon_text(m.group(2), True) + self.anon_text(m.group(3)))
+                    o.write(m.group(1) + self.anon_text(m.group(2), True) + self.anon_text(m.group(3), report=True))
                     continue
                 m = pt.match(line)
-                if m and m.group(4) not in ("rise", "fall", "ideal", "propagated"):
-                    o.write(m.group(1) + self.anon_text(m.group(2), True) + m.group(3)
-                            + self.celltypes.get(m.group(4), self.anon_text(m.group(4), True)) + self.anon_text(m.group(5)))
+                if m:
+                    obj = self.anon_text(m.group(2), True)
+                    if m.group(4) in REPORT_PAREN:   # '<net> (net)', '<port> (in)': the paren word is report vocabulary
+                        cell = m.group(4)
+                    else:
+                        cell = self.celltypes.get(m.group(4), self.anon_text(m.group(4), True))
+                    head = m.group(1) + obj + m.group(3) + cell
+                    o.write(_realign(head, len(m.group(1) + m.group(2) + m.group(3) + m.group(4)),
+                                     self.anon_text(m.group(5), report=True)))
                     continue
-                o.write(self.anon_text(line))
+                o.write(self.anon_text(line, report=True))
 
     def write_text(self, src: Path, dst: Path) -> None:
         with open_text(src) as f, open(dst, "w") as o:
             for line in f:
-                o.write(self.anon_text(line))
+                o.write(self.anon_text(line, report=True))
 
     # boson's static vocabulary: compile-time strings that never carry design names.  `chosen`, `option`,
     # `stage`, `label`, `pass` are NOT here: real journals put names in them ("merged into decoded_imm_j[20]").
@@ -753,9 +815,10 @@ class Mapper:
             if key in self.JSON_KEEP:
                 return self.celltypes.get(o) or self._tag_sub(o)
             if key in self.JSON_STRICT:
-                m = re.match(r"^(\S+)(\s+)\(([^)]+)\)$", o)
-                if m:
-                    return self.anon_text(m.group(1), True) + m.group(2) + "(" + self.celltypes.get(m.group(3), m.group(3)) + ")"
+                # object name first, then (optionally) boson's own annotation: strict on the name, prose for the rest
+                m = re.match(r"^(\S+)(\s.*)?$", o, re.S)
+                if m and m.group(2):
+                    return self.anon_text(m.group(1), True) + self.anon_text(m.group(2), report=True)
                 return self.anon_text(o, True)
             if key in ("cell", "lib_cell", "ref_name"):
                 return self.celltypes.get(o, self.anon_text(o, True))
@@ -796,6 +859,23 @@ class Mapper:
         words -= set(self.names.values())  # our own tokens are never originals (finalize guarantees it)
         subs = [p for p in self.paths if "/" in p or Path(p).stem in self.path_stems] + list(self.literals) + [t.strip("_") for t in self.lib_tags if len(t.strip("_")) >= 3]
         return words, [s for s in subs if len(s) >= 3]
+
+
+def _realign(head: str, orig_len: int, tail: str) -> str:
+    """Keep the report's numeric columns where they were: pad a shorter anonymized prefix, or take the
+    extra width out of the whitespace that follows it (keeping at least one space)."""
+    diff = orig_len - len(head)
+    if diff > 0:
+        return head + tail[:1] + " " * diff + tail[1:] if tail.startswith(")") else head + " " * diff + tail
+    if diff < 0:
+        lead = tail[1:] if tail.startswith(")") else tail
+        ws = len(lead) - len(lead.lstrip(" "))
+        cut = min(-diff, max(0, ws - 1))
+        return head + (tail[:1] + lead[cut:] if tail.startswith(")") else lead[cut:])
+    return head + tail
+
+
+REPORT_PAREN = {"net", "in", "out", "inout", "rise", "fall", "ideal", "propagated", "MET", "VIOLATED", "UNCONSTRAINED"}
 
 
 def _sdc_strip_comment(line: str) -> str:
@@ -959,18 +1039,27 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
         own_paths.add(rel)
         own_paths.add(re.sub(r"\.[A-Za-z]+$", "", rel))
     leaks, warns = [], []
-    unmapped_hier = re.compile(r"(?<![\w<$/])([A-Za-z_][\w$]*(?:\[\d+\])*(?:/[A-Za-z_][\w$]*(?:\[\d+\])*)+)")
+    unmapped_hier = re.compile(r"(?<![\w<$/\]\[.])([A-Za-z_][\w$]*(?:\[\d+\])*(?:/[A-Za-z_][\w$]*(?:\[\d+\])*)+)")
+
+    roles = mapper.roles
+    prose_words: set[str] = set()
 
     def scan(text: str, where: tuple, structured: bool, sdc: bool = False):
         hard = hard_struct if structured else hard_prose
         if sdc:
             text = SDC_UNIT_OPT.sub(lambda m: m.group(1) + " " * len(m.group(2)), text)
+        if not structured:
+            text = REPORT_PHRASES.sub(lambda m: " " * len(m.group(0)), text)
         for m in MASTER.finditer(text):
             for w in _words_of(m):
                 prev = text[m.start() - 1] if m.start() else ""
                 if structured and (prev == "-" or (sdc and w in SDC_WORDS) or (prev in "/." and w in pins)):
                     continue
                 base, _ = split_suffix(w)
+                if not structured and m.lastgroup == "id" and prose_keeps(w, text, m.start(), m.end(), roles):
+                    if w in hard_struct:
+                        prose_words.add(w)
+                    continue
                 if base in hard or w in hard:
                     leaks.append((*where, f"original identifier {w!r}" + (" (structured position)" if structured else "")))
 
@@ -1038,11 +1127,11 @@ def run_check(mapper: Mapper, target: Path, verbose: int = 20) -> int:
                 segs = cand.split("/")
                 bad = [x for x in segs[:-1] if not (TOKEN_RE.match(split_suffix(re.sub(r"\[\d+\]", "", x))[0])
                        or TOOL_ANON.match(re.sub(r"\[\d+\]", "", x)) or x.lower() in VOCAB or x in static_vocab or x in sw)]
-                if bad and not all(len(x) <= 4 and x.isalpha() for x in segs):
+                if bad and not all(is_plain(x) or x in UNITS for x in segs):   # 'preset/clear' is prose
                     warns.append((name, ln, f"unmapped-looking hierarchical name {cand!r}"))
     print(f"check: scanned {len(files)} file(s) in {target}; {len(hard_struct)} original identifiers "
           f"({len(hard_prose)} distinctive), {len(subs)} literals/paths/tags")
-    coll = sorted(words & generic)
+    coll = sorted((words & generic) | prose_words)
     if coll:
         print(f"check: {len(coll)} original names are generic words; they must not appear in structured positions "
               f"(checked) and are allowed as whole words in prose: {', '.join(coll[:30])}{' ...' if len(coll) > 30 else ''}")
@@ -1073,6 +1162,11 @@ def scan_json(o, name: str, scan, ln: int = 0, key: str | None = None) -> None:
             scan_json(v, name, scan, ln, key)
     elif isinstance(o, str):
         if key in JSON_STATIC:
+            return
+        if key in Mapper.JSON_STRICT and " " in o.strip():
+            head, _, tail = o.strip().partition(" ")
+            scan(head, (name, ln), True)
+            scan(tail, (name, ln), False)
             return
         scan(o, (name, ln), key in Mapper.JSON_STRICT)
 
