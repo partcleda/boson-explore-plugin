@@ -101,8 +101,10 @@ names are heuristics; it may not recover a source signal after synthesis.
   chain or a case with overlapping conditions → restructure to parallel.
 - A high-fanout net (hundreds of loads) that is an enable/reset/state bit:
   duplicate the register driving it or register a decoded version.
-- An adder/comparator chain (many XOR/NAND stages on a `..._add`/`_lt`
-  net): boson already picks adder architecture; the RTL fix is narrowing
+- An adder/comparator chain (many XOR/NAND/AOI stages on a `..._add`/`_lt`
+  net): first run `boson-datapath-audit` to see which architecture boson
+  chose and whether a logic rewrite re-serialized it. That is a tool issue to
+  report, not an RTL fix. If the structure is clean, the RTL fix is narrowing
   the operation or splitting it across a cycle (behaviour-changing).
 - If the path starts or ends at a port with `set_input_delay` /
   `set_output_delay` in the SDC, the fix may be a constraint, not RTL.
