@@ -74,7 +74,13 @@ Columns:
 - **architecture**: the selector's lowering for the block (`report_provenance`
   `blocks[].lowering`). A ripple here is the selector's choice, not a rewrite.
 - **cells/path**: max/mean count of technology-mapped cells attributed to the
-  block on each sampled path. Repair buffers and clones are excluded.
+  block on each sampled path. Repair buffers and clones, registers, and
+  buffer/inverter cells are excluded.
+- **own**: the most cells on one path that implement this block alone. When
+  a rewrite merges a structure into the logic around it, its cells also carry
+  the neighbours' blocks and `own` drops toward 0. When the structure is kept
+  intact (for example under boson's `synth_preserve_datapath`), `own` is its
+  mapped depth and should sit near **ideal**.
 - **ideal**: ceil(log2 w) + 2, a rough clean depth for a log-depth
   architecture. It is blank for comparators, whose width is the 1-bit result.
 - **rewritten by**: the share of attributed path cells listing each AIG
