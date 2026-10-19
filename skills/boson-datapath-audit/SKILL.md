@@ -43,6 +43,12 @@ the checkpoint identity and ordered data-pin paths first; native JSON also
 contains net rows and may omit the launch clock pin. Record source, binary,
 constraints and flow identities beside the reports.
 
+When runtime is part of the question, separate elaboration, probe mapping,
+final mapping and repair using the build's stage profiler. `-fast` can still
+run many repair rounds. Record cold/warm characterization caches and thread
+counts; do not attribute a cache speedup to a netlist setting or sum nested
+profile spans as independent work.
+
 ## Audit
 
 ```sh
