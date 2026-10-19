@@ -16,10 +16,13 @@ import argparse
 import collections
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
 ARITH = ("Add", "Sub", "Lt", "Gt", "Le", "Ge", "AddCarry", "AddTree", "Neg", "Inc", "Dec", "Cmp", "Mul")
+# registers, buffers and inverters on a path are not the structure's depth
+NOT_LOGIC = re.compile(r"^(S?E?DF|LH|LN|INV|BUF|CKBD|CKND\d|CKN\D)", re.I)
 LOG_DEPTH = ("HanCarlson", "KoggeStone", "Sklansky", "BrentKung", "Prefix", "Sparse", "CarrySelect", "Ladner")
 
 
@@ -73,6 +76,8 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
             continue
         cells = collections.defaultdict(dict)
         for cell in mapped:
+            if NOT_LOGIC.match(cell.get("lib_cell") or ""):
+                continue
             for block in cell.get("blocks") or []:
                 if all_blocks or block.get("op", "").startswith(ARITH):
                     cells[block_key(block)][cell["cell"]] = cell
@@ -80,7 +85,10 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
             passes = collections.Counter()
             for cell in by_name.values():
                 passes.update({str(x).split(" ")[0] for x in cell.get("aig_passes") or []})
-            per_path[key].append((len(by_name), passes, path["slack_ns"]))
+            # a cell that also implements another block is logic merged across the
+            # boundary; only cells of this block alone measure its own depth
+            own = sum(len(c.get("blocks") or []) == 1 for c in by_name.values())
+            per_path[key].append((len(by_name), passes, path["slack_ns"], own))
     if not any(p["matched_cells"] for p in coverage["paths"]):
         raise ValueError("no path cells match provenance; check session identity and collection")
     if not any(p.get("slack_ns") is not None and not p.get("unconstrained") for p in timing["paths"]):
@@ -89,10 +97,11 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
     for (block, dp_node, origins, op, width, lowering), samples in per_path.items():
         if len(samples) < min_paths:
             continue
-        counts = [n for n, _, _ in samples]
+        counts = [n for n, _, _, _ in samples]
+        owns = [o for _, _, _, o in samples]
         total = sum(counts)
         passes = collections.Counter()
-        for _, ps, _ in samples:
+        for _, ps, _, _ in samples:
             passes.update(ps)
         ideal = ideal_cells(op, width, lowering)
         mean = total / len(samples)
@@ -102,8 +111,9 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
             "origins": [dict(zip(("file", "line", "col", "instance"), o)) for o in origins],
             "rtl": f"{source[0]}:{source[1]}", "instance": source[3],
             "op": op, "width": width, "architecture": lowering, "paths": len(samples),
-            "worst_slack_ps": round(min(s for _, _, s in samples) * 1000, 1),
+            "worst_slack_ps": round(min(s for _, _, s, _ in samples) * 1000, 1),
             "cells_per_path_max": max(counts), "cells_per_path_mean": round(mean, 1),
+            "own_cells_per_path_max": max(owns), "own_cells_per_path_mean": round(sum(owns) / len(owns), 1),
             "ideal_cells": ideal,
             "rewritten_share": {k: round(c / total, 2) for k, c in passes.most_common() if k != "&nf"},
             "deeper_than_architecture": ideal is not None and mean > 1.5 * ideal,
@@ -147,12 +157,12 @@ def main() -> int:
         a.coverage_json.write_text(json.dumps(coverage, indent=2))
 
     print(f"{'block':>7s} {'instance':30s} {'rtl':34s} {'op':8s} {'w':>3s} {'architecture':28s} {'paths':>5s} {'slack':>7s} "
-          f"{'cells/path':>10s} {'ideal':>5s}  rewritten by")
+          f"{'cells/path':>10s} {'own':>4s} {'ideal':>5s}  rewritten by")
     for r in rows:
         rw = " ".join(f"{k} {int(v * 100)}%" for k, v in r["rewritten_share"].items()) or "-"
         flag = "  <-- investigate depth/attribution" if r["deeper_than_architecture"] else ""
         print(f"{str(r['block']):>7s} {r['instance'][-30:]:30s} {r['rtl'][-34:]:34s} {r['op']:8s} {r['width']:3d} {r['architecture'][:28]:28s} {r['paths']:5d} "
-              f"{r['worst_slack_ps']:7.1f} {r['cells_per_path_max']:4d}/{r['cells_per_path_mean']:5.1f} "
+              f"{r['worst_slack_ps']:7.1f} {r['cells_per_path_max']:4d}/{r['cells_per_path_mean']:5.1f} {r['own_cells_per_path_max']:4d} "
               f"{r['ideal_cells'] if r['ideal_cells'] else '-':>5}  {rw}{flag}")
     if not rows:
         print("no matching blocks on constrained paths; inspect coverage and use --all-blocks for control logic")
