@@ -61,6 +61,14 @@ nor a testbench — see below.
   - slowest stages: sky130_fd_sc_hd__or4_1 0.659 ns, sky130_fd_sc_hd__or4_1 0.653 ns, sky130_fd_sc_hd__a22oi_4 0.498 ns
   - high fanout: `n2972` drives 86 loads
   ```
+- **`skills/boson-datapath-audit`** — what boson actually built for the
+  arithmetic on the critical paths: per adder/subtractor/comparator, the
+  architecture the datapath selector chose (ripple, carry-select, Sklansky,
+  Brent-Kung, Han-Carlson, ...), the mapped cells it puts on each path against
+  that architecture's depth, and the share of its cells each logic rewrite
+  (`dc2`, `dretime`, `prefix_scan`) restructured. Built on `compile
+  -provenance`. Triggers on "did it use Han-Carlson or ripple", "did dc2 undo
+  the adder".
 - **`skills/boson-rtl-evolve`** — an evolutionary RTL-optimisation loop
   with boson as the evaluator. The objective is max Fmax
   (1/(T − WNS)), min area or min power, optionally with caps on the
@@ -72,8 +80,8 @@ nor a testbench — see below.
   that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
   "run an RTL optimisation loop".
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
-  `/boson-rtl-fix`, `/boson-rtl-evolve` slash commands, direct shortcuts into
-  the skills.
+  `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit` slash
+  commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
