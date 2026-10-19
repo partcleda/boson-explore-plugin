@@ -86,3 +86,20 @@ it does not establish that an RTL rewrite is functionally equivalent.
 
 The plugin's `timing_probe.py --json` produces a different, text-derived
 probe schema. Its `--diff` expects that probe schema, not native Boson JSON.
+
+## Restored sessions and contradictory attribution
+
+A checkpoint may retain a netlist but omit detailed `report_provenance`
+records. Collect cell stories before saving/exiting the original compile.
+After restore, run `update_timing` and require complete timing. Archived
+stories may be joined only after checking experiment identity and matching
+ordered data-pin paths; ignore JSON net rows and differences in launch-clock
+pin presentation for that comparison. Coverage is necessary, not proof of
+correct source attribution.
+
+Check netlist fanins when a source hint conflicts with the path's function.
+A long mux/priority chain attributed to a small arithmetic operator may be
+propagated attribution. Use the datapath audit's block IDs and instance names,
+not source-line aggregation, and inspect non-arithmetic blocks too. An
+isolated submodule plus a single-setting full-design ablation can identify
+context-dependent optimization failures without changing customer RTL.
