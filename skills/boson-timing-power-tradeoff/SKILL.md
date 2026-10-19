@@ -38,6 +38,10 @@ skill is for comparing multiple points.
 
 ## Running the sweep
 
+For a comparison between compiler passes or compiler binaries with unchanged
+RTL and constraints, use the [paired compiler ablation guide](references/compiler-ablation.md).
+The parameter/clock sweep below changes a different experimental variable.
+
 Use `scripts/boson_dse.py` in this skill's directory:
 
 ```
