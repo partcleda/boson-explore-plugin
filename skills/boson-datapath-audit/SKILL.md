@@ -16,7 +16,7 @@ Do not answer this question by counting MAJ/AOI/OAI chains in the netlist.
 The mapper uses full-adder carry cells as generic majority gates. Compressor
 trees and carry chains share one pipeline stage. Rewrites also merge an adder
 into the logic around it, so a chain count cannot tell where the adder starts
-and ends. Provenance can.
+and ends. Provenance helps locate candidate operators, but inferred or shared attribution must be checked against connectivity.
 
 ## Collect
 
@@ -26,7 +26,7 @@ and ends. Provenance can.
    source the collector:
 
 ```tcl
-compile -f design.f -top top -sdc top.sdc -effort medium -provenance
+compile -f design.f -top top -sdc top.sdc -provenance
 set audit_dir audit_synth      ;# default: datapath_audit
 set audit_paths 200            ;# worst paths sampled, default 200
 source <plugin>/skills/boson-datapath-audit/scripts/collect.tcl
@@ -36,10 +36,17 @@ This writes `prov_summary.txt` (passes that ran, netlist edits by pass),
 `prov_paths.json` (`report_provenance -json` for every cell on the sampled
 paths) and `timing.json` (native `report_timing -format json`).
 
+Collect in the live compile session: a saved session can restore the netlist
+without detailed provenance. After loading a checkpoint, run `update_timing`
+and check completion. To join archived cell stories to restored timing, verify
+the checkpoint identity and ordered data-pin paths first; native JSON also
+contains net rows and may omit the launch clock pin. Record source, binary,
+constraints and flow identities beside the reports.
+
 ## Audit
 
 ```sh
-python3 <plugin>/skills/boson-datapath-audit/scripts/datapath_audit.py audit_synth [--json audit.json]
+python3 <plugin>/skills/boson-datapath-audit/scripts/datapath_audit.py audit_synth [--json audit.json] [--coverage-json coverage.json] [--all-blocks]
 ```
 
 ```
@@ -49,6 +56,13 @@ DPUMultiplier_RESIDUAL.sv:262      AddCarry   9 Sklansky adder        88   -41.6
 FP32ParametricAdder.sv:149         Add       23 HanCarlson adder      10   -41.3   12/ 11.4     7  dc2 39%  <-- deeper than its architecture
 ```
 
+The audit prints per-path coverage before the arithmetic table. Missing cells,
+blocks or timing values are not evidence that logic is absent. `--all-blocks`
+includes mux/priority/Boolean logic; the default arithmetic view can miss the
+actual bottleneck. JSON rows retain block IDs, full source paths and instances
+so repeated instances at the same source line stay separate. A cell is counted
+once per block per path, even when its block record is repeated.
+
 Columns:
 
 - **architecture**: the selector's lowering for the block (`report_provenance`
@@ -57,8 +71,9 @@ Columns:
   block on each sampled path. Repair buffers and clones are excluded.
 - **ideal**: ceil(log2 w) + 2, a rough clean depth for a log-depth
   architecture. It is blank for comparators, whose width is the 1-bit result.
-- **rewritten by**: the share of the block's path cells that each AIG pass
-  restructured. `&nf` (the mapper) is omitted because it touches every cell.
+- **rewritten by**: the share of attributed path cells listing each AIG
+  pass in `aig_passes`. This is reported pass membership, not proof that the
+  pass created the measured depth. `&nf` (mapping) is omitted.
 
 ## Reading it
 
@@ -66,20 +81,30 @@ Columns:
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
 - **Log-depth architecture, cells/path well above ideal, mostly rewritten by
-  `dc2`**: the rewrite re-serialized it. Confirm with a single
-  `report_provenance <cell>` on the deepest cells: `aig_level` jumps of tens of
-  levels inside one small block are the signature. Report it to boson with
-  this table. Forcing `adder_topology` globally is no fix: it moves every
-  adder at once and usually loses badly.
+  `dc2`**: investigate a possible rewrite regression. Pass membership and
+  AIG level do not establish causation; levels are absolute and may include
+  upstream logic. Verify the deepest cells against netlist fanins, then use
+  before/after stage snapshots or a controlled pass ablation. Keep the
+  constraints, effort, libraries and thread count fixed.
 - **Cells/path near ideal, low rewritten share**: the structure survived as
-  selected.
+  selected, subject to attribution and coverage checks.
 - Block attribution is shared. After a rewrite merges an adder with nearby
   logic, cells carry several blocks, so cells/path is an upper bound. Use it
-  to rank blocks and not as an exact gate count.
+  to rank blocks and not as an exact gate count. Some engine versions infer
+  labels by propagation into neighboring cones and do not expose that
+  confidence in block stories. If a small arbiter comparison is attributed
+  a long chain whose fanins are decoder table data, report the conflict and
+  follow connectivity; do not call it a comparator carry chain.
 - Compare runs only with the same SDC, effort and path sample. At a tight
   period, repair moves the worst paths between blocks from run to run.
 
 The native `report_timing -format rtl|json` traceback (see
 `boson-rtl-timing-closure`) maps registers and named nets, but often leaves
-arithmetic unmapped. Provenance traces about 99% of cells to an RTL line, so
-use it for datapath questions.
+arithmetic unmapped. Measure provenance coverage on this sample instead of assuming a fixed
+coverage percentage. Retain both forms of evidence.
+
+For context-dependent failures, compile the implicated submodule with a
+comparable interface constraint and inspect stage depths. A good isolated
+result does not prove full-chip timing, but distinguishes a local lowering
+problem from flattening, sharing or protection-boundary interactions. Do not
+raise repair effort until the surviving structural chain is understood.

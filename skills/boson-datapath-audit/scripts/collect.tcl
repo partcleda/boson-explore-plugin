@@ -19,5 +19,6 @@ foreach_in_collection p [get_timing_paths -max_paths $audit_paths -nworst 1] {
 }
 set audit_cells [lsort -unique $audit_cells]
 puts "datapath audit: [llength $audit_cells] cells on the $audit_paths worst paths -> $audit_dir"
+if {![llength $audit_cells]} { error "No path cells collected; inspect timing paths before auditing provenance" }
 report_provenance -json [get_cells $audit_cells] > $audit_dir/prov_paths.json
 report_timing -format json -max_paths $audit_paths -nworst 1 -file $audit_dir/timing.json

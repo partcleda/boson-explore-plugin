@@ -7,9 +7,8 @@ Inputs come from scripts/collect.tcl (a `compile -provenance` session):
 
     datapath_audit.py <audit_dir> [--min-paths 1] [--json out.json]
 
-A block whose mapped cells per path exceed its architecture's depth, with most
-of those cells rewritten by a pass like `dc2 -l`, is a block the rewrite
-re-serialized after the datapath selector chose a log-depth form.
+Attribution ranks hypotheses, not causes: verify connectivity and use a controlled
+pass ablation or stage snapshots before claiming a rewrite serialized a block.
 """
 from __future__ import annotations
 
@@ -25,9 +24,92 @@ LOG_DEPTH = ("HanCarlson", "KoggeStone", "Sklansky", "BrentKung", "Prefix", "Spa
 
 
 def block_key(b: dict) -> tuple:
-    o = next((x for x in b.get("origins") or [] if isinstance(x, dict) and x.get("file")), {})
-    loc = f"{Path(o.get('file', '?')).name}:{o.get('line', '?')}"
-    return (loc, b.get("op", "?"), b.get("width") or 0, b.get("lowering") or "-")
+    origins = tuple(sorted({(o.get("file", ""), o.get("line", 0),
+                            o.get("col", 0), o.get("instance", ""))
+                           for o in b.get("origins") or [] if isinstance(o, dict)}))
+    return (b.get("block"), b.get("dp_node"), origins, b.get("op", "?"),
+            b.get("width") or 0, b.get("lowering") or "-")
+
+
+def path_cells(path: dict) -> list[str]:
+    return list(dict.fromkeys(pt["point"].rsplit("/", 1)[0]
+                             for pt in path["points"]
+                             if "/" in pt["point"] and pt.get("increment_ns") is not None))
+
+
+def audit(provenance, timing, min_paths=1, all_blocks=False):
+    if not isinstance(provenance, list) or not provenance:
+        raise ValueError("prov_paths.json must be a nonempty cell-story array; a summary or restored session is insufficient")
+    if any(not isinstance(c, dict) or not isinstance(c.get("cell"), str) for c in provenance):
+        raise ValueError("invalid cell story in prov_paths.json")
+    prov = {c["cell"]: c for c in provenance}
+    if len(prov) != len(provenance):
+        raise ValueError("duplicate cell names in prov_paths.json")
+    if not isinstance(timing, dict):
+        raise ValueError("timing.json must be an object")
+    if timing.get("schema_version") != 1 or timing.get("timing_complete") is not True:
+        raise ValueError("timing.json requires schema_version 1 and complete timing")
+    if not timing.get("paths"):
+        raise ValueError("empty timing path sample")
+    coverage = {"warnings": timing.get("warnings"), "message": timing.get("message"), "paths": []}
+    per_path = collections.defaultdict(list)
+    for index, path in enumerate(timing["paths"], 1):
+        names = path_cells(path)
+        matched = [prov[n] for n in names if n in prov]
+        mapped = [c for c in matched if c.get("mapped_in") == "technology mapping"]
+        coverage["paths"].append({
+            "path": index, "startpoint": path["startpoint"], "endpoint": path["endpoint"],
+            "slack_ns": path.get("slack_ns"), "unconstrained": path.get("unconstrained"),
+            "cell_candidates": len(names),
+            "matched_cells": len(matched), "missing_cells": [n for n in names if n not in prov],
+            "technology_mapped_cells": len(mapped),
+            "arithmetic_attributed_cells": sum(any(b.get("op", "").startswith(ARITH)
+                                                     for b in c.get("blocks") or []) for c in mapped),
+            "without_blocks": [c["cell"] for c in matched if not c.get("blocks")],
+            "other_stages": dict(collections.Counter(c.get("mapped_in") or "unknown"
+                                for c in matched if c.get("mapped_in") != "technology mapping")),
+        })
+        if path.get("slack_ns") is None or path.get("unconstrained"):
+            continue
+        cells = collections.defaultdict(dict)
+        for cell in mapped:
+            for block in cell.get("blocks") or []:
+                if all_blocks or block.get("op", "").startswith(ARITH):
+                    cells[block_key(block)][cell["cell"]] = cell
+        for key, by_name in cells.items():
+            passes = collections.Counter()
+            for cell in by_name.values():
+                passes.update({str(x).split(" ")[0] for x in cell.get("aig_passes") or []})
+            per_path[key].append((len(by_name), passes, path["slack_ns"]))
+    if not any(p["matched_cells"] for p in coverage["paths"]):
+        raise ValueError("no path cells match provenance; check session identity and collection")
+    if not any(p.get("slack_ns") is not None and not p.get("unconstrained") for p in timing["paths"]):
+        raise ValueError("no constrained paths with usable slack")
+    rows = []
+    for (block, dp_node, origins, op, width, lowering), samples in per_path.items():
+        if len(samples) < min_paths:
+            continue
+        counts = [n for n, _, _ in samples]
+        total = sum(counts)
+        passes = collections.Counter()
+        for _, ps, _ in samples:
+            passes.update(ps)
+        ideal = ideal_cells(op, width, lowering)
+        mean = total / len(samples)
+        source = next((o for o in origins if o[0]), ("?", 0, 0, ""))
+        rows.append({
+            "block": block, "dp_node": dp_node,
+            "origins": [dict(zip(("file", "line", "col", "instance"), o)) for o in origins],
+            "rtl": f"{source[0]}:{source[1]}", "instance": source[3],
+            "op": op, "width": width, "architecture": lowering, "paths": len(samples),
+            "worst_slack_ps": round(min(s for _, _, s in samples) * 1000, 1),
+            "cells_per_path_max": max(counts), "cells_per_path_mean": round(mean, 1),
+            "ideal_cells": ideal,
+            "rewritten_share": {k: round(c / total, 2) for k, c in passes.most_common() if k != "&nf"},
+            "deeper_than_architecture": ideal is not None and mean > 1.5 * ideal,
+        })
+    rows.sort(key=lambda r: (r["worst_slack_ps"], -r["cells_per_path_max"], str(r["block"])))
+    return rows, coverage
 
 
 def ideal_cells(op: str, width: int, lowering: str) -> int | None:
@@ -43,68 +125,37 @@ def main() -> int:
     ap.add_argument("audit_dir", type=Path)
     ap.add_argument("--min-paths", type=int, default=1)
     ap.add_argument("--json", type=Path)
+    ap.add_argument("--coverage-json", type=Path, help="write per-path coverage, omissions and timing notices")
+    ap.add_argument("--all-blocks", action="store_true", help="include mux, priority, Boolean and other non-arithmetic blocks")
     a = ap.parse_args()
 
-    prov = {c["cell"]: c for c in json.loads((a.audit_dir / "prov_paths.json").read_text())}
-    tj = json.loads((a.audit_dir / "timing.json").read_text())
-    if tj.get("schema_version") != 1 or not tj.get("timing_complete"):
-        print(f"timing.json unusable: schema {tj.get('schema_version')}, complete={tj.get('timing_complete')}", file=sys.stderr)
+    try:
+        rows, coverage = audit(json.loads((a.audit_dir / "prov_paths.json").read_text()),
+                               json.loads((a.audit_dir / "timing.json").read_text()),
+                               a.min_paths, a.all_blocks)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f"audit unusable: {error}", file=sys.stderr)
         return 1
+    for p in coverage["paths"]:
+        print(f"path {p['path']}: provenance {p['matched_cells']}/{p['cell_candidates']} cells, "
+              f"arithmetic attribution {p['arithmetic_attributed_cells']}/{p['technology_mapped_cells']} mapped, "
+              f"other stages {p['other_stages']}, missing {len(p['missing_cells'])}")
+    if coverage["warnings"] or coverage["message"]:
+        print(f"timing notices: {coverage['warnings']} {coverage['message'] or ''}")
+    print("Attribution is shared and may be inferred; verify connectivity before assigning cause.")
+    if a.coverage_json:
+        a.coverage_json.write_text(json.dumps(coverage, indent=2))
 
-    per_path = collections.defaultdict(list)       # block -> [(mapped cells, rewritten-by-pass counts, slack)]
-    for p in tj["paths"]:
-        if p.get("slack_ns") is None:
-            continue
-        seen, cells = set(), collections.defaultdict(list)
-        for pt in p["points"]:
-            name = pt["point"].rsplit("/", 1)[0]
-            if name in seen or name not in prov:
-                continue
-            seen.add(name)
-            c = prov[name]
-            if c.get("mapped_in") != "technology mapping":   # repair buffers/clones are not the structure
-                continue
-            for b in c.get("blocks") or []:
-                if b.get("op", "").startswith(ARITH):
-                    cells[block_key(b)].append(c)
-        for k, cs in cells.items():
-            passes = collections.Counter()
-            for c in cs:
-                for x in {str(x).split(" ")[0] for x in c.get("aig_passes") or []}:
-                    passes[x] += 1
-            per_path[k].append((len(cs), passes, p["slack_ns"]))
-
-    rows = []
-    for (loc, op, w, low), v in per_path.items():
-        if len(v) < a.min_paths:
-            continue
-        n = [x for x, _, _ in v]
-        tot = sum(n)
-        passes = collections.Counter()
-        for _, ps, _ in v:
-            passes.update(ps)
-        ideal = ideal_cells(op, w, low)
-        mean = tot / len(v)
-        rows.append({
-            "rtl": loc, "op": op, "width": w, "architecture": low, "paths": len(v),
-            "worst_slack_ps": round(min(s for _, _, s in v) * 1000, 1),
-            "cells_per_path_max": max(n), "cells_per_path_mean": round(mean, 1),
-            "ideal_cells": ideal,
-            "rewritten_share": {k: round(c / tot, 2) for k, c in passes.most_common() if k not in ("&nf",)},
-            "deeper_than_architecture": ideal is not None and mean > 1.5 * ideal,
-        })
-    rows.sort(key=lambda r: (r["worst_slack_ps"], -r["paths"]))
-
-    print(f"{'rtl':34s} {'op':8s} {'w':>3s} {'architecture':28s} {'paths':>5s} {'slack':>7s} "
+    print(f"{'block':>7s} {'instance':30s} {'rtl':34s} {'op':8s} {'w':>3s} {'architecture':28s} {'paths':>5s} {'slack':>7s} "
           f"{'cells/path':>10s} {'ideal':>5s}  rewritten by")
     for r in rows:
         rw = " ".join(f"{k} {int(v * 100)}%" for k, v in r["rewritten_share"].items()) or "-"
-        flag = "  <-- deeper than its architecture" if r["deeper_than_architecture"] else ""
-        print(f"{r['rtl'][-34:]:34s} {r['op']:8s} {r['width']:3d} {r['architecture'][:28]:28s} {r['paths']:5d} "
+        flag = "  <-- investigate depth/attribution" if r["deeper_than_architecture"] else ""
+        print(f"{str(r['block']):>7s} {r['instance'][-30:]:30s} {r['rtl'][-34:]:34s} {r['op']:8s} {r['width']:3d} {r['architecture'][:28]:28s} {r['paths']:5d} "
               f"{r['worst_slack_ps']:7.1f} {r['cells_per_path_max']:4d}/{r['cells_per_path_mean']:5.1f} "
               f"{r['ideal_cells'] if r['ideal_cells'] else '-':>5}  {rw}{flag}")
     if not rows:
-        print("no arithmetic blocks on the sampled paths (was the design compiled with -provenance?)")
+        print("no matching blocks on constrained paths; inspect coverage and use --all-blocks for control logic")
     if a.json:
         a.json.write_text(json.dumps(rows, indent=1))
     return 0
