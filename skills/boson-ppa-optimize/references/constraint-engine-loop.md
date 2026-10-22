@@ -72,6 +72,15 @@ sequence, then compare their final reports. Include TNS and endpoint counts:
 retiming can improve WNS while adding violating register endpoints. Preserve
 the rejected points and state the area/hold tradeoff when choosing the winner.
 
+For a WNS-focused pass with an internal acceptance guard, verify that comparison runs
+under the corrected mode and includes the same compile repair in both arms.
+A predicted stage-depth reduction is not acceptance evidence. Require a measured
+WNS benefit, and retain the original on worse or tied WNS, failed timing, lost
+coverage, or a failed trial. Exercise rejection as well as acceptance; check that
+rollback restores the netlist, constraints, and provenance. Report any accepted
+TNS or area tradeoff explicitly. Repairs invoked after `compile` remain outside
+its guard and still require a matched final comparison.
+
 Cross-check clock queries against STA. If `all_registers -clock` suddenly
 returns empty after cell edits while timing still reports paths on that clock,
 save the netlist and replay the same SDC and mode in a fresh session. Compare
