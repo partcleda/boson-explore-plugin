@@ -45,6 +45,22 @@ engine comparisons. Recompile with the original flow and `-provenance`, keeping
 the target period, I/O requirements, parameters and physical stage fixed.
 Distinguish a mode-specific result from full functional-and-test signoff.
 
+Record when the mode constraints take effect. An overlay sourced after
+`compile -retime` corrects the final timing report, but cannot correct a
+candidate-selection decision already made inside `compile`. Likewise, repair
+after candidate selection does not measure the repaired candidates against
+each other. Inspect the selection log before interpreting a rollback as a
+functional-mode retiming failure. Check selectors at the actual application
+stage: a mapped Q/QN pin or net name need not exist during elaboration.
+
+Cross-check clock queries against STA. If `all_registers -clock` suddenly
+returns empty after cell edits while timing still reports paths on that clock,
+save the netlist and replay the same SDC and mode in a fresh session. Compare
+clock coverage, representative paths and setup/hold metrics. Preserve live
+provenance before replay, since reading a netlist does not restore it. A query
+disagreement needs a small engine reproducer; it does not justify adding false
+paths or accepting an empty timing report as closure.
+
 ## Investigate surviving synthesis failures
 
 Use [boson-datapath-audit](../../boson-datapath-audit/SKILL.md) to collect timing
