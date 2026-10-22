@@ -53,6 +53,25 @@ each other. Inspect the selection log before interpreting a rollback as a
 functional-mode retiming failure. Check selectors at the actual application
 stage: a mapped Q/QN pin or net name need not exist during elaboration.
 
+Boson's elaborated view can expose register cells before their mapped pins
+exist. Resolve an explicit list of reviewed mode-register names at that stage;
+a wildcard that finds three cells after optimization can find many more before
+optimization. Deferred literal Q/QN selectors can carry their respective
+constants into compile. Verify their binding after mapping, including polarity.
+Check the installed version's handling of optional pins: versions affected by
+[the deferred `-quiet` issue](https://github.com/partcleda/boson/issues/14374)
+can retain a nonexistent alternate output as an unresolved strict-STA target.
+For those versions, replace the constraints after mapping with the identical
+base SDC and checked existing mode pins before repair and final STA. In Boson,
+`remove_all` clears the SDC; reapply the complete timing contract immediately.
+Verify this sequence on a small clock-mux example and by saved-netlist replay.
+
+When testing an opt-in engine pass without an internal candidate comparison,
+run the control and candidate through the same corrected constraints and repair
+sequence, then compare their final reports. Include TNS and endpoint counts:
+retiming can improve WNS while adding violating register endpoints. Preserve
+the rejected points and state the area/hold tradeoff when choosing the winner.
+
 Cross-check clock queries against STA. If `all_registers -clock` suddenly
 returns empty after cell edits while timing still reports paths on that clock,
 save the netlist and replay the same SDC and mode in a fresh session. Compare
