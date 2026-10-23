@@ -1,14 +1,26 @@
 ---
 name: boson-ppa-optimize
-description: Use when the user wants boson to OPTIMISE a design's PPA — "close timing at X ns", "what's the fmax of this block", "get the area/power down while still meeting timing", "which boson effort/flags should I use". Escalates through boson's real optimisation levers (effort, best-of-K placement, candidate race, datapath search, ECO) one real run at a time, stops at the cheapest recipe that meets timing, and can search for fmax. Not for comparing RTL variants (that's boson-timing-power-tradeoff).
+description: Iterate on Boson timing and PPA using constraints, synthesis settings, and engine fixes while preserving the design RTL. Use for closing timing, cleaning up SDC before optimization, investigating synthesis failures, choosing effort, or finding fmax. Supports an existing flow or an effort ladder; RTL variant comparisons belong to boson-timing-power-tradeoff.
 ---
 
 # boson PPA optimisation
 
+For an existing design with suspect constraints or a request to fix the synthesis
+engine, follow the [constraint and engine iteration workflow](references/constraint-engine-loop.md)
+before escalating effort. Preserve the user's RTL and latency requirements;
+an engine-retiming request does not authorize hand-pipelining the design.
+
+The helper below is a single-clock recipe generator. It creates a clock SDC;
+`--sdc-extra` appends text, rather than replacing that generated clock. For an
+existing multi-clock or mode-specific flow, iterate its Tcl directly so the
+clock contract, source list, parameters and layout stage remain intact. Do not
+derive a design fmax from global WNS across unrelated clocks or I/O checks.
+
 `scripts/ppa_optimize.py` runs an escalation ladder against a target clock and
-reports every rung. Each rung is one real `compile` (synthesis + timing-driven
-placement + STA) followed by `report_qor` / `report_area` / random-activity
-`report_power`. Nothing is estimated.
+reports every rung. Each rung runs `compile` followed by `report_qor` /
+`report_area` / random-activity `report_power`. Check the installed command
+help and log for the actual stages: effort and LEF loading alone do not prove
+that placement ran. Report unplaced results as unplaced.
 
 | rung | recipe | what it buys |
 |---|---|---|
@@ -62,6 +74,8 @@ defaults its workdir to `.ppa_*` under cwd for that reason).
   export `report_timing -format json -max_paths 10 -file timing.json`
   in that same session. Read the [native timing traceback guide](../boson-rtl-timing-closure/references/rtl-traceback.md)
   before interpreting matches or handing the path to an RTL-editing skill.
+  Follow the user's scope when choosing among these: if RTL must stay fixed,
+  audit the surviving netlist and investigate engine changes instead.
 - Hold: `report_qor` prints Hold WNS; boson's `repair_timing -hold` is
   post-CTS, so on a pre-CTS netlist a hold number is ideal-clock only —
   say so rather than "fixing" it.

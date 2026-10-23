@@ -34,7 +34,17 @@ source <plugin>/skills/boson-datapath-audit/scripts/collect.tcl
 
 This writes `prov_summary.txt` (passes that ran, netlist edits by pass),
 `prov_paths.json` (`report_provenance -json` for every cell on the sampled
-paths) and `timing.json` (native `report_timing -format json`).
+paths), `timing.json` (native `report_timing -format json`), and
+`path_trace.txt` / `path_trace.json` (native path provenance with stage delays
+and RTL origins). The text trace ranks delay by source; a `~` origin is
+propagated attribution, not an exact match. Inspect it before ranking arithmetic.
+
+The collector requires timing-point attributes and path provenance support.
+It writes timing first so an unsupported provenance API leaves diagnostic
+evidence. A zero-cell collection or a failed command means the audit failed;
+a timing report or provenance summary alone is not a completed netlist audit.
+Cell stories use literal names from timing points, avoiding hierarchical glob
+queries that can silently drop nested cells or names containing brackets.
 
 Collect in the live compile session: a saved session can restore the netlist
 without detailed provenance. After loading a checkpoint, run `update_timing`
@@ -81,14 +91,35 @@ Columns:
   the neighbours' blocks and `own` drops toward 0. When the structure is kept
   intact (for example under boson's `synth_preserve_datapath`), `own` is its
   mapped depth and should sit near **ideal**.
-- **ideal**: ceil(log2 w) + 2, a rough clean depth for a log-depth
-  architecture. It is blank for comparators, whose width is the 1-bit result.
+- **ideal**: ceil(log2 w) + 2, a rough clean depth for a single log-depth
+  adder/subtractor. It is blank for comparators, whose width is the 1-bit
+  result, and for multipliers and multioperand trees: a final-adder label
+  does not describe their complete depth.
 - **rewritten by**: the share of attributed path cells listing each AIG
   pass in `aig_passes`. This is reported pass membership, not proof that the
   pass created the measured depth. `&nf` (mapping) is omitted.
 
 ## Reading it
 
+- **Retiming predicts a large gain but mapped timing barely improves**: report
+  input-to-register and register-to-register paths separately. Compare the
+  actual stage arrivals, register count and endpoint identities, not just the
+  printed estimated stage delay. Check whether the candidate was retained;
+  reports after a rejected candidate describe the restored baseline.
+  Check timing-model coverage separately from architecture-selection coverage:
+  shifts, negation and normalization logic may use depth estimates even when
+  the selected adders are all priced. A controlled `datapath_selector_all_ops`
+  comparison changes both modeling and selection; isolate those effects
+  before recommending it as a retiming fix.
+- **Wide arithmetic is absent from selector decisions or survival groups**:
+  enable `datapath_selection_trace` and inspect the `unpriced` count. A
+  provenance architecture label does not establish that the cost model priced
+  the operator or registered its protection. Check the build's table widths
+  and extrapolation limit. As a controlled diagnostic, compare
+  `datapath_selection_exact_widths true` with the normal setting; missing
+  prices can affect both retiming cuts and arithmetic preservation. Use
+  separate fresh caches or identical cache snapshots: exact-width probes can
+  persist extra tables and change subsequent control runs.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
