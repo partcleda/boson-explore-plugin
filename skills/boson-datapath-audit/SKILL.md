@@ -106,6 +106,11 @@ Columns:
   actual stage arrivals, register count and endpoint identities, not just the
   printed estimated stage delay. Check whether the candidate was retained;
   reports after a rejected candidate describe the restored baseline.
+  Check timing-model coverage separately from architecture-selection coverage:
+  shifts, negation and normalization logic may use depth estimates even when
+  the selected adders are all priced. A controlled `datapath_selector_all_ops`
+  comparison changes both modeling and selection; isolate those effects
+  before recommending it as a retiming fix.
 - **Wide arithmetic is absent from selector decisions or survival groups**:
   enable `datapath_selection_trace` and inspect the `unpriced` count. A
   provenance architecture label does not establish that the cost model priced
