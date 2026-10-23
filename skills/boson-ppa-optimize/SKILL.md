@@ -5,6 +5,11 @@ description: Use when the user wants boson to OPTIMISE a design's PPA — "close
 
 # boson PPA optimisation
 
+For regressions after buffer insertion, resizing, or repeated placement, use the
+[placement continuity workflow](references/placement-continuity.md) before
+escalating synthesis effort. Compare timing and area on matched netlists; cell
+movement alone does not establish a QoR regression.
+
 `scripts/ppa_optimize.py` runs an escalation ladder against a target clock and
 reports every rung. Each rung is one real `compile` (synthesis + timing-driven
 placement + STA) followed by `report_qor` / `report_area` / random-activity
