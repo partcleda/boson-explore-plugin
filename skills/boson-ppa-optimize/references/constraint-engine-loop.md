@@ -11,13 +11,16 @@ local patches), binary hash, library/corner alias, SDC and sourced files,
 thread count, and physical stage. Preserve the original artifacts. Keep
 licensed library names and contents out of published issues and skill files.
 
-For parameterized blocks, compare hard-coded SDC index bounds and last-row or
-last-lane reference clocks with the elaborated port widths. A supplied SDC can
+For parameterized blocks, compare hard-coded SDC index bounds, last-row or
+last-lane reference clocks, literal egress port indices and derived index
+expressions with the elaborated port widths. Updating loop bounds alone can
+leave a separate repair-egress constraint on the old final row. A supplied SDC can
 belong to a larger configuration: out-of-range clocks and skipped I/O delay
 checks do not establish coverage for the smaller block. Make a separate,
 dimension-matched copy, preserve its delay budgets and clock relationships,
 and rerun both arms under that same copy. Do not count removal of invalid
-references as a retiming gain.
+references as a retiming gain. Verify the diagnostics after mapping and final
+STA; an early parse with no warnings does not prove all references resolve.
 
 Read the delivered constraint bundle before inventing exceptions. Functional
 mode settings may live in a separate DFT-disable file. Trace clock mux selects,
@@ -59,6 +62,12 @@ choices under the same nominal settings. Record the budget clock; for a
 controlled ablation, use matched work budgets when the flow supports them, or
 separate the internal baseline-versus-trial result from run-to-run variation.
 Keep a product-default comparison identifiable if a follow-up changes budgets.
+
+A run stopped before repair does not establish the full flow's peak memory.
+When a run reaches its memory allocation, inspect resident and swapped memory
+and page reclamation before attributing slow repair to the optimization under
+test. Preserve incomplete attempts and rerun both arms with the measured
+resource requirement when paging prevents a useful comparison.
 
 Record when the mode constraints take effect. An overlay sourced after
 `compile -retime` corrects the final timing report, but cannot correct a
