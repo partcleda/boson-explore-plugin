@@ -101,6 +101,20 @@ Columns:
 
 ## Reading it
 
+- **Retiming predicts a large gain but mapped timing barely improves**: report
+  input-to-register and register-to-register paths separately. Compare the
+  actual stage arrivals, register count and endpoint identities, not just the
+  printed estimated stage delay. Check whether the candidate was retained;
+  reports after a rejected candidate describe the restored baseline.
+- **Wide arithmetic is absent from selector decisions or survival groups**:
+  enable `datapath_selection_trace` and inspect the `unpriced` count. A
+  provenance architecture label does not establish that the cost model priced
+  the operator or registered its protection. Check the build's table widths
+  and extrapolation limit. As a controlled diagnostic, compare
+  `datapath_selection_exact_widths true` with the normal setting; missing
+  prices can affect both retiming cuts and arithmetic preservation. Use
+  separate fresh caches or identical cache snapshots: exact-width probes can
+  persist extra tables and change subsequent control runs.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
