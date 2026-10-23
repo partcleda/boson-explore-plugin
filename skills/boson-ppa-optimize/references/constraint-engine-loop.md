@@ -11,6 +11,14 @@ local patches), binary hash, library/corner alias, SDC and sourced files,
 thread count, and physical stage. Preserve the original artifacts. Keep
 licensed library names and contents out of published issues and skill files.
 
+For parameterized blocks, compare hard-coded SDC index bounds and last-row or
+last-lane reference clocks with the elaborated port widths. A supplied SDC can
+belong to a larger configuration: out-of-range clocks and skipped I/O delay
+checks do not establish coverage for the smaller block. Make a separate,
+dimension-matched copy, preserve its delay budgets and clock relationships,
+and rerun both arms under that same copy. Do not count removal of invalid
+references as a retiming gain.
+
 Read the delivered constraint bundle before inventing exceptions. Functional
 mode settings may live in a separate DFT-disable file. Trace clock mux selects,
 reset bypasses and test enables to establish the intended values. A false path
@@ -44,6 +52,13 @@ Once mode and exception coverage are established, freeze the corrected SDC for
 engine comparisons. Recompile with the original flow and `-provenance`, keeping
 the target period, I/O requirements, parameters and physical stage fixed.
 Distinguish a mode-specific result from full functional-and-test signoff.
+
+Inspect optimization stop reasons before attributing small differences between
+independent runs. A wall-time-limited equivalence sweep can keep different
+choices under the same nominal settings. Record the budget clock; for a
+controlled ablation, use matched work budgets when the flow supports them, or
+separate the internal baseline-versus-trial result from run-to-run variation.
+Keep a product-default comparison identifiable if a follow-up changes budgets.
 
 Record when the mode constraints take effect. An overlay sourced after
 `compile -retime` corrects the final timing report, but cannot correct a
