@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from datapath_audit import audit
+from datapath_audit import audit, stages
 
 
 def block(number=1, instance="u0", file="rtl/unit.sv", op="Add"):
@@ -87,6 +87,29 @@ class AuditTests(unittest.TestCase):
         rows, coverage = audit([story("a", [block(1), block(2)])], timing("a"))
         self.assertEqual([r["cells_per_path_max"] for r in rows], [1, 1])
         self.assertEqual(coverage["paths"][0]["arithmetic_attributed_cells"], 1)
+
+    def test_inferred_labels_are_counted_apart_from_exact_ones(self):
+        exact, inferred = dict(block(), exact=2, share=2), dict(block(), exact=0, share=1)
+        records = [story(f"c{i}", [exact if i < 2 else inferred]) for i in range(16)]
+        rows, _ = audit(records, timing(*[f"c{i}" for i in range(16)]))
+        self.assertEqual(rows[0]["cells_per_path_max"], 16)
+        self.assertEqual(rows[0]["exact_cells_per_path_max"], 2)
+        self.assertTrue(rows[0]["deeper_than_architecture"])
+        self.assertTrue(rows[0]["deeper_only_by_inference"])
+
+    def test_stages_fold_consecutive_cells_of_one_block(self):
+        a = dict(block(1, op="Sub"), exact=1, share=1)
+        b = dict(block(2, op="AddTree"), exact=0, share=3)
+        records = [story("s0", [a]), story("s1", [a, b]), story("t0", [b])]
+        t = timing("s0", "s1", "t0")
+        arrival = 0.0
+        for pt in t["paths"][0]["points"]:
+            arrival += pt["increment_ns"] or 0
+            pt["arrival_ns"] = arrival
+        (path,) = stages(records, t)
+        self.assertEqual([r["exact"] for r in path["stages"]], [True, True, False])
+        self.assertEqual([(g["cells"], g["exact_cells"]) for g in path["segments"]], [(2, 2), (1, 0)])
+        self.assertAlmostEqual(sum(g["ps"] for g in path["segments"]), 30.0)
 
 
 if __name__ == "__main__":
