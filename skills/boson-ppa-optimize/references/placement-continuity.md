@@ -51,6 +51,43 @@ adding exceptions between arms.
 
 ## Interpret the results
 
+### Random small edits
+
+A single repair batch does not establish sensitivity to small edits. Sample
+independent edit sites with recorded seeds and apply each batch to the same
+checkpoint, rather than accumulating edits across trials. Keep the placement
+seed fixed while varying the edit seed. Include both a single edit and a small
+batch, and test additions and removals separately.
+
+Boson source builds with `cli/examples/placement_edit_probe.rs` can generate
+these checkpoints with `cargo build -p boson_cli --profile release-ci --example
+placement_edit_probe`, then `placement_edit_probe CHECKPOINT OUT_DIR`. Apply the
+workspace scheduler rules to both commands. The probe selects eligible signal
+sites by seeded instance/pin-name hashes, inserts true identity buffers, and
+bypasses existing identity buffers on removal. It excludes clock, fixed,
+macro, sequential, port-connected and connectivity-guarded sites. It saves an
+edit manifest and independent sessions for seeds 7, 23 and 41, with batches of
+one and eight edits. The one-edit case is a subset of its eight-edit case, not
+an additional independent random sample. Generation checks surviving masters,
+origins, orientations and expected live-cell counts before placement.
+
+Replay each checkpoint with both warm and cold placement using the production
+binary; also replay the unmodified checkpoint in both modes. This is 26 final
+placements for twelve edited checkpoints. Retain the input and final netlists
+and verify identical connectivity and cell masters between each pair. Report
+WNS/TNS, cell area and survivor movement, including distributions across edit
+seeds rather than only the best trial. For each mode, compare edited placement
+against that mode's own unchanged replay, as well as the original checkpoint.
+The former isolates edit sensitivity from ordinary optimizer-restart drift.
+
+Separate timing from locality assertions. A test requiring warm movement to be
+three times smaller than cold can fail even when timing and area are stable.
+Conversely, a stable worst path can conceal movement or timing changes elsewhere;
+include TNS and wirelength. Random insertions/removals also change electrical
+loading, so WNS changes are not exclusively placement effects. If attribution
+matters, add legalization-only or fixed-survivor diagnostic arms. Do not label
+buffer identity rewrites as a formal equivalence proof.
+
 Report final setup WNS, TNS, cell area, timing coverage and legality, with deltas
 against both the original checkpoint and the cold arm. If negative-only WNS is
 zero in every arm, also show the unclipped worst setup slack. Distinguish cell
