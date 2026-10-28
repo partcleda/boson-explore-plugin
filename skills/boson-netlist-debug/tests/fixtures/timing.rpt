@@ -1,0 +1,83 @@
+****************************************
+Report : timing
+    -path_type full_clock_expanded
+    -max_paths 2
+Design : acme_widget_core
+Tool   : boson 1.824.1
+****************************************
+
+
+  Startpoint: u_acme_dsp/acc_q_reg[0]/QN (rising edge-triggered flip-flop clocked by core_clk)
+  Endpoint: u_acme_dsp/acc_q_reg[1]/D (rising edge-triggered flip-flop clocked by core_clk)
+  Path Group: core_clk
+  Path Type: max
+
+  Point                                              Fanout     Cap  DTrans  Trans  Derate  Delta      Incr        Path    Location
+  ---------------------------------------------------------------------------------------------------------------------------------
+  clock core_clk (rise edge)                                                                          0.000       0.000
+  clock network delay (propagated)                                                                    0.020       0.020
+  u_acme_dsp/acc_q_reg[0]/CLK (DFFHQNx1_ASAP7_75t_R)                                 1.000  0.000     0.000 &     0.020 r
+  u_acme_dsp/acc_q_reg[0]/QN (DFFHQNx1_ASAP7_75t_R)                          0.027   1.000            0.051 &     0.071 f
+  u_acme_dsp/acc_q[0]__qn_bsn (net)                       2   0.002
+  u_acme_dsp/add_17_gs1/CI (FAx1_ASAP7_75t_R)                         0.027  0.027   1.000  0.000     0.000 &     0.071 f
+  u_acme_dsp/add_17_gs1/CON (FAx1_ASAP7_75t_R)                               0.040   1.000            0.180 &     0.251 r
+  n101 (net)                                              1   0.001
+  gs10/A (BUFx2_ASAP7_75t_R)                                          0.040  0.040   1.000  0.000     0.000 &     0.251 r
+  gs10/Y (BUFx2_ASAP7_75t_R)                                                 0.020   1.000            0.030 &     0.281 r
+  n106 (net)                                              1   0.001
+  gs11/A (BUFx2_ASAP7_75t_R)                                          0.020  0.020   1.000  0.000     0.000 &     0.281 r
+  gs11/Y (BUFx2_ASAP7_75t_R)                                                 0.020   1.000            0.030 &     0.311 r
+  n107 (net)                                              1   0.001
+  gs12/A (BUFx2_ASAP7_75t_R)                                          0.020  0.020   1.000  0.000     0.000 &     0.311 r
+  gs12/Y (BUFx2_ASAP7_75t_R)                                                 0.020   1.000            0.030 &     0.341 r
+  n108 (net)                                              1   0.001
+  gs13/A (INVx1_ASAP7_75t_R)                                          0.020  0.020   1.000  0.000     0.000 &     0.341 r
+  gs13/Y (INVx1_ASAP7_75t_R)                                                 0.030   1.000            0.025 &     0.366 f
+  n103 (net)                                              3   0.002
+  u_acme_dsp/acc_q_reg[1]/D (DFFHQNx1_ASAP7_75t_R)                    0.030  0.030   1.000  0.000     0.000 &     0.366 f
+  data arrival time                                                                                               0.366
+
+  clock core_clk (rise edge)                                                                          0.300       0.300
+  clock network delay (propagated)                                                                    0.010       0.310
+  u_acme_dsp/acc_q_reg[1]/CLK (DFFHQNx1_ASAP7_75t_R)                                 1.000  0.000     0.000 &     0.310 r
+  clock uncertainty                                                                                  -0.010       0.300
+  library setup time                                                                 1.000           -0.018       0.282
+  data required time                                                                                              0.282
+  ---------------------------------------------------------------------------------------------------------------------------------
+  data required time                                                                                              0.282
+  data arrival time                                                                                              -0.366
+  ---------------------------------------------------------------------------------------------------------------------------------
+  slack (VIOLATED)                                                                                               -0.084
+
+  Startpoint: din_a (input port clocked by core_clk)
+  Endpoint: u_acme_dsp/acc_q_reg[0]/D (rising edge-triggered flip-flop clocked by core_clk)
+  Path Group: core_clk
+  Path Type: max
+
+  Point                                              Fanout     Cap  DTrans  Trans  Derate  Delta      Incr        Path    Location
+  ---------------------------------------------------------------------------------------------------------------------------------
+  clock core_clk (rise edge)                                                                          0.000       0.000
+  clock network delay (propagated)                                                                    0.000       0.000
+  input external delay                                                                                0.100       0.100 f
+  din_a (in)                                                                         0.010            0.000       0.100 f
+  din_a (net)                                             1   0.001
+  u_acme_dsp/add_17_gs1/A (FAx1_ASAP7_75t_R)                          0.010  0.010   1.000  0.000     0.000 &     0.100 f
+  u_acme_dsp/add_17_gs1/SN (FAx1_ASAP7_75t_R)                                0.030   1.000            0.150 &     0.250 r
+  n102 (net)                                              3   0.002
+  gs14/A (NAND2xp33_ASAP7_75t_R)                                      0.030  0.030   1.000  0.000     0.000 &     0.250 r
+  gs14/Y (NAND2xp33_ASAP7_75t_R)                                             0.050   1.000            0.040 &     0.290 f
+  n104 (net)                                              2   0.002
+  u_acme_dsp/acc_q_reg[0]/D (DFFHQNx1_ASAP7_75t_R)                    0.050  0.050   1.000  0.000     0.000 &     0.290 f
+  data arrival time                                                                                               0.290
+
+  clock core_clk (rise edge)                                                                          0.500       0.500
+  clock network delay (propagated)                                                                    0.010       0.510
+  u_acme_dsp/acc_q_reg[0]/CLK (DFFHQNx1_ASAP7_75t_R)                                 1.000  0.000     0.000 &     0.510 r
+  clock uncertainty                                                                                  -0.010       0.500
+  library setup time                                                                 1.000           -0.018       0.482
+  data required time                                                                                              0.482
+  ---------------------------------------------------------------------------------------------------------------------------------
+  data required time                                                                                              0.482
+  data arrival time                                                                                              -0.290
+  ---------------------------------------------------------------------------------------------------------------------------------
+  slack (MET)                                                                                                     0.192
