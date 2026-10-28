@@ -79,9 +79,18 @@ nor a testbench — see below.
   rules, a results ledger and a budget. It ends with a declared final
   that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
   "run an RTL optimisation loop".
+- **`skills/boson-minimal-repro`** — debug a few paths that are far deeper
+  than the clock allows: name the RTL construct on the path, compile it alone
+  as a module-level boson run under the same clock, then A/B equivalent
+  rewrites, widths and clocks of that construct. The result is a finding
+  (coding-style sensitivity, architecture limit, or context) and a debug
+  report that keeps RTL text and names in the user's environment. Includes
+  `path_levels.py`, which counts logic levels per path, excluding buffers and
+  inverters. Triggers on "is this the RTL or boson", "why is this path so
+  deep", "the full run is too slow to debug".
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
-  `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit` slash
-  commands, direct shortcuts into the skills.
+  `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
+  `/boson-minimal-repro` slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters

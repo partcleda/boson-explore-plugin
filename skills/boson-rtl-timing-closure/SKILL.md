@@ -110,6 +110,11 @@ names are heuristics; it may not recover a source signal after synthesis.
   the operation or splitting it across a cycle (behaviour-changing).
 - If the path starts or ends at a port with `set_input_delay` /
   `set_output_delay` in the SDC, the fix may be a constraint, not RTL.
+- If it is unclear whether the depth comes from the RTL or from boson (a
+  scan or accumulation far deeper than its function needs, or a full run too
+  slow to iterate on), use `boson-minimal-repro` first: compile the construct
+  alone and A/B equivalent rewrites of it. A coding-style sensitivity is a
+  tool issue to report, not only an RTL fix.
 
 ## Reporting back
 
