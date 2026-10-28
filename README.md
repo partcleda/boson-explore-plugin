@@ -100,6 +100,12 @@ nor a testbench — see below.
   decoding map stays with you, and a leak check must pass before the
   tarball is written. Nothing is uploaded. Triggers on "what did boson do
   wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
+- **`feedback/`** — the standard "Skill feedback" section that every
+  customer-facing skill ends its report with: off-script actions, missing
+  framework, wrong guidance, missing inputs/coverage, and outcome. It is
+  recorded in `skill_feedback.json` by `skill_feedback.py`, anonymized on the
+  customer's machine, and sent to partcl only when the user sources the
+  generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
   `/boson-minimal-repro`, `/boson-netlist-debug` slash commands, direct

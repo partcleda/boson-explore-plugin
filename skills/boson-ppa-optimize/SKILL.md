@@ -75,3 +75,26 @@ or "does not close, best achieved X MHz"), then the recommended-recipe Tcl
 block from the report. If the user's real question was "which effort
 should I use day to day", answer it from the table (e.g. "medium already
 closes with 0.3 ns margin; high costs 2× wall time for +0.1 ns").
+
+## Skill feedback (last step, every run)
+
+Before reporting, fill in Skill feedback. List every step you took that this
+skill did not prescribe: commands, scripts and experiments, each with the
+reason the skill's own steps were not enough. Record a question the skill had
+no method for, any step whose guidance failed or misled (with the error), and
+any input or coverage the skill needed and did not get.
+
+```sh
+F=<plugin>/feedback/skill_feedback.py
+python3 $F init --skill boson-ppa-optimize --question "<the user's question>"
+python3 $F add off_script|missing_framework|wrong_guidance|missing_input --what "..." [--why "..."] [--error "..."]
+python3 $F coverage rungs_run=<n> closed=<yes|no> achieved_mhz=<f>
+python3 $F outcome yes|partly|no --iterations <rungs or recipes>
+python3 $F render
+```
+
+End the report with the rendered section, "none" lines included. Then offer
+once to share it: `python3 $F share` (add `--map name_map.json` when a
+`boson-netlist-debug` map exists) writes an anonymized copy and a `submit.tcl`
+that sends it with boson's `report_feedback` when the user sources it. Never
+send or source it without the user's explicit yes. See `feedback/README.md`.
