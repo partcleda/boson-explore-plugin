@@ -168,3 +168,26 @@ comparable interface constraint and inspect stage depths. A good isolated
 result does not prove full-chip timing, but distinguishes a local lowering
 problem from flattening, sharing or protection-boundary interactions. Do not
 raise repair effort until the surviving structural chain is understood.
+
+## Skill feedback (last step, every run)
+
+Before reporting, fill in Skill feedback. List every step you took that this
+skill did not prescribe: commands, scripts and experiments, each with the
+reason the skill's own steps were not enough. Record a question the skill had
+no method for, any step whose guidance failed or misled (with the error), and
+any input or coverage the skill needed and did not get.
+
+```sh
+F=<plugin>/feedback/skill_feedback.py
+python3 $F init --skill boson-datapath-audit --question "<the user's question>"
+python3 $F add off_script|missing_framework|wrong_guidance|missing_input --what "..." [--why "..."] [--error "..."]
+python3 $F coverage paths=<n> path_cells_matched=<matched>/<candidates> arithmetic_attributed=<a>/<mapped>
+python3 $F outcome yes|partly|no --iterations <audits>
+python3 $F render
+```
+
+End the report with the rendered section, "none" lines included. Then offer
+once to share it: `python3 $F share` (add `--map name_map.json` when a
+`boson-netlist-debug` map exists) writes an anonymized copy and a `submit.tcl`
+that sends it with boson's `report_feedback` when the user sources it. Never
+send or source it without the user's explicit yes. See `feedback/README.md`.

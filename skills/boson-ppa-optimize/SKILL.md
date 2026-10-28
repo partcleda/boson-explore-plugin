@@ -16,6 +16,11 @@ existing multi-clock or mode-specific flow, iterate its Tcl directly so the
 clock contract, source list, parameters and layout stage remain intact. Do not
 derive a design fmax from global WNS across unrelated clocks or I/O checks.
 
+For regressions after buffer insertion, resizing, or repeated placement, use the
+[placement continuity workflow](references/placement-continuity.md) before
+escalating synthesis effort. Compare timing and area on matched netlists; cell
+movement alone does not establish a QoR regression.
+
 `scripts/ppa_optimize.py` runs an escalation ladder against a target clock and
 reports every rung. Each rung runs `compile` followed by `report_qor` /
 `report_area` / random-activity `report_power`. Check the installed command
@@ -89,3 +94,26 @@ or "does not close, best achieved X MHz"), then the recommended-recipe Tcl
 block from the report. If the user's real question was "which effort
 should I use day to day", answer it from the table (e.g. "medium already
 closes with 0.3 ns margin; high costs 2× wall time for +0.1 ns").
+
+## Skill feedback (last step, every run)
+
+Before reporting, fill in Skill feedback. List every step you took that this
+skill did not prescribe: commands, scripts and experiments, each with the
+reason the skill's own steps were not enough. Record a question the skill had
+no method for, any step whose guidance failed or misled (with the error), and
+any input or coverage the skill needed and did not get.
+
+```sh
+F=<plugin>/feedback/skill_feedback.py
+python3 $F init --skill boson-ppa-optimize --question "<the user's question>"
+python3 $F add off_script|missing_framework|wrong_guidance|missing_input --what "..." [--why "..."] [--error "..."]
+python3 $F coverage rungs_run=<n> closed=<yes|no> achieved_mhz=<f>
+python3 $F outcome yes|partly|no --iterations <rungs or recipes>
+python3 $F render
+```
+
+End the report with the rendered section, "none" lines included. Then offer
+once to share it: `python3 $F share` (add `--map name_map.json` when a
+`boson-netlist-debug` map exists) writes an anonymized copy and a `submit.tcl`
+that sends it with boson's `report_feedback` when the user sources it. Never
+send or source it without the user's explicit yes. See `feedback/README.md`.

@@ -100,10 +100,28 @@ nor a testbench — see below.
   decoding map stays with you, and a leak check must pass before the
   tarball is written. Nothing is uploaded. Triggers on "what did boson do
   wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
+- **`skills/boson-dc-datapath-compare`** — compare a boson netlist with a
+  Design Compiler netlist of the same RTL and split the QoR gap into the part
+  inside the datapath operators (adders, multipliers, comparators, shifters)
+  and the part outside them. Both netlists are timed in one boson session with
+  the same libraries and SDC. DC cells are labelled by the operator names DC
+  gives them (`DP_OP_*`, `add_x_12`, `DW02_mult`, ...), boson cells by
+  `-provenance`. Each failing endpoint's slack gap is split exactly into
+  datapath, logic, buffering, launch and setup. A label-balance check reports
+  the split as inconclusive when DC flattened its operators.
+  `dw_microbench.py` compares isolated operators in both tools. Triggers on
+  "how much of the gap to the DC netlist is in the datapath". Design Compiler
+  and DesignWare are trademarks of Synopsys, Inc.
+- **`feedback/`** — the standard "Skill feedback" section that every
+  customer-facing skill ends its report with: off-script actions, missing
+  framework, wrong guidance, missing inputs/coverage, and outcome. It is
+  recorded in `skill_feedback.json` by `skill_feedback.py`, anonymized on the
+  customer's machine, and sent to partcl only when the user sources the
+  generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro`, `/boson-netlist-debug` slash commands, direct
-  shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`
+  slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
@@ -222,6 +240,22 @@ design, either edit it to that design's own parameters, or drive boson's
 command shapes boson expects). PRs adding more skills — floorplan/
 utilization sweeps, clock-gating power compares, effort-level compares —
 are welcome; see the ideas list in `SKILL.md`'s sibling issues.
+
+## Disclaimer and no liability
+
+These skills, scripts and documents are provided "AS IS", without warranty
+of any kind, express or implied, including fitness for a particular purpose
+and non-infringement. partcl accepts no liability for any use of them or for
+any result, decision, design, netlist, report or loss that comes from using
+them, as set out in sections 7 and 8 of the Apache-2.0 license. You are
+responsible for checking every result before relying on it, and for using
+third-party tools, their outputs and their results in accordance with your
+own licenses for those tools.
+
+Design Compiler, DesignWare and PrimeTime are trademarks of Synopsys, Inc.
+Other product names are trademarks of their owners. They are named only to
+describe the files and reports these skills read; no endorsement or
+affiliation is implied.
 
 ## License
 
