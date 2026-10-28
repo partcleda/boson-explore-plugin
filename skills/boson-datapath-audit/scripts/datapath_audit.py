@@ -184,8 +184,8 @@ def stages(provenance, timing, count=1):
 
 def ideal_cells(op: str, width: int, lowering: str) -> int | None:
     """Rough mapped-cell depth of a clean structure: prefix levels + generate + sum.
-    Comparators report their 1-bit result width, not the operand width: no estimate."""
-    if op in ("Lt", "Gt", "Le", "Ge", "Cmp") or not any(t in lowering for t in LOG_DEPTH):
+    A final-adder label does not bound a multiplier or multioperand tree."""
+    if op not in ("Add", "Sub", "AddCarry", "Neg", "Inc", "Dec") or not any(t in lowering for t in LOG_DEPTH):
         return None
     return math.ceil(math.log2(max(width, 2))) + 2
 

@@ -88,6 +88,15 @@ class AuditTests(unittest.TestCase):
         self.assertEqual([r["cells_per_path_max"] for r in rows], [1, 1])
         self.assertEqual(coverage["paths"][0]["arithmetic_attributed_cells"], 1)
 
+    def test_final_adder_label_does_not_bound_multiplier_or_tree_depth(self):
+        for op in ("Mul", "AddTree"):
+            b = block(op=op)
+            b["lowering"] = "KoggeStone adder, Booth multiplier"
+            names = [f"c{i}" for i in range(20)]
+            rows, _ = audit([story(n, [b]) for n in names], timing(*names))
+            self.assertIsNone(rows[0]["ideal_cells"])
+            self.assertFalse(rows[0]["deeper_than_architecture"])
+
     def test_inferred_labels_are_counted_apart_from_exact_ones(self):
         exact, inferred = dict(block(), exact=2, share=2), dict(block(), exact=0, share=1)
         records = [story(f"c{i}", [exact if i < 2 else inferred]) for i in range(16)]
