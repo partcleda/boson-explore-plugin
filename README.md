@@ -88,6 +88,12 @@ nor a testbench — see below.
   `path_levels.py`, which counts logic levels per path, excluding buffers and
   inverters. Triggers on "is this the RTL or boson", "why is this path so
   deep", "the full run is too slow to debug".
+- **`feedback/`** — the standard "Skill feedback" section that every
+  customer-facing skill ends its report with: off-script actions, missing
+  framework, wrong guidance, missing inputs/coverage, and outcome. It is
+  recorded in `skill_feedback.json` by `skill_feedback.py`, anonymized on the
+  customer's machine, and sent to partcl only when the user sources the
+  generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
   `/boson-minimal-repro` slash commands, direct shortcuts into the skills.
