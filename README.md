@@ -112,6 +112,12 @@ nor a testbench — see below.
   `dw_microbench.py` compares isolated operators in both tools. Triggers on
   "how much of the gap to the DC netlist is in the datapath". Design Compiler
   and DesignWare are trademarks of Synopsys, Inc.
+- **`feedback/`** — the standard "Skill feedback" section that every
+  customer-facing skill ends its report with: off-script actions, missing
+  framework, wrong guidance, missing inputs/coverage, and outcome. It is
+  recorded in `skill_feedback.json` by `skill_feedback.py`, anonymized on the
+  customer's machine, and sent to partcl only when the user sources the
+  generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
   `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`
@@ -234,6 +240,22 @@ design, either edit it to that design's own parameters, or drive boson's
 command shapes boson expects). PRs adding more skills — floorplan/
 utilization sweeps, clock-gating power compares, effort-level compares —
 are welcome; see the ideas list in `SKILL.md`'s sibling issues.
+
+## Disclaimer and no liability
+
+These skills, scripts and documents are provided "AS IS", without warranty
+of any kind, express or implied, including fitness for a particular purpose
+and non-infringement. partcl accepts no liability for any use of them or for
+any result, decision, design, netlist, report or loss that comes from using
+them, as set out in sections 7 and 8 of the Apache-2.0 license. You are
+responsible for checking every result before relying on it, and for using
+third-party tools, their outputs and their results in accordance with your
+own licenses for those tools.
+
+Design Compiler, DesignWare and PrimeTime are trademarks of Synopsys, Inc.
+Other product names are trademarks of their owners. They are named only to
+describe the files and reports these skills read; no endorsement or
+affiliation is implied.
 
 ## License
 

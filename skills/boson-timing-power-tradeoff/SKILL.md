@@ -79,3 +79,26 @@ silently drop it from the table.
 If the user asks "why" a config costs what it does, you can point at which
 picorv32 parameters differ between presets (e.g. `ENABLE_FAST_MUL` trades
 area/power for a faster multiply) rather than re-running anything.
+
+## Skill feedback (last step, every run)
+
+Before reporting, fill in Skill feedback. List every step you took that this
+skill did not prescribe: commands, scripts and experiments, each with the
+reason the skill's own steps were not enough. Record a question the skill had
+no method for, any step whose guidance failed or misled (with the error), and
+any input or coverage the skill needed and did not get.
+
+```sh
+F=<plugin>/feedback/skill_feedback.py
+python3 $F init --skill boson-timing-power-tradeoff --question "<the user's question>"
+python3 $F add off_script|missing_framework|wrong_guidance|missing_input --what "..." [--why "..."] [--error "..."]
+python3 $F coverage points_run=<n> points_failed=<n>
+python3 $F outcome yes|partly|no --iterations <sweep rounds>
+python3 $F render
+```
+
+End the report with the rendered section, "none" lines included. Then offer
+once to share it: `python3 $F share` (add `--map name_map.json` when a
+`boson-netlist-debug` map exists) writes an anonymized copy and a `submit.tcl`
+that sends it with boson's `report_feedback` when the user sources it. Never
+send or source it without the user's explicit yes. See `feedback/README.md`.
