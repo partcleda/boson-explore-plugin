@@ -223,3 +223,26 @@ right conclusion from this netlist is **inconclusive**: rerun DC with
 `compile_ultra_ungroup_dw false`, or use the microbench for the operator part.
 The "label balance" line exists to catch exactly this case: below 0.5 the
 script prints `INCONCLUSIVE` in place of every share.
+
+## Skill feedback (last step, every run)
+
+Before reporting, fill in Skill feedback. List every step you took that this
+skill did not prescribe: commands, scripts and experiments, each with the
+reason the skill's own steps were not enough. Record a question the skill had
+no method for, any step whose guidance failed or misled (with the error), and
+any input or coverage the skill needed and did not get.
+
+```sh
+F=<plugin>/feedback/skill_feedback.py
+python3 $F init --skill boson-dc-designware-compare --question "<the user's question>"
+python3 $F add off_script|missing_framework|wrong_guidance|missing_input --what "..." [--why "..."] [--error "..."]
+python3 $F coverage --from-json split.json --pick label_balance,conclusive,provenance_coverage,timing.paired,timing.selected_failing_unpaired
+python3 $F outcome yes|partly|no --iterations <compare runs>
+python3 $F render
+```
+
+End the report with the rendered section, "none" lines included. Then offer
+once to share it: `python3 $F share` (add `--map name_map.json` when a
+`boson-netlist-debug` map exists) writes an anonymized copy and a `submit.tcl`
+that sends it with boson's `report_feedback` when the user sources it. Never
+send or source it without the user's explicit yes. See `feedback/README.md`.
