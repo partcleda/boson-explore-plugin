@@ -1,0 +1,9 @@
+Design: acme_widget_core
+WNS:           -0.084 ns  (VIOLATED)
+TNS:           -0.150 ns
+Hold WNS:      -0.003 ns  (VIOLATED)
+Hold TNS:      -0.003 ns
+Setup violating:          2
+Hold violating:           1
+Endpoints:          4  Violating: 2
+MPW violations: 0

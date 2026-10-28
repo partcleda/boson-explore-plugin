@@ -20,7 +20,7 @@ def run(tmp, *args):
 class SkillFeedback(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        run(self.tmp, "init", "--skill", "boson-dc-designware-compare", "--question", f"gap in {SECRET[0]}?")
+        run(self.tmp, "init", "--skill", "boson-dc-datapath-compare", "--question", f"gap in {SECRET[0]}?")
         run(self.tmp, "add", "off_script", "--what", f"grep DP_OP in {SECRET[1]}", "--why", "no DC label method")
         run(self.tmp, "add", "missing_framework", "--what", "DC netlist ungrouped; could not label DW cells")
         run(self.tmp, "add", "wrong_guidance", "--what", "collect.tcl", "--error", f"link failed for {SECRET[3]}")
@@ -47,7 +47,7 @@ class SkillFeedback(unittest.TestCase):
         for s in SECRET + ["acme", "jdoe"]:
             self.assertNotIn(s, anon)
         data = json.loads(anon)
-        self.assertEqual(data["skill"], "boson-dc-designware-compare")
+        self.assertEqual(data["skill"], "boson-dc-datapath-compare")
         self.assertIn("collect.tcl", anon)            # tool names survive
         self.assertEqual(data["coverage"]["label_balance"], 0.164)
         tcl = (self.tmp / "skill_feedback.share" / "submit.tcl").read_text()

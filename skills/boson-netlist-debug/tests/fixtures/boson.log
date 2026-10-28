@@ -1,0 +1,7 @@
+  boson v1.824.1 (build abc1234) GPU-accelerated EDA toolkit
+read_liberty: loaded /home/jdoe/pdk/acme7/libs/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib (56 cells)
+[compile] +0.7s optimize: 34 circuit nodes (effort Medium)
+compile: synthesized /home/jdoe/proj/acme/rtl/acme_widget_core.sv at effort Medium (16 cells)
+Warning: SDC-201: set_multicycle_path -to 'u_acme_dsp/acc_q_reg*/D' matched 2 pins; started Fri Oct 16 09:12:44 2026 on buildbox7
+Warning: SYN-301: net 'u_acme_dsp/secret_sauce_sum[1]' has 1 driver and no loads
+repair_timing: setup repair: 3 round(s), kept the design as it was before the repair, 0 clones, 3 buffers, 0 downsizes, 2 upsizes; WNS -0.090 -> -0.084 ns

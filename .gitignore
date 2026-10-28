@@ -6,3 +6,7 @@ runs*/
 .probe_*/
 *.vcd
 __pycache__/
+boson-debug-work/
+boson-debug-bundle/
+boson-debug-bundle.tar.gz
+name_map.json

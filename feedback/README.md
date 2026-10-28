@@ -1,7 +1,7 @@
 # Skill feedback
 
 Every customer-facing skill (ppa-optimize, rtl-timing-closure, datapath-audit,
-minimal-repro, netlist-debug, timing-power-tradeoff, dc-designware-compare)
+minimal-repro, netlist-debug, timing-power-tradeoff, dc-datapath-compare)
 ends its report with a fixed **Skill feedback** section. The agent writes it
 into `skill_feedback.json` with `skill_feedback.py`. The customer does not have
 to do anything.

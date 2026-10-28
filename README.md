@@ -88,6 +88,18 @@ nor a testbench — see below.
   `path_levels.py`, which counts logic levels per path, excluding buffers and
   inverters. Triggers on "is this the RTL or boson", "why is this path so
   deep", "the full run is too slow to debug".
+- **`skills/boson-netlist-debug`** — run on your own machine against a boson
+  run of your design: reads the netlist, timing / QoR / check_timing
+  reports, SDC, log and boson's decision journal (`decision_log_file`), ties
+  each failing path to the decisions that shaped it (adder architecture,
+  sizing that flip-flopped, hold repair that ate setup, repairs that were
+  rolled back, ignored constraints, unbuffered high-fanout nets), lists the
+  netlist's current issues, and builds `boson-debug-bundle.tar.gz` for
+  partcl. Every design name, path, user/host name and library name is
+  replaced by a consistent token (`u3/r12_reg[4]`, `clk0`, `LIBX`); the
+  decoding map stays with you, and a leak check must pass before the
+  tarball is written. Nothing is uploaded. Triggers on "what did boson do
+  wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
 - **`feedback/`** — the standard "Skill feedback" section that every
   customer-facing skill ends its report with: off-script actions, missing
   framework, wrong guidance, missing inputs/coverage, and outcome. It is
@@ -96,7 +108,8 @@ nor a testbench — see below.
   generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro` slash commands, direct shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-netlist-debug` slash commands, direct
+  shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters

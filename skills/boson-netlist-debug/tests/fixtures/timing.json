@@ -1,0 +1,20 @@
+{"schema_version": 1, "timing_complete": true, "warnings": "", "message": null, "rtl_available": true,
+ "paths": [
+  {"startpoint": "u_acme_dsp/acc_q_reg[0]/QN", "endpoint": "u_acme_dsp/acc_q_reg[1]/D", "path_group": "core_clk",
+   "path_type": "max", "slack_ns": -0.084, "arrival_ns": 0.366, "required_ns": 0.282, "unconstrained": false,
+   "start_rtl": {"kind": "cell_name", "name": "acc_q", "module": "acme_dsp", "instance": "u_acme_dsp",
+                 "file": "/home/jdoe/proj/acme/rtl/acme_dsp.sv", "line": 42, "text": "acc_q <= secret_sauce_sum;"},
+   "end_rtl": null,
+   "points": [
+    {"point": "u_acme_dsp/acc_q_reg[0]/QN", "net": "u_acme_dsp/acc_q[0]__qn_bsn", "increment_ns": 0.051, "arrival_ns": 0.071, "fanout": 2, "rtl": null},
+    {"point": "u_acme_dsp/add_17_gs1/CON", "net": "n101", "increment_ns": 0.180, "arrival_ns": 0.251, "fanout": 1,
+     "rtl": {"kind": "origin_signal", "name": "secret_sauce_sum", "module": "acme_dsp", "instance": "u_acme_dsp",
+             "file": "/home/jdoe/proj/acme/rtl/acme_dsp.sv", "line": 37, "text": "assign secret_sauce_sum = din_a + din_b + acc_q;"}},
+    {"point": "gs10/Y", "net": "n106", "increment_ns": 0.030, "arrival_ns": 0.281, "fanout": 1, "rtl": null},
+    {"point": "gs11/Y", "net": "n107", "increment_ns": 0.030, "arrival_ns": 0.311, "fanout": 1, "rtl": null},
+    {"point": "gs12/Y", "net": "n108", "increment_ns": 0.030, "arrival_ns": 0.341, "fanout": 1, "rtl": null},
+    {"point": "gs13/Y", "net": "n103", "increment_ns": 0.025, "arrival_ns": 0.366, "fanout": 3, "rtl": null},
+    {"point": "u_acme_dsp/acc_q_reg[1]/D", "net": null, "increment_ns": 0.0, "arrival_ns": 0.366, "fanout": null, "rtl": null}]}
+ ],
+ "groups": [{"start_rtl_name": "acc_q", "end_rtl_name": "acc_q", "path_group": "core_clk", "path_type": "max",
+             "path_count": 1, "worst_slack_ns": -0.084, "best_slack_ns": -0.084}]}
