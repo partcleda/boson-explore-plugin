@@ -100,10 +100,22 @@ nor a testbench — see below.
   decoding map stays with you, and a leak check must pass before the
   tarball is written. Nothing is uploaded. Triggers on "what did boson do
   wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
+- **`skills/boson-dc-datapath-compare`** — compare a boson netlist with a
+  Design Compiler netlist of the same RTL and split the QoR gap into the part
+  inside the datapath operators (adders, multipliers, comparators, shifters)
+  and the part outside them. Both netlists are timed in one boson session with
+  the same libraries and SDC. DC cells are labelled by the operator names DC
+  gives them (`DP_OP_*`, `add_x_12`, `DW02_mult`, ...), boson cells by
+  `-provenance`. Each failing endpoint's slack gap is split exactly into
+  datapath, logic, buffering, launch and setup. A label-balance check reports
+  the split as inconclusive when DC flattened its operators.
+  `dw_microbench.py` compares isolated operators in both tools. Triggers on
+  "how much of the gap to the DC netlist is in the datapath". Design Compiler
+  and DesignWare are trademarks of Synopsys, Inc.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro`, `/boson-netlist-debug` slash commands, direct
-  shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`
+  slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
