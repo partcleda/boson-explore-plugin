@@ -62,7 +62,7 @@ profile spans as independent work.
 ## Audit
 
 ```sh
-python3 <plugin>/skills/boson-datapath-audit/scripts/datapath_audit.py audit_synth [--json audit.json] [--coverage-json coverage.json] [--all-blocks]
+python3 <plugin>/skills/boson-datapath-audit/scripts/datapath_audit.py audit_synth [--json audit.json] [--coverage-json coverage.json] [--all-blocks] [--stages N]
 ```
 
 ```
@@ -91,6 +91,12 @@ Columns:
   the neighbours' blocks and `own` drops toward 0. When the structure is kept
   intact (for example under boson's `synth_preserve_datapath`), `own` is its
   mapped depth and should sit near **ideal**.
+- **exact**: the most cells on one path whose provenance matches this block
+  exactly. The rest of **cells/path** carries the block only by inference
+  (`~` in `report_provenance`: no node of the cell's cone matched, so the label
+  is the logic it feeds or is fed by). When cells/path is deep and exact is
+  not, the row is marked `deeper only through inferred labels`: the depth
+  belongs to whatever sits around the block, not to its architecture.
 - **ideal**: ceil(log2 w) + 2, a rough clean depth for a single log-depth
   adder/subtractor. It is blank for comparators, whose width is the 1-bit
   result, and for multipliers and multioperand trees: a final-adder label
@@ -98,6 +104,17 @@ Columns:
 - **rewritten by**: the share of attributed path cells listing each AIG
   pass in `aig_passes`. This is reported pass membership, not proof that the
   pass created the measured depth. `&nf` (mapping) is omitted.
+
+## Stage by stage
+
+`--stages N` prints the N worst sampled paths cell by cell (arrival, delay
+including the input net, library cell, and the block the cell most belongs
+to: an exact match first, then the largest share; `~` marks an inferred
+label), then folds consecutive cells of one block into segments with their
+total delay. Read where a path's delay goes from the segments, and treat a
+segment made only of inferred cells as a pointer to check against the
+netlist, not as the block's own depth: a 10-bit subtractor label stretched
+over twenty cells usually is the compressor tree and final adder it feeds.
 
 ## Reading it
 
