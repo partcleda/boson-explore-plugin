@@ -88,9 +88,20 @@ nor a testbench — see below.
   `path_levels.py`, which counts logic levels per path, excluding buffers and
   inverters. Triggers on "is this the RTL or boson", "why is this path so
   deep", "the full run is too slow to debug".
+- **`skills/boson-dc-designware-compare`** — compare a boson netlist with a
+  Synopsys DC netlist of the same RTL and split the QoR gap into the part
+  inside DesignWare (adders, multipliers, comparators, shifters) and the part
+  outside it. Both netlists are timed in one boson session with the same libs
+  and SDC. DC cells are labelled by their DW names (`DP_OP_*`, `add_x_12`,
+  `DW02_mult`, ...), boson cells by `-provenance`, and each failing endpoint's
+  slack gap is split exactly into DW, logic, buffering, launch and setup. A
+  label-balance check reports the split as inconclusive when DC ungrouped its
+  DW. `dw_microbench.py` calibrates isolated operators in both tools (delay and
+  area ratios per operator). Triggers on "how much of the gap vs DC is in the
+  DW blocks", "calibrate boson against DesignWare".
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro` slash commands, direct shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-dc-designware-compare` slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
