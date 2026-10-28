@@ -18,14 +18,14 @@ skill in this plugin, so the rules come first.
    changes and probe once — you won't know which one mattered, and neither
    will the reviewer.
 3. **Prefer edits that keep cycle-level behaviour**, in this order:
-   restructure logic (priority chain → parallel case, precompute a
-   comparison a cycle early only if the operand is already registered,
-   split a wide compare, one-hot a state test, isolate a rarely used
-   operation off the main path) → move an existing register (retime) →
+   restructure logic (balanced first-match tree, split a wide compare,
+   one-hot a state test, isolate a rarely used operation) → move an
+   existing register (retime) →
    **add a pipeline stage**. Adding a stage changes latency and any
    handshake around it; flag it explicitly as behaviour-changing and get
    the user's OK before you do it. Never present a latency change as a
-   free fix.
+   free fix. Preserve priority for overlapping conditions; a parallel case
+   is safe only when exclusivity is established.
 4. **Work on a branch / clean tree.** `git status` before touching
    anything; if the tree is dirty, ask. Every iteration ends with a diff
    the user can read.
@@ -33,10 +33,11 @@ skill in this plugin, so the rules come first.
    simulation command, run it after every accepted edit (ask for the
    command if you don't know it). boson checks timing, not function; say
    plainly that no equivalence check was run unless one was.
-6. **Confirm at real effort.** Iterate at `--effort fast` (layout-blind,
-   seconds to a minute) but the accepted fix must be re-probed at
-   `--effort medium` with LEFs — placement-aware timing is what the user
-   will actually see, and fast-tier slack can move by a lot.
+6. **Confirm in the target flow.** Use `compile -fast` for a short probe
+   when appropriate, then re-run the accepted change at the baseline effort
+   and layout mode. Effort alone does not enable placement: `-physical`
+   needs the appropriate LEF/RC inputs. Report unplaced results as unplaced,
+   and check the installed command help before changing the recipe.
 
 ## The loop
 
@@ -98,18 +99,26 @@ names are heuristics; it may not recover a source signal after synthesis.
   correct hierarchy; do not invent a source line by stripping a suffix.
 - Slowest cells are wide AOI/OAI or mux cells with an RTL-named net like
   `alu_out`/`mem_wordsize` next to them: usually a priority `if/else if`
-  chain or a case with overlapping conditions → restructure to parallel.
+  chain or a case with overlapping conditions → inspect a balanced
+  priority-preserving implementation; do not discard overlap semantics.
 - A high-fanout net (hundreds of loads) that is an enable/reset/state bit:
   duplicate the register driving it or register a decoded version.
-- An adder/comparator chain (many XOR/NAND stages on a `..._add`/`_lt`
-  net): boson already picks adder architecture; the RTL fix is narrowing
+- An adder/comparator chain (many XOR/NAND/AOI stages on a `..._add`/`_lt`
+  net): first run `boson-datapath-audit` to see which architecture boson
+  chose and whether a logic rewrite re-serialized it. That is a tool issue to
+  report, not an RTL fix. If the structure is clean, the RTL fix is narrowing
   the operation or splitting it across a cycle (behaviour-changing).
 - If the path starts or ends at a port with `set_input_delay` /
   `set_output_delay` in the SDC, the fix may be a constraint, not RTL.
+- If it is unclear whether the depth comes from the RTL or from boson (a
+  scan or accumulation far deeper than its function needs, or a full run too
+  slow to iterate on), use `boson-minimal-repro` first: compile the construct
+  alone and A/B equivalent rewrites of it. A coding-style sensitivity is a
+  tool issue to report, not only an RTL fix.
 
 ## Reporting back
 
 Show: the baseline probe line, one line per iteration (edit → WNS delta →
-kept/reverted), the final medium-effort confirmation, the full diff, and a
+kept/reverted), the final target-flow confirmation, the full diff, and a
 plain statement of what changed behaviourally (nothing / latency of X by N
 cycles / interface Y) and what was and wasn't verified beyond timing.
