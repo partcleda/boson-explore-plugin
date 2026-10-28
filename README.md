@@ -223,6 +223,22 @@ command shapes boson expects). PRs adding more skills — floorplan/
 utilization sweeps, clock-gating power compares, effort-level compares —
 are welcome; see the ideas list in `SKILL.md`'s sibling issues.
 
+## Disclaimer and no liability
+
+These skills, scripts and documents are provided "AS IS", without warranty
+of any kind, express or implied, including fitness for a particular purpose
+and non-infringement. partcl accepts no liability for any use of them or for
+any result, decision, design, netlist, report or loss that comes from using
+them, as set out in sections 7 and 8 of the Apache-2.0 license. You are
+responsible for checking every result before relying on it, and for using
+third-party tools, their outputs and their results in accordance with your
+own licenses for those tools.
+
+Design Compiler, DesignWare and PrimeTime are trademarks of Synopsys, Inc.
+Other product names are trademarks of their owners. They are named only to
+describe the files and reports these skills read; no endorsement or
+affiliation is implied.
+
 ## License
 
 This plugin's own code is Apache-2.0 (`LICENSE`). `designs/picorv32/` is
