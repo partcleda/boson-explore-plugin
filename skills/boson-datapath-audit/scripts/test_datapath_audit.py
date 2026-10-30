@@ -1,5 +1,8 @@
 import copy
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from datapath_audit import audit, stages
 
@@ -119,6 +122,83 @@ class AuditTests(unittest.TestCase):
         self.assertEqual([r["exact"] for r in path["stages"]], [True, True, False])
         self.assertEqual([(g["cells"], g["exact_cells"]) for g in path["segments"]], [(2, 2), (1, 0)])
         self.assertAlmostEqual(sum(g["ps"] for g in path["segments"]), 30.0)
+
+
+class CollectorTests(unittest.TestCase):
+    def collect(self, setup="", assertions=""):
+        script = r"""
+set paths {path0}
+set provenance_calls {}
+proc update_timing {} {}
+proc report_timing_status {args} { return complete }
+proc report_timing {args} { set ::report_args $args }
+proc get_timing_paths {args} {
+    set ::path_args $args
+    return $::paths
+}
+proc report_provenance {args} { lappend ::provenance_calls $args }
+proc foreach_in_collection {var objects body} {
+    uplevel 1 [list foreach $var $objects $body]
+}
+proc get_attribute {object attr} {
+    if {$attr eq "points"} { return [list {u core/ge_reg[3]/D} {u core/add[7]/Y}] }
+    if {$attr eq "object"} { return $object }
+    error "unexpected attribute $attr"
+}
+proc require {condition message} {
+    if {![uplevel 1 [list expr $condition]]} { error $message }
+}
+""" + setup + r"""
+if {[catch {source [lindex $argv 0]} message]} {
+    puts stderr $message
+    exit 1
+}
+""" + assertions
+        with tempfile.TemporaryDirectory() as work:
+            harness = Path(work) / "collect_test.tcl"
+            harness.write_text(script)
+            result = subprocess.run(
+                ["tclsh", str(harness), str(Path(__file__).with_name("collect.tcl"))],
+                cwd=work, capture_output=True, text=True, timeout=10)
+        return result
+
+    def test_global_defaults_stay_identical(self):
+        result = self.collect(assertions=r"""
+require {$audit_paths == 200 && $audit_path_args eq {}} "changed defaults"
+require {$path_args eq {-max_paths 200 -nworst 1}} "unexpected path filters"
+require {$report_args eq {-format json -max_paths 200 -nworst 1 -file datapath_audit/timing.json}} "unexpected report arguments"
+""")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_target_filters_and_collections_reach_both_commands_identically(self):
+        result = self.collect(setup=r"""
+set audit_dir targeted
+set audit_paths 20
+set targets [list {u core/ge_reg[3]/D} {u core/ge_reg[7]/D}]
+set audit_path_args [list -from {launch_reg*/Q} -through {u core/add[7]/Y} -to $targets]
+""", assertions=r"""
+require {[lrange $report_args 2 end-2] eq $path_args} "report and provenance sampled different paths"
+require {[lrange $path_args 4 end] eq $audit_path_args} "filter arguments were split or re-evaluated"
+require {$audit_cells eq {{u core/add[7]} {u core/ge_reg[3]}}} "literal cell names changed"
+require {[lindex $provenance_calls end] eq [list -json $audit_cells > targeted/prov_paths.json]} "cell provenance differs from the selected paths"
+""")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_empty_targeted_sample_still_fails(self):
+        result = self.collect(setup=r"""
+set audit_path_args {-to missing/D}
+set paths {}
+""")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("No path cells collected", result.stderr)
+
+    def test_native_filter_error_stops_the_audit(self):
+        result = self.collect(setup=r"""
+set audit_path_args {-invalid_filter nope}
+proc report_timing {args} { error "unknown timing option -invalid_filter" }
+""")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unknown timing option -invalid_filter", result.stderr)
 
 
 if __name__ == "__main__":

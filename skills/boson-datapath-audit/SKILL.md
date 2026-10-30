@@ -46,6 +46,29 @@ a timing report or provenance summary alone is not a completed netlist audit.
 Cell stories use literal names from timing points, avoiding hierarchical glob
 queries that can silently drop nested cells or names containing brackets.
 
+To inspect a particular cone, set `audit_path_args` to a Tcl list of path
+filters accepted by both `report_timing` and `get_timing_paths`, such as
+`-from`, `-through` or `-to`. The collector forwards the same list to both
+commands; the default is an empty list, which samples global worst paths.
+Use `list` so pin collections and names containing brackets remain single
+arguments. Check that each pin query matches the intended objects before
+collecting; an empty or mismatched filter is not evidence that logic vanished.
+
+After an improvement moves the bottleneck, retain separate global and targeted
+samples in each run. An operator disappearing from the global worst paths does
+not show its new mapped depth. Keep the target endpoint and filters identical
+between baseline and candidate, and report its slack separately from global WNS:
+
+```tcl
+set audit_dir audit_global
+set audit_path_args {}
+source <plugin>/skills/boson-datapath-audit/scripts/collect.tcl
+set audit_dir audit_compare
+set audit_path_args [list -to [get_pins *ge_reg*/D]]
+source <plugin>/skills/boson-datapath-audit/scripts/collect.tcl
+set audit_path_args {}         ;# restore global sampling for later collections
+```
+
 Collect in the live compile session: a saved session can restore the netlist
 without detailed provenance. After loading a checkpoint, run `update_timing`
 and check completion. To join archived cell stories to restored timing, verify
