@@ -7,12 +7,13 @@
 # Optional: set audit_paths (default 200) before sourcing.
 if {![info exists audit_dir]}   { set audit_dir datapath_audit }
 if {![info exists audit_paths]} { set audit_paths 200 }
+if {![info exists audit_path_args]} { set audit_path_args {} }
 file mkdir $audit_dir
 update_timing
 if {[report_timing_status -quiet] ne "complete"} { error "Timing did not complete" }
-report_timing -format json -max_paths $audit_paths -nworst 1 -file $audit_dir/timing.json
+report_timing -format json -max_paths $audit_paths -nworst 1 {*}$audit_path_args -file $audit_dir/timing.json
 report_provenance > $audit_dir/prov_summary.txt
-set audit_timing_paths [get_timing_paths -max_paths $audit_paths -nworst 1]
+set audit_timing_paths [get_timing_paths -max_paths $audit_paths -nworst 1 {*}$audit_path_args]
 report_provenance $audit_timing_paths > $audit_dir/path_trace.txt
 report_provenance -json $audit_timing_paths > $audit_dir/path_trace.json
 set audit_cells {}
