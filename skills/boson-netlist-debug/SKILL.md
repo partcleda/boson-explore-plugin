@@ -212,7 +212,42 @@ Before blaming boson, check these and say which apply:
   regressed with no compensating gain. Only these go under "Suspected bad
   decisions".
 
-### 6. Severity and confidence
+### 6. Repair runtime and progress
+
+For a slow repair, distinguish the whole command, its setup-repair span,
+and trailing design-rule cleanup. Reconstruct runtime-trace containment
+per process/thread and report non-overlapping child durations. Parent and
+child spans overlap; concurrent worker durations are not elapsed time.
+State the denominator for percentages and any dropped or missing spans.
+Count full timing measurements separately from their propagation passes:
+receiver-capacitance refinement can propagate several times within one
+measurement. Verify span meanings against the run's Boson version.
+
+Accepted-round summaries omit rejected trials, discarded passes, retries
+and other stages. A rounded `+0.0 ps` WNS does not establish zero benefit:
+compare measured setup TNS, hold WNS/TNS, violating endpoints, area and
+design-rule counts at matching boundaries. Use decision records to
+separate hold regression, estimate-versus-measured disagreement and other
+rejections. Missing metrics or decision records remain unknown; runtime
+alone cannot identify a rejection reason or prove repeated identical work.
+
+Check the actual flow and saved design before blaming interconnect RC.
+`compile -no_layout` disables the layout-aware loop; inspect any separate
+placement or extraction steps. Zero annotated wire capacitance still
+leaves Liberty pin loads, output loads, slew effects and receiver-capacitance
+refinement. Resolve each repair command's effort and limits from its own
+options and the installed version; do not assume it inherits compile's.
+
+For the next diagnostic run, preserve the original flow/options and
+collect the full log, decision journal and runtime trace, plus measured
+setup/hold QoR immediately before and after repair. Obtain the worst
+setup and hold paths with launch/capture edges and required-time components
+when feasibility is unclear. A trace without individual kernel timings
+cannot attribute an entire propagation span to one kernel. Raw traces may
+contain command arguments, paths and design names: inspect them locally;
+the existing bundle workflow does not establish trace sanitization.
+
+### 7. Severity and confidence
 
 - **High** — on a failing path (or the worst endpoint group) and the
   journal shows the decision made it worse, or a constraint was misread.
