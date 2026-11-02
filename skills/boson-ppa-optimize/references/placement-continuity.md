@@ -49,6 +49,25 @@ adding exceptions between arms.
    each edit. If they differ, resolve that mismatch before attributing a timing
    difference to placement.
 
+## Compare revisions and command integration
+
+When checkpoint formats differ across revisions, use the binary that created
+the checkpoint to export Verilog, DEF and a cell table. Load those identical
+exports into both revisions with the same Liberty, LEF, SDC and explicit RC
+settings. Reapply every relevant app variable: Verilog/DEF does not preserve
+session settings. Check cell names, masters, orientations, coordinates and
+unplaced additions after import. Treat these as fresh matched replays; do not
+compare their timing directly with historical session timing without checking
+that the timing setup is identical.
+
+Alongside isolated placement, exercise the actual `size_cell`, `size_design`
+and `repair_design` command paths. Measure legality and timing immediately
+after the command, before an additional `place_design` could hide missing
+legalization or stale RC. Then measure any warm-placement continuation
+separately. Keep a bounded repair recipe when isolating integration from
+long-wire repeater policy. Record when a local legalizer falls back to a full
+legalization; warm global initialization alone does not guarantee local edits.
+
 ## Interpret the results
 
 ### Random small edits
