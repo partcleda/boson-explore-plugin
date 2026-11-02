@@ -112,6 +112,17 @@ nor a testbench — see below.
   `dw_microbench.py` compares isolated operators in both tools. Triggers on
   "how much of the gap to the DC netlist is in the datapath". Design Compiler
   and DesignWare are trademarks of Synopsys, Inc.
+- **`skills/boson-liberty-shapes`** — check that boson reads every table
+  shape in your Liberty files. `shape_census.py` groups every table into shape
+  classes (table, timing_type, variables in order, dimensions, overrides) and
+  flags tables whose value count does not fit their own grid. `shape_probe.py`
+  loads one verbatim example of each class into boson in isolation, records
+  load errors and warnings, and times delay, transition, clock-to-Q, setup,
+  hold, recovery and removal tables at two exact, off-diagonal index points
+  against the table's own values. The report stays local; an anonymized
+  per-shape summary can be sent to partcl with `report_feedback`. Triggers on
+  "boson can't parse my lib", "invalid constraint table", "does boson read
+  every table correctly".
 - **`feedback/`** — the standard "Skill feedback" section that every
   customer-facing skill ends its report with: off-script actions, missing
   framework, wrong guidance, missing inputs/coverage, and outcome. It is
@@ -120,8 +131,8 @@ nor a testbench — see below.
   generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`
-  slash commands, direct shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`,
+  `/boson-liberty-shapes` slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
