@@ -1,0 +1,7 @@
+{"schema_version": 1, "timing_complete": true, "paths": [
+ {"startpoint": "aq_reg[2]/CP", "endpoint": "far", "path_group": "clk", "path_type": "max", "slack_ns": 0.05, "arrival_ns": 0.21, "required_ns": 0.26,
+  "points": [{"point": "aq_reg[2]/CP", "net": "ck", "increment_ns": 0, "arrival_ns": 0.0},
+             {"point": "aq_reg[2]/Q", "net": "aq[2]", "increment_ns": 0.05, "arrival_ns": 0.05},
+             {"point": "aq[2]", "net": "aq[2]", "increment_ns": 0, "arrival_ns": 0.05, "fanout": 1},
+             {"point": "fsink/A1", "net": "aq[2]", "increment_ns": 0.1, "arrival_ns": 0.15},
+             {"point": "fsink/Z", "net": "far", "increment_ns": 0.06, "arrival_ns": 0.21}]}]}

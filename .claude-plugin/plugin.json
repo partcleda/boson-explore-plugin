@@ -1,6 +1,6 @@
 {
   "name": "boson-explore",
-  "description": "Design-space and power exploration skills for the boson EDA toolchain — sweep RTL parameters and clock periods through boson's synthesis/place/STA/power flow, get back an area/power/timing tradeoff table, render the whole sweep as an animated PPA video (terminal replay + Pareto scatter + placements), close timing at a target clock with the cheapest optimisation recipe that works, or debug what boson got wrong in a run of your design and package an anonymized, leak-checked report bundle for partcl.",
+  "description": "Design-space and power exploration skills for the boson EDA toolchain — sweep RTL parameters and clock periods through boson's synthesis/place/STA/power flow, get back an area/power/timing tradeoff table, render the whole sweep as an animated PPA video (terminal replay + Pareto scatter + placements), close timing at a target clock with the cheapest optimisation recipe that works, compare a boson netlist with a reference netlist by mapping pattern, buffering and failing-path family, or debug what boson got wrong in a run of your design and package an anonymized, leak-checked report bundle for partcl.",
   "version": "0.1.0",
   "author": {
     "name": "partcl",

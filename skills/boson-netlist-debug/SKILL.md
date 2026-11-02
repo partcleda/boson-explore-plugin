@@ -167,6 +167,8 @@ For the worst paths (P1.. in the timing digest, ordered by slack):
 | probe decisions that improved timing but nothing equivalent shipped | a what-if found a better answer that was not applied | probe seq, impact, the shipped decision on the same subject |
 | buffering decisions on a net that remains slow, or a buffer/inverter chain ≥3 on a critical path | over-buffering / chain instead of sizing the driver | seq, chain from netlist_stats, the stages' delays |
 | a high-fanout net on a critical path with no buffering decision and a non-buffer or weak driver (netlist_stats "unbuffered" / "weak driver") | high-fanout net left unbuffered | net token, fanout, driver cell, path id |
+| the log has PAR-252 (wire model recalibrated from the global route) and the run is compared with one that did not recalibrate | the two runs time every wire differently; TNS moves without any netlist change | PAR-252 line (ohm/um before and after, whether it hit the 2x hold), `wire_price_route_calibration` |
+| a stage checkpoint after placement (e.g. banking) loses most of the TNS that timing-driven placement gained | a later stage undoes placement's timing work | checkpoint seqs and TNS before/after, the stage's decisions |
 | clock_gating / banking decisions on registers that start or end failing paths | CG or MBFF banking hurt timing (gated-clock latency, merged flop's worse D/CK→Q) | seq, register tokens, skew/latency on the path |
 | sequential decisions removing or merging a register (constant, duplicate, unloaded) | register removed/merged — confirm it was truly redundant | seq, `reason`, the register token |
 | constraints-domain decisions / SDC-* messages showing an ignored, unsupported or partially applied command | a constraint was dropped or misread | message id + text, seq, the SDC line |
@@ -190,6 +192,11 @@ clock NAND2s on data nets) and data buffers on the clock. On a placed run the
 timing digest gives every driver->load wire length from the report's
 Location column: a long wire behind a weak driver, or a chain of buffers
 each driving tens of um, is the placement-side explanation of a slow path.
+
+When the customer also has a reference netlist of the same RTL (another
+tool's, or an earlier boson version's), `boson-reference-compare` splits the
+gap by mapping pattern, buffer tree and failing-path family; cite its
+findings here through the anonymizer.
 
 ### 5. Boson's fault, or the design / constraints?
 

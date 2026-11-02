@@ -112,6 +112,23 @@ nor a testbench — see below.
   `dw_microbench.py` compares isolated operators in both tools. Triggers on
   "how much of the gap to the DC netlist is in the datapath". Design Compiler
   and DesignWare are trademarks of Synopsys, Inc.
+- **`skills/boson-reference-compare`** — explain why a boson netlist is
+  worse than a reference netlist of the same RTL and library (another tool's
+  result, or an earlier boson version's), in patterns partcl can fix. First
+  checks the runs are comparable: boson version, a wire model recalibrated
+  from the global route (PAR-252), app variables and the stage-by-stage QoR
+  trajectory (`run_ab.py`). Then splits the std-cell area gap by mapping
+  pattern with every cell classed by its Liberty function, not its name
+  (`cell_mix.py`: full adders against split sum + carry cells, XOR/XNOR,
+  muxes against complex gates, gates wired as XNOR by tied inputs, clock
+  cells in data logic, VT mix), says what the XORs are for and compares the
+  cone of one output (`logic_patterns.py`), compares buffer trees by distance
+  and sink count with buffer spacing from the DEF (`buffer_trees.py`,
+  `route_layers.py`), and groups failing paths into families with their
+  buffer delay against the violation (`path_families.py`). Ends in ranked,
+  evidence-backed findings, each with a concrete example and the next
+  experiment. Triggers on "why is boson's area bigger than the other tool's",
+  "why did the new version regress", "write up what we found for partcl".
 - **`feedback/`** — the standard "Skill feedback" section that every
   customer-facing skill ends its report with: off-script actions, missing
   framework, wrong guidance, missing inputs/coverage, and outcome. It is
@@ -120,8 +137,8 @@ nor a testbench — see below.
   generated boson `report_feedback` script.
 - **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
   `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`
-  slash commands, direct shortcuts into the skills.
+  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`,
+  `/boson-reference-compare` slash commands, direct shortcuts into the skills.
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters

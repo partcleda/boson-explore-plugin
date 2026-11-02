@@ -1,0 +1,4 @@
+{"kind":"header","schema":1,"tool":"boson","version":"2.10.0","app_vars":{"structural_adders":"true"}}
+{"kind":"checkpoint","seq":4,"t_s":100,"label":"after timing-driven placement","metrics":{"wns_ns":-0.2,"tns_ns":-120,"area_um2":50000}}
+{"kind":"checkpoint","seq":9,"t_s":200,"label":"after banking","metrics":{"wns_ns":-0.3,"tns_ns":-900,"area_um2":49500}}
+{"kind":"checkpoint","seq":19,"t_s":300,"label":"final","metrics":{"wns_ns":-0.25,"tns_ns":-600,"area_um2":50400}}

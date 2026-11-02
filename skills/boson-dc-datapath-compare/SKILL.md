@@ -156,6 +156,10 @@ python3 <plugin>/skills/boson-dc-datapath-compare/scripts/dw_compare.py dw_boson
   the datapath in both netlists. It is the in-context counterpart of the
   microbench delay comparison.
 
+When the split puts the gap outside the datapath (buffering, gate choice,
+clock cells in data logic), `boson-reference-compare` breaks it down by
+mapping pattern, buffer tree and failing-path family.
+
 When the split puts the gap inside the datapath, use `boson-datapath-audit` on
 the worst blocks to see which architecture boson chose and how deep it mapped.
 `--dc-resources` adds DC's implementation name per resource, so the two
