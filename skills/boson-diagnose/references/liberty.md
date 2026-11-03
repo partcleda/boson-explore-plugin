@@ -98,8 +98,12 @@ Every arc (`--scope all`, the second section of the same report and
   rule for late (max) timing. The early (min) side is not probed.
 - `combined: min of groups` / `one group`: a different rule. Report it with
   the cell and arc.
-- `MISMATCH`: matches none of the groups' tables. The detail column gives the
-  point and both numbers.
+- `NEAR (within 0.1%)`: not bit-exact, but within 0.1% of the table at every
+  point. This is numeric precision, typically at very small values, not a
+  misread table. It is listed so it can be told apart from a real
+  difference.
+- `MISMATCH`: further than 0.1% from every group's table. The detail column
+  gives the worst point, the relative error and both numbers.
 
 A mismatch is a lead. Read the table at the given line, check the template's
 `variable_N` order, then rerun the class's `run.tcl` in boson by hand and read
@@ -119,8 +123,8 @@ On ASAP7 (RVT TT) and sky130_fd_sc_hd:
   on sky130;
 - every probed shape and arc times exactly or as the max of its groups,
   except **output transitions of falling-edge (negative-edge flop and latch)
-  arcs**: 8 tables on ASAP7, 34 on sky130, up to about 1% off, mostly at high
-  clock slew. Their delays, and the same tables on rising-edge arcs, are
+  arcs**: 8 tables on ASAP7 and 34 on sky130 (one of each within 0.1%), up to
+  about 1% off, mostly at high clock slew. Their delays, and the same tables on rising-edge arcs, are
   exact. Treat these MISMATCH rows as a known open boson issue;
 - internal pins read back as `other`;
 - `get_lib_timing_arcs` reports one arc where the model keeps two for pin
