@@ -3,7 +3,7 @@ description: Close timing at a target clock with the cheapest boson recipe that 
 argument-hint: --rtl path --top name [--target-ns T] [--find-fmax] [--eco] [--full-ladder]
 ---
 
-Run the `boson-ppa-optimize` skill: `scripts/ppa_optimize.py` with the
+Run the `boson-close-timing` skill's effort ladder (`references/ladder.md`): `scripts/ppa_optimize.py` with the
 arguments below (default to the bundled picorv32 example if none are
 given, with `--target-ns 7 --find-fmax`). Confirm `boson`, a Liberty file
 and LEF files are available first. Estimate the wall time, run it in the

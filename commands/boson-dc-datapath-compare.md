@@ -3,7 +3,7 @@ description: Split the QoR gap between a boson netlist and a Design Compiler net
 argument-hint: <boson flow> <DC netlist> [DC report_resources] [--microbench]
 ---
 
-Run the `boson-dc-datapath-compare` skill for the design below. Use the same
+Run the `boson-diagnose` skill's DC datapath compare (`references/compare-dc.md`) for the design below. Use the same
 libraries and the design's real SDC for both netlists. Collect from the boson
 session with `-provenance`, time the DC netlist with `score_netlist.tcl` in a
 fresh session, then run `dw_compare.py`. Report the area and timing split, the
