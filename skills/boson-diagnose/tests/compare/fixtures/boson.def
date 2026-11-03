@@ -1,0 +1,30 @@
+VERSION 5.8 ;
+DESIGN top ;
+UNITS DISTANCE MICRONS 1000 ;
+COMPONENTS 24 ;
+- ckbuf CLKBUF_X1 + PLACED ( 10000 10000 ) N ;
+- aq_reg\[0\] DFF_X1 + PLACED ( 5000 5000 ) N ;
+- aq_reg\[1\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- aq_reg\[2\] DFF_X1 + PLACED ( 0 0 ) N ;
+- aq_reg\[3\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- bq_reg\[0\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- bq_reg\[1\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- bq_reg\[2\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- bq_reg\[3\] DFF_X1 + PLACED ( 10000 10000 ) N ;
+- cmp0 XNOR2_X1 + PLACED ( 10000 10000 ) N ;
+- cmp1 XNOR2_X1 + PLACED ( 10000 10000 ) N ;
+- cmp2 XNOR2_X1 + PLACED ( 10000 10000 ) N ;
+- cmp3 XNOR2_X1 + PLACED ( 10000 10000 ) N ;
+- red NAND4_X1 + PLACED ( 10000 10000 ) N ;
+- inv_out INV_X1 + PLACED ( 10000 10000 ) N ;
+- inv_side INV_X1 + PLACED ( 6000 5000 ) N ;
+- data_ck CLKNAND2_X1 + PLACED ( 7000 5000 ) N ;
+- sum0 SUM3_X1 + PLACED ( 10000 10000 ) N ;
+- car0 MAJI3_X1 + PLACED ( 10000 10000 ) N ;
+- cnr NOR2_X1 + PLACED ( 10000 10000 ) N ;
+- fb1 BUF_X1 + PLACED ( 30000 0 ) N ;
+- fb2 BUF_X1 + PLACED ( 60000 0 ) N ;
+- fb3 BUF_X1 + PLACED ( 90000 0 ) N ;
+- fsink AND2_X1 + PLACED ( 450000 0 ) N ;
+END COMPONENTS
+END DESIGN

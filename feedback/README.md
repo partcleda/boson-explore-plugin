@@ -1,8 +1,7 @@
 # Skill feedback
 
-Every customer-facing skill (ppa-optimize, rtl-timing-closure, datapath-audit,
-minimal-repro, netlist-debug, timing-power-tradeoff, dc-datapath-compare)
-ends its report with a fixed **Skill feedback** section. The agent writes it
+Every skill (boson-explore, boson-close-timing, boson-rtl-optimize,
+boson-diagnose) ends its report with a fixed **Skill feedback** section. The agent writes it
 into `skill_feedback.json` with `skill_feedback.py`. The customer does not have
 to do anything.
 
@@ -32,7 +31,7 @@ python3 $F share [--map name_map.json]
 - `skill_feedback.json` stays on the customer's machine.
 - `share` writes `skill_feedback.share/skill_feedback.anon.json` and
   `skill_feedback.share/submit.tcl`.
-  - With `boson-netlist-debug` installed and its `name_map.json` passed as
+  - With `boson-diagnose` installed and its `name_map.json` passed as
     `--map`, free text is encoded with the same salted tokens as a debug
     bundle, and that skill's leak check must pass.
   - Without it, or in addition to it, a basic scrub replaces paths, emails,

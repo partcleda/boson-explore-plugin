@@ -2,7 +2,7 @@
 
 `picorv32.v` is vendored verbatim from [YosysHQ/picorv32](https://github.com/YosysHQ/picorv32)
 (ISC license, see `LICENSE` in this directory) as the example RTL for the
-`boson-timing-power-tradeoff` skill.
+`boson-explore` skill.
 
 It was picked for its ~19 real top-module parameters (`BARREL_SHIFTER`,
 `ENABLE_FAST_MUL`, `TWO_CYCLE_ALU`, `COMPRESSED_ISA`, `ENABLE_IRQ`,

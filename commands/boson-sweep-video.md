@@ -3,7 +3,7 @@ description: Run a boson design-space sweep and render it as an animated PPA vid
 argument-hint: [--rtl path --top name --axis NAME=v1,v2 ... --periods ns,ns] [--gif out.gif] [--mp4 out.mp4]
 ---
 
-Run the `boson-sweep-video` skill end to end: `run_sweep.py` with the
+Run the `boson-explore` skill's sweep video (`references/sweep-video.md`) end to end: `run_sweep.py` with the
 arguments below (default to the bundled picorv32 example with a small
 2×2×2 grid if none are given), then `render_video.py` to produce the
 GIF/MP4/still. Confirm `boson`, a Liberty file and LEF files are available

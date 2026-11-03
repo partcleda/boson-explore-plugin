@@ -3,7 +3,8 @@ description: Check that boson reads every table shape in your Liberty files — 
 argument-hint: <lib files...>
 ---
 
-Run the `boson-liberty-shapes` skill on the Liberty files below: run
+Run the `boson-diagnose` skill's Liberty table shapes method
+(`references/liberty-shapes.md`) on the Liberty files below: run
 `shape_census.py` on all of them, then `shape_probe.py` with the installed
 boson. Report the coverage line and every LOAD ERROR, MISMATCH, NO ARC and
 assumption-stating WARNING, each with its shape, the number of tables

@@ -3,7 +3,7 @@ description: Find out why a few paths are far deeper than the clock allows — r
 argument-hint: <failing endpoint, module or timing report> [--period NS]
 ---
 
-Run the `boson-minimal-repro` skill for the path or module below. Name the
+Run the `boson-diagnose` skill's minimal repro (`references/minimal-repro.md`) for the path or module below. Name the
 RTL construct on the path, compile it alone under the same clock, libraries
 and effort, and confirm the repro matches the full design's path. Then A/B
 one to three proven-equivalent rewrites (and a width or clock sweep where it

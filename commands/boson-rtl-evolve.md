@@ -3,7 +3,7 @@ description: Evolve the RTL against a PPA objective (Fmax, area or power, with o
 argument-hint: --rtl files --top name --sdc file --objective fmax|area|power [--cap area=+15%] [--budget N]
 ---
 
-Run the `boson-rtl-evolve` skill on the arguments below. Freeze the SDC,
+Run the `boson-rtl-optimize` skill in evolve mode (`references/evolve.md`) on the arguments below. Freeze the SDC,
 the clock and the flow script, and score the original RTL first. Then
 iterate: one hypothesis per candidate, each committed, gated (lint, formal
 equivalence, lockstep co-simulation with directed corners) and scored by
