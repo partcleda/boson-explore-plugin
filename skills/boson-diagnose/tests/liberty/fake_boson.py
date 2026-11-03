@@ -24,9 +24,11 @@ print("CHECKLIB_BEGIN")
 print("CHECKLIB_END")
 for m in re.finditer(r'timing_type : (\w+);', lib):
     print(f"ARC x/CK x/D {m.group(1)}")
+points = [len(re.findall(r"\{[^{}]*\}", m)) for m in re.findall(r"set probe_points \[list (.*)\]", tcl)]
 for i in range(tcl.count("PROBE_BEGIN")):
     print(f"PROBE_BEGIN {i}")
     v = "" if mode == "empty" else os.environ.get("FAKE_VALUE", "0.05")
-    for edge in ("rise", "fall"):
-        print(f"PROBE comb {edge} {v} {v}")
+    for pi in range(points[i] if i < len(points) else 1):
+        for edge in ("rise", "fall"):
+            print(f"PROBE comb {edge} {v or '-'} {v or '-'} {pi}")
     print(f"PROBE_END {i}")

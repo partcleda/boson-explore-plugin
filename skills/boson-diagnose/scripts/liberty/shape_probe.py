@@ -22,7 +22,9 @@ if the user sources it.
 from __future__ import annotations
 
 import argparse
+import collections
 import concurrent.futures as cf
+import itertools
 import json
 import re
 import shutil
@@ -46,8 +48,9 @@ def unit_ns(time_unit: str) -> float:
     return (float(m.group(1) or 1)) * {"fs": 1e-6, "ps": 1e-3, "ns": 1.0, "us": 1e3}[m.group(2)]
 
 
-def probe_plan(c: dict, scale: float) -> tuple[list[dict], str]:
-    """Probes for one shape class, or the reason it is not probed."""
+def probe_plan(c: dict, scale: float, grid: str = "two") -> tuple[list[dict], str]:
+    """Probes for one shape class (or one table instance), or the reason it is not
+    probed. grid "two": two off-diagonal points; "full": every index point."""
     ex, tt = c["example"], c["timing_type"]
     vals, idx = ex["values"], ex["index"]
     dims, variables = c["dims"], c["variables"]
@@ -59,6 +62,8 @@ def probe_plan(c: dict, scale: float) -> tuple[list[dict], str]:
         if tt.startswith("combinational") or tt == "":
             if ex.get("related_is_clock"):
                 return [], "combinational arc from a clock pin (e.g. a clock gate): not timed by an ideal-clock probe"
+            if ex.get("cell_has_latch"):
+                return [], "latch transparency arc: needs the latch enable clocked, not timed by this probe"
             mode = "comb"
         elif tt in ("rising_edge", "falling_edge"):
             mode = "edge"
@@ -81,9 +86,14 @@ def probe_plan(c: dict, scale: float) -> tuple[list[dict], str]:
         return [], "value count does not match the index grid"
     probes = []
     # two off-diagonal points: on a square grid a diagonal point reads the same entry
-    # from a transposed table, so it cannot catch swapped axes
-    for pick in (0, 1):
-        pos = [min(d - 1, 1) if (k + pick) % 2 == 0 else d - 1 for k, d in enumerate(dims)]
+    # from a transposed table, so it cannot catch swapped axes. The full grid reads
+    # every entry, so a table boson stores at lower resolution or smooths cannot hide
+    # between the probed points.
+    if grid == "full" and dims:
+        picks = [list(t) for t in itertools.product(*[range(d) for d in dims])]
+    else:
+        picks = [[min(d - 1, 1) if (k + pick) % 2 == 0 else d - 1 for k, d in enumerate(dims)] for pick in (0, 1)]
+    for pos in picks:
         flat = 0
         for k, d in enumerate(dims):
             flat = flat * d + pos[k]
@@ -107,6 +117,10 @@ def probe_plan(c: dict, scale: float) -> tuple[list[dict], str]:
         if not dims:
             break
     return probes, ""
+
+
+def batch_key(p: dict) -> tuple:
+    return (p["cell"], p["from"], p["to"], p["mode"], p["clock_edge"])
 
 
 def isolable(lines: list[str], ranges: list) -> bool:
@@ -151,12 +165,13 @@ def probe_one(job: dict) -> dict:
     a, b = job["cell_lines"]
     body = lines[a - 1:b]
     keep, drop = job.get("keep"), job.get("drop") or []
-    if keep is not None:
+    if keep:
         # every other timing/internal_power group of the cell is removed, so messages and
-        # probe values belong to this table's group alone
+        # probe values belong to the kept group(s) alone
+        keeps = keep if isinstance(keep[0], list) else [keep]
         gone = set()
         for s, e in drop:
-            if [s, e] != keep and not (keep[0] <= s and e <= keep[1]):
+            if [s, e] not in keeps and not any(k[0] <= s and e <= k[1] for k in keeps):
                 gone.update(range(s, e + 1))
         body = [l for n, l in enumerate(body, a) if n not in gone]
     (d / "mini.lib").write_text("".join(lines[:job["header_end"]]) + "".join(body) + "}\n")
@@ -165,11 +180,21 @@ def probe_one(job: dict) -> dict:
     if job["cell"] != "-":
         tcl += [f"foreach_in_collection a [get_lib_timing_arcs -quiet -of_objects [get_lib_pins -quiet \"{job['cell']}/*\"]] "
            "{ puts \"ARC [get_attribute $a from_pin] [get_attribute $a to_pin] [get_attribute $a timing_type]\" }"]
-    for i, p in enumerate(job["probes"]):
+    segs = collections.OrderedDict()
+    for p in job["probes"]:
+        seg = segs.setdefault(batch_key(p), {"points": [], "index": {}})
+        pt = (p["slew"], p["dslew"], p["load"])
+        if pt not in seg["index"]:
+            seg["index"][pt] = len(seg["points"])
+            seg["points"].append(pt)
+        p["_seg"], p["_pt"] = list(segs).index(batch_key(p)), seg["index"][pt]
+    for i, (k, seg) in enumerate(segs.items()):
+        cell, frm, to, mode, cedge = k
+        pts = " ".join(f"{{{a} {b} {c}}}" for a, b, c in seg["points"])
         tcl += [f"puts \"PROBE_BEGIN {i}\"",
-                f"set probe_cell {{{p['cell']}}}; set probe_from {{{p['from']}}}; set probe_to {{{p['to']}}}",
-                f"set probe_mode {p['mode']}; set probe_slew {p['slew']}; set probe_dslew {p['dslew']}; "
-                f"set probe_load {p['load']}; set probe_unit_ns {job['unit_ns']}; set probe_clock_edge {p['clock_edge']}",
+                f"set probe_cell {{{cell}}}; set probe_from {{{frm}}}; set probe_to {{{to}}}",
+                f"set probe_mode {mode}; set probe_unit_ns {job['unit_ns']}; set probe_clock_edge {cedge}",
+                f"set probe_points [list {pts}]",
                 f"if {{[catch {{source {HERE / 'probe_table.tcl'}}} e]}} {{ puts \"PROBE_ERROR $e\" }}",
                 f"puts \"PROBE_END {i}\""]
     (d / "run.tcl").write_text("\n".join(tcl) + "\n")
@@ -182,27 +207,167 @@ def probe_one(job: dict) -> dict:
             if line.strip().startswith(job["cell"] + " "):
                 check = " ".join(line.split()[1:])
     arcs = [l.split()[1:] for l in log.splitlines() if l.startswith("ARC ")]
-    results = []
-    for i, p in enumerate(job["probes"]):
+    seg_vals, seg_err = {}, {}
+    for i in range(len(segs)):
         seg = log.split(f"PROBE_BEGIN {i}", 1)[-1].split(f"PROBE_END {i}", 1)[0]
-        got = None
         # an error inside a sourced file stops that file without raising to catch
-        err = next((l.strip() for l in seg.splitlines() if l.startswith("PROBE_ERROR") or l.startswith("Error:")), "")
+        seg_err[i] = next((l.strip() for l in seg.splitlines() if l.startswith("PROBE_ERROR") or l.startswith("Error:")), "")
         for l in seg.splitlines():
             f = l.split()
-            if len(f) >= 3 and f[0] == "PROBE" and f[2] == p["edge"]:
-                vals = f[3:]
-                k = 0 if p["quantity"] == "delay" else 1
-                if len(vals) > k:
-                    try:
-                        got = float(vals[k])
-                    except ValueError:
-                        got = None
+            if len(f) >= 6 and f[0] == "PROBE":
+                # PROBE <mode> <edge> <value|-> <transition|-> <point>
+                pi = int(f[5]) if f[5].isdigit() else 0
+                vals = f[3:5]
+                seg_vals[(i, pi, f[2])] = vals
+    results = []
+    for p in job["probes"]:
+        vals = seg_vals.get((p["_seg"], p["_pt"], p["edge"]), [])
+        k = 0 if p["quantity"] == "delay" else 1
+        got = None
+        if len(vals) > k:
+            try:
+                got = float(vals[k])
+            except ValueError:
+                got = None
         ok = got is not None and abs(got - p["expected_ns"]) <= 1e-6 + 1e-4 * abs(p["expected_ns"])
-        results.append({**{k: v for k, v in p.items()}, "got_ns": got, "match": ok, "error": err})
+        results.append({**{k2: v for k2, v in p.items() if not k2.startswith("_")}, "got_ns": got, "match": ok,
+                        "error": seg_err.get(p["_seg"], "")})
     return {"key": job["key"], "loaded_cells": int(loaded.group(1)) if loaded else 0,
             "messages": messages(log.split("CHECKLIB_BEGIN", 1)[0]), "check_library": check, "arcs": arcs,
             "probes": results, "dir": str(d)}
+
+
+def plan_units(census, files, text, a, jobs) -> list:
+    """One unit per (cell, related pin, pin, timing_type) with delay or transition tables.
+    The cell is loaded verbatim, so every group on the pin pair is present and the
+    probe reads what boson makes of them together."""
+    by = collections.OrderedDict()
+    for inst in census["instances"]:
+        if inst["table"] not in DELAY:
+            continue
+        rp = inst["related_pin"].split()
+        for r in rp or [""]:
+            by.setdefault((inst["file"], inst["cell"], r, inst["pin"], inst["timing_type"]), []).append(inst)
+    cell_jobs, units = {}, []
+    for key, insts in by.items():
+        fname, cell, rp, pin, tt = key
+        scale = unit_ns(files[fname]["time_unit"])
+        groups = collections.OrderedDict()
+        for inst in insts:
+            groups.setdefault(tuple(inst.get("group_lines") or []), []).append(inst)
+        first = insts[0]
+        u = {"key": key, "groups": len(groups), "probes": [], "skipped": "", "line": first["line"],
+             "senses": sorted({g[0].get("timing_sense", "") for g in groups.values()}),
+             "whens": [g[0].get("when", "") for g in groups.values()]}
+        for tname in DELAY:
+            tabs = {gk: next((x for x in g if x["table"] == tname), None) for gk, g in groups.items()}
+            ref = next((t for t in tabs.values() if t), None)
+            if ref is None:
+                continue
+            pseudo = {"example": {**ref, "related_pin": rp}, "timing_type": tt, "table": tname,
+                      "dims": ref["dims"], "variables": ref["variables"]}
+            probes, why = probe_plan(pseudo, scale, a.grid)
+            if why:
+                u["skipped"] = why
+                continue
+            for p in probes:
+                exp = {}
+                for gi, (gk, t) in enumerate(tabs.items()):
+                    if t and t["index"] == ref["index"]:
+                        flat = 0
+                        for k, d in enumerate(t["dims"]):
+                            flat = flat * d + p["position"][k]
+                        exp[gi] = t["values"][flat] * scale
+                p.update({"unit": len(units), "table": tname, "by_group": exp})
+            u["probes"] += probes
+        units.append(u)
+        if u["probes"]:
+            ck = (fname, cell)
+            if ck not in cell_jobs:
+                cell_jobs[ck] = {"key": ("arcs",) + ck, "dir": a.out / f"arcs_{len(cell_jobs):05d}", "lines": text[fname],
+                                 "header_end": files[fname]["header_end_line"], "cell_lines": tuple(first["cell_lines"]),
+                                 "cell": cell, "probes": [], "boson": a.boson, "timeout": a.timeout, "unit_ns": scale}
+                jobs.append(cell_jobs[ck])
+            cell_jobs[ck]["probes"] += u["probes"]
+    return units
+
+
+def judge_units(units, done) -> list:
+    """Per unit and table: exact (one group), or which rule boson used to combine
+    several groups at every point (max, min, one group), or MISMATCH."""
+    got = collections.defaultdict(list)
+    for r in done.values():
+        if r["key"][0] == "arcs":
+            for p in r["probes"]:
+                got[(p["unit"], p["table"])].append(p)
+    rows = []
+    for ui, u in enumerate(units):
+        fname, cell, rp, pin, tt = u["key"]
+        tables = sorted({p["table"] for p in u["probes"]})
+        if not tables:
+            rows.append({"cell": cell, "arc": f"{rp}->{pin}", "timing_type": tt, "table": "-", "groups": u["groups"],
+                         "verdict": "not probed", "detail": u["skipped"], "file": fname, "line": u["line"]})
+        for t in tables:
+            ps = got.get((ui, t), [])
+            rules, worst = collections.Counter(), None
+            for p in ps:
+                g = p["got_ns"]
+                vals = list(p["by_group"].values())
+                if g is None or not vals:
+                    rules["no value"] += 1
+                    continue
+                hit = [k for k, v in p["by_group"].items() if abs(g - v) <= 1e-6 + 1e-4 * abs(v)]
+                if len(vals) == 1:
+                    rules["exact" if hit else "differs"] += 1
+                elif abs(g - max(vals)) <= 1e-6 + 1e-4 * abs(max(vals)):
+                    rules["max of groups"] += 1
+                elif abs(g - min(vals)) <= 1e-6 + 1e-4 * abs(min(vals)):
+                    rules["min of groups"] += 1
+                elif hit:
+                    rules["one group"] += 1
+                else:
+                    rules["differs"] += 1
+                if not hit and (worst is None or abs(g - vals[0]) > worst[2]):
+                    worst = (p["point"], vals, abs(g - vals[0]), g)
+            if rules.get("no value"):
+                verdict = "PROBE FAILED"
+            elif rules.get("differs"):
+                verdict = "MISMATCH"
+            elif set(rules) == {"exact"}:
+                verdict = "exact"
+            else:
+                verdict = "combined: " + ", ".join(f"{k} ({v})" for k, v in rules.most_common())
+            detail = ""
+            if worst and verdict == "MISMATCH":
+                pt, vals, _, g = worst
+                detail = f"at {pt}: table {', '.join(f'{v:.6g}' for v in vals)} ns, boson {g:.6g} ns"
+            rows.append({"cell": cell, "arc": f"{rp}->{pin}", "timing_type": tt, "table": t, "groups": u["groups"],
+                         "senses": u["senses"], "whens": u["whens"], "points": len(ps), "rules": dict(rules),
+                         "verdict": verdict, "detail": detail, "file": fname, "line": u["line"]})
+    return rows
+
+
+def arc_report(rows) -> list:
+    c = collections.Counter(r["verdict"] for r in rows)
+    md = ["", "## Every delay and transition table (--scope all)", "",
+          f"{len(rows)} (arc, table) pairs: " + ", ".join(f"{k} {v}" for k, v in c.most_common()), "",
+          "`combined: max of groups` means several groups share the pin pair (when conditions or both senses) and "
+          "boson's value equals the largest of their tables at every point; that is how boson aggregates them.", ""]
+    bad = [r for r in rows if r["verdict"] in ("MISMATCH", "PROBE FAILED")]
+    if bad:
+        md += ["| verdict | cell | arc | timing_type | table | groups | detail |", "|---|---|---|---|---|---|---|"]
+        md += [f"| {r['verdict']} | {r['cell']} | {r['arc']} | {r['timing_type']} | {r['table']} | {r['groups']} | "
+               f"{r['detail']} |" for r in bad[:80]]
+        if len(bad) > 80:
+            md.append(f"\n... {len(bad) - 80} more in arcs.json")
+    by_tt = collections.defaultdict(collections.Counter)
+    for r in rows:
+        by_tt[(r["timing_type"], r["table"])][r["verdict"].split(":")[0]] += 1
+    md += ["", "| timing_type | table | " + " | ".join(sorted({k for v in by_tt.values() for k in v})) + " |"]
+    cols = sorted({k for v in by_tt.values() for k in v})
+    md += ["|---|---|" + "---|" * len(cols)]
+    md += [f"| {tt} | {t} | " + " | ".join(str(v.get(k, 0)) for k in cols) + " |" for (tt, t), v in sorted(by_tt.items())]
+    return md
 
 
 def main() -> int:
@@ -212,6 +377,11 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=Path("shape_probe"))
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=600)
+    ap.add_argument("--grid", choices=("two", "full"), default="two",
+                    help="probe two off-diagonal points per table (default) or every index point")
+    ap.add_argument("--scope", choices=("classes", "all"), default="classes",
+                    help="all: also time every delay and transition table of every cell (needs shape_census.py --all), "
+                         "judging how boson combines several groups on one pin pair")
     a = ap.parse_args()
     census = json.loads(a.shapes.read_text())
     a.out.mkdir(parents=True, exist_ok=True)
@@ -233,7 +403,7 @@ def main() -> int:
             plans.append(([], "library-level table: loads with the header, see file messages"))
             continue
         scale = unit_ns(files[ex["file"]]["time_unit"])
-        probes, why = probe_plan(c, scale)
+        probes, why = probe_plan(c, scale, a.grid)
         for p in probes:
             p["class"] = ci
         plans.append((probes, why))
@@ -253,6 +423,12 @@ def main() -> int:
                            "header_end": files[ex["file"]]["header_end_line"], "cell_lines": tuple(ex["cell_lines"]),
                            "cell": ex["cell"], "probes": [], "boson": a.boson, "timeout": a.timeout, "unit_ns": scale}
             jobs.append(by_cell[ck])
+    units = []
+    if a.scope == "all":
+        if not census.get("instances"):
+            print("--scope all needs shape_census.py --all", file=sys.stderr)
+            return 2
+        units = plan_units(census, files, text, a, jobs)
     print(f"{len(census['classes'])} shape classes, {len(by_cell)} example cells, "
           f"{sum(len(p) for p, _ in plans)} probes; running boson once per class ...", flush=True)
     with cf.ThreadPoolExecutor(a.jobs) as pool:
@@ -307,11 +483,14 @@ def main() -> int:
         summary.setdefault(verdict, 0)
         summary[verdict] += 1
 
+    arc_rows = judge_units(units, done) if units else []
     (a.out / "results.json").write_text(json.dumps(rows, indent=1))
+    if arc_rows:
+        (a.out / "arcs.json").write_text(json.dumps(arc_rows, indent=1))
     # messages the header alone produces are about the file (units, templates, defaults),
     # not one shape: reported once per file
     file_msgs = [{"file": f, "messages": done[("header", f)]["messages"]} for f in files]
-    shareable = {"schema": 1, "tool": "boson-diagnose/liberty-shapes",
+    shareable = {"schema": 1, "tool": "boson-diagnose/liberty-check",
                  "file_message_ids": sorted({m["id"] for fm in file_msgs for m in fm["messages"] if m["id"]}),
                  "classes": [
         {k: r[k] for k in ("table", "owner", "timing_type", "variables", "dims", "overrides", "count", "verdict")}
@@ -324,7 +503,7 @@ def main() -> int:
         "set fh [open [file join [file dirname [info script]] shapes_summary.json]]\n"
         "set msg [string trim [read $fh]]\nclose $fh\n"
         "if {[string length $msg] > 3800} { set msg [string range $msg 0 3799] }\n"
-        "report_feedback -category bug -message $msg -context \"skill=boson-diagnose method=liberty-shapes\"\n")
+        "report_feedback -category bug -message $msg -context \"skill=boson-diagnose method=liberty-check\"\n")
 
     total = sum(r["count"] for r in rows)
     probed_tables = sum(r["count"] for r in rows if r["probes"])
@@ -365,6 +544,10 @@ def main() -> int:
         md.append(f"| {r['class']} | {r['verdict']} | {r['count']} | {r['table']} | {r['timing_type'] or '-'} | {dims} | "
                   f"{', '.join(r['variables']) or '-'} | {Path(ex['file']).name}:{ex['line']} {ex['cell']} "
                   f"{ex['related_pin']}->{ex['pin']} | {'<br>'.join(detail).replace('|', '/')} |")
+    if arc_rows:
+        md += arc_report(arc_rows)
+        shareable["arcs"] = dict(collections.Counter(r["verdict"] for r in arc_rows))
+        (a.out / "shapes_summary.json").write_text(json.dumps(shareable, indent=1))
     (a.out / "report.md").write_text("\n".join(md) + "\n")
     print("\n".join(md[:4]))
     for r in rows:
@@ -373,7 +556,10 @@ def main() -> int:
                   f"{'x'.join(map(str, r['dims'])) or 'scalar'} ({r['count']} tables) "
                   f"e.g. {r['example']['cell']} line {r['example']['line']}")
     print(f"\n-> {a.out}/report.md (local), {a.out}/shapes_summary.json (shareable), {a.out}/submit.tcl")
-    return 1 if any(r["verdict"] in ("LOAD ERROR", "MISMATCH", "NO ARC") for r in rows) else 0
+    bad_arcs = sum(r["verdict"] == "MISMATCH" for r in arc_rows)
+    if arc_rows:
+        print(f"arcs: " + ", ".join(f"{k} {v}" for k, v in sorted(collections.Counter(r['verdict'] for r in arc_rows).items())))
+    return 1 if bad_arcs or any(r["verdict"] in ("LOAD ERROR", "MISMATCH", "NO ARC") for r in rows) else 0
 
 
 if __name__ == "__main__":

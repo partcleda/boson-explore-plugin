@@ -99,3 +99,23 @@ class Probe(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Aggregation(unittest.TestCase):
+    """judge_units names the rule boson used when several groups share a pin pair."""
+
+    def judge(self, by_group, got):
+        unit = {"key": ("f.lib", "XOR", "A", "Y", "combinational"), "groups": len(by_group), "probes": [1],
+                "skipped": "", "line": 1, "senses": ["negative_unate", "positive_unate"], "whens": ["", ""]}
+        probes = [{"unit": 0, "table": "cell_rise", "point": {"p": i}, "by_group": dict(enumerate(bg)), "got_ns": g}
+                  for i, (bg, g) in enumerate(zip(by_group, got))]
+        done = {("arcs", "f.lib", "XOR"): {"key": ("arcs", "f.lib", "XOR"), "probes": probes}}
+        unit["probes"] = probes
+        return shape_probe.judge_units([unit], done)[0]["verdict"]
+
+    def test_rules(self):
+        self.assertEqual(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.2, 0.4]), "combined: max of groups (2)")
+        self.assertTrue(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.1, 0.3]).startswith("combined: min of groups"))
+        self.assertEqual(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.2, 0.35]), "MISMATCH")
+        self.assertEqual(self.judge([[0.1], [0.3]], [0.1, 0.3]), "exact")
+        self.assertEqual(self.judge([[0.1], [0.3]], [0.1, None]), "PROBE FAILED")

@@ -1,0 +1,9 @@
+arc	from	to	timing_type	sense	when
+INV_TL/A->Y	INV_TL/A	INV_TL/Y	combinational	negative_unate	
+INV_LT/A->Y	INV_LT/A	INV_LT/Y	combinational	negative_unate	
+INV_1D/A->Y	INV_1D/A	INV_1D/Y	combinational	negative_unate	
+INV_SCALAR/A->Y	INV_SCALAR/A	INV_SCALAR/Y	combinational	negative_unate	
+INV_OVERRIDE/A->Y	INV_OVERRIDE/A	INV_OVERRIDE/Y	combinational	negative_unate	
+DFF_NOCHANGE/CK->D(setup_rising)	DFF_NOCHANGE/CK	DFF_NOCHANGE/D	setup_rising	non_unate	
+DFF_NOCHANGE/CK->D(nochange_high_high)	DFF_NOCHANGE/CK	DFF_NOCHANGE/D	nochange_high_high	non_unate	
+DFF_NOCHANGE/CK->Q	DFF_NOCHANGE/CK	DFF_NOCHANGE/Q	rising_edge	non_unate	

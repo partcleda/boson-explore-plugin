@@ -8,7 +8,9 @@
 #   probe_dslew transition at the constrained (data) pin; setup/hold only
 #   probe_load  load on probe_to (comb/edge) in library units
 #   probe_unit_ns  ns per library time unit (0.001 for a ps library)
-# Prints one line per edge:  PROBE <mode> <rise|fall> <delay|constraint> <transition>  (ns)
+#   probe_points  optional list of {slew dslew load} triples: one link, every point timed
+# Prints one line per point and edge:
+#   PROBE <mode> <rise|fall> <delay|constraint> <transition> <point index>   (ns)
 set lc [get_lib_cells $probe_cell]
 set ins {}
 set outs {}
@@ -20,6 +22,12 @@ foreach_in_collection p [get_lib_pins -quiet "[get_attribute $lc full_name]/*"] 
         inout  { lappend outs $n }
     }
 }
+# only the pins under test are connected: an undriven input contributes no arrival and
+# no slew, so the measured pin's transition is this arc's own, not the worst over all
+# inputs that static timing would merge at the pin
+set used [lsort -unique [list $probe_from $probe_to]]
+set ins [lmap n $ins {expr {$n in $used ? $n : [continue]}}]
+set outs [lmap n $outs {expr {$n in $used ? $n : [continue]}}]
 set decl {}
 set conns {}
 foreach n $ins  { lappend decl "  input p_${n};";  lappend conns ".${n}(p_${n})" }
@@ -40,20 +48,27 @@ if {$probe_mode eq "comb"} {
     create_clock -name vclk -period $period
     set_input_delay 0 -clock vclk [all_inputs]
     set_output_delay 0 -clock vclk [all_outputs]
-    set_input_transition $probe_slew [all_inputs]
 } else {
     # the falling edge sits at half the period; checks and delays are read relative to it
     set half [expr {$period / 2.0}]
     create_clock -name ck -period $period -waveform [list 0 $half] [get_ports p_$probe_from]
-    set_clock_transition $probe_slew [get_clocks ck]
     set data [remove_from_collection [all_inputs] [get_ports p_$probe_from]]
-    if {[sizeof_collection $data]} {
-        set_input_delay 0 -clock ck $data
-        set_input_transition [expr {[info exists probe_dslew] ? $probe_dslew : $probe_slew}] $data
-    }
+    if {[sizeof_collection $data]} { set_input_delay 0 -clock ck $data }
     set_output_delay 0 -clock ck [all_outputs]
 }
-if {$probe_mode in {comb edge}} { set_load $probe_load [get_ports p_$probe_to] }
+if {![info exists probe_points]} {
+    set probe_points [list [list $probe_slew [expr {[info exists probe_dslew] ? $probe_dslew : 0}] $probe_load]]
+}
+set pi 0
+foreach pt_spec $probe_points {
+lassign $pt_spec slew dslew load
+if {$probe_mode eq "comb"} {
+    set_input_transition $slew [all_inputs]
+} else {
+    set_clock_transition $slew [get_clocks ck]
+    if {[sizeof_collection $data]} { set_input_transition $dslew $data }
+}
+if {$probe_mode in {comb edge}} { set_load $load [get_ports p_$probe_to] }
 update_timing
 foreach edge {rise fall} {
     set v ""
@@ -65,24 +80,33 @@ foreach edge {rise fall} {
             if {[sizeof_collection $p]} {
                 foreach_in_collection pt [get_attribute $p points] {
                     if {[get_object_name [get_attribute $pt object]] eq "u0/$probe_to"} {
-                        set v [expr {[get_attribute $pt arrival] - ($probe_mode eq "edge" ? $edge_ns : 0.0)}]
+                        set arr [get_attribute -quiet $pt arrival]
+                        if {$arr ne ""} { set v [expr {$arr - ($probe_mode eq "edge" ? $edge_ns : 0.0)}] }
+                        # this path's transition at the pin, not the pin's worst over all events
+                        set tr [get_attribute -quiet $pt transition]
                     }
                 }
             }
-            set tr [get_attribute -quiet [get_pins u0/$probe_to] actual_${edge}_transition_max]
         }
         setup {
             set p [get_timing_paths -to [get_pins u0/$probe_to] -${edge}_to [get_pins u0/$probe_to]]
             # the check's capture edge: the next rising edge, or the falling edge
             set cap [expr {$probe_clock_edge eq "fall" ? $edge_ns : $period * $probe_unit_ns}]
-            if {[sizeof_collection $p]} { set v [expr {$cap - [get_attribute $p required]}] }
+            # a check may exist on one data edge only (recovery: the rising release)
+            set req [expr {[sizeof_collection $p] ? [get_attribute -quiet $p required] : ""}]
+            if {$req ne ""} { set v [expr {$cap - $req}] }
         }
         hold {
             set p [get_timing_paths -delay_type min -to [get_pins u0/$probe_to] -${edge}_to [get_pins u0/$probe_to]]
             # a hold check on the falling edge is against the falling edge before the
             # launch, half a period before time 0
-            if {[sizeof_collection $p]} { set v [expr {[get_attribute $p required] + $edge_ns}] }
+            set req [expr {[sizeof_collection $p] ? [get_attribute -quiet $p required] : ""}]
+            if {$req ne ""} { set v [expr {$req + $edge_ns}] }
         }
     }
-    puts "PROBE $probe_mode $edge $v $tr"
+    # "-" keeps the columns fixed when a value is missing
+    puts "PROBE $probe_mode $edge [expr {$v eq {} ? {-} : $v}] [expr {$tr eq {} ? {-} : $tr}] $pi"
 }
+incr pi
+}
+unset probe_points

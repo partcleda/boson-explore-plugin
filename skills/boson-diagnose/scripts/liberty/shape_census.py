@@ -142,8 +142,11 @@ def index_lengths(g: Group) -> dict[int, list[float]]:
     return out
 
 
-def census(paths: list[Path]) -> dict:
-    templates, classes, problems, files = {}, {}, [], []
+PROBEABLE = {"cell_rise", "cell_fall", "rise_transition", "fall_transition", "rise_constraint", "fall_constraint"}
+
+
+def census(paths: list[Path], every: bool = False) -> dict:
+    templates, classes, problems, files, instances = {}, {}, [], [], []
     for path in paths:
         raw = gzip.open(path, "rt", errors="replace").read() if path.suffix == ".gz" else path.read_text(errors="replace")
         root = read_tree(raw)
@@ -157,11 +160,12 @@ def census(paths: list[Path]) -> dict:
                       "capacitive_load_unit": [" ".join(a) for a in lib.complex.get("capacitive_load_unit", [])],
                       "header_end_line": (first_cell.line - 1) if first_cell else lib.end,
                       "cells": sum(g.head == "cell" for g in lib.children)})
-        local = {}
+        local, tgroups = {}, {}
         for g in lib.children:
             if g.head in TEMPLATE_GROUPS and g.args:
                 variables = [g.attrs[k] for k in sorted(g.attrs) if re.fullmatch(r"variable_\d", k)]
                 idx = index_lengths(g)
+                tgroups[g.args[0]] = g
                 local[g.args[0]] = {"kind": g.head, "variables": variables,
                                     "dims": [len(idx[k]) for k in sorted(idx)], "line": g.line}
                 templates[f"{path.name}:{g.args[0]}"] = local[g.args[0]]
@@ -198,10 +202,12 @@ def census(paths: list[Path]) -> dict:
             loc = {"file": str(path), "cell": cell.args[0] if cell and cell.args else "",
                    "related_direction": rpg.attrs.get("direction", "") if rpg else "",
                    "related_is_clock": (rpg.attrs.get("clock", "").lower() == "true") if rpg else False,
+                   "cell_has_latch": any(x.head in ("latch", "latch_bank") for x in cell.children) if cell else False,
                    "cell_lines": [cell.line, cell.end] if cell else None, "line": g.line,
                    "pin": pin.args[0] if pin and pin.args else "",
                    "related_pin": timing.attrs.get("related_pin", "") if timing else "",
                    "timing_sense": timing.attrs.get("timing_sense", "") if timing else "",
+                   "when": timing.attrs.get("when", "") if timing else "",
                    "template": tname,
                    "group_lines": [unit.line, unit.end] if unit else None,
                    "removable": [[x.line, x.end] for x in walk(cell) if x.head in ("timing", "internal_power")]
@@ -209,28 +215,32 @@ def census(paths: list[Path]) -> dict:
             if len(vals) != expected:
                 problems.append({**loc, "table": g.head, "dims": dims, "values": len(vals), "expected": expected,
                                  "problem": "value count does not match the index grid"})
+            tpl_idx = {}
+            if tpl:
+                tpl_idx = index_lengths(tgroups[tname])
+            eff = {k: own.get(k, tpl_idx.get(k, [])) for k in range(1, len(dims) + 1)}
+            if every and g.head in PROBEABLE and timing is not None and cell is not None:
+                instances.append({**loc, "table": g.head, "timing_type": ttype, "variables": variables, "dims": dims,
+                                  "index": {str(k): v for k, v in eff.items()}, "values": vals})
             c = classes.get(key)
             if c is None:
-                tpl_idx = {}
-                if tpl:
-                    tg = next((x for x in lib.children if x.head in TEMPLATE_GROUPS and x.args and x.args[0] == tname), None)
-                    tpl_idx = index_lengths(tg) if tg else {}
-                eff = {k: own.get(k, tpl_idx.get(k, [])) for k in range(1, len(dims) + 1)}
                 classes[key] = c = {"table": g.head, "owner": owner, "timing_type": ttype, "variables": variables,
                                     "dims": dims, "overrides": sorted(own), "rows": len(rows), "count": 0,
                                     "example": {**loc, "index": {str(k): v for k, v in eff.items()}, "values": vals}}
             c["count"] += 1
     return {"files": files, "templates": templates,
             "classes": sorted(classes.values(), key=lambda c: (-len(c["dims"]), c["table"], c["timing_type"])),
-            "problems": problems}
+            "problems": problems, "instances": instances}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("libs", nargs="+", type=Path)
     ap.add_argument("--json", type=Path, default=Path("shapes.json"))
+    ap.add_argument("--all", action="store_true",
+                    help="also record every delay, transition and constraint table, for shape_probe.py --scope all")
     a = ap.parse_args()
-    r = census(a.libs)
+    r = census(a.libs, a.all)
     a.json.write_text(json.dumps(r, indent=1))
     for f in r["files"]:
         print(f"{f['file']}: library {f['library']}, {f['cells']} cells, time_unit {f['time_unit']}, "
