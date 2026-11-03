@@ -309,7 +309,7 @@ def judge_units(units, done) -> list:
                          "verdict": "not probed", "detail": u["skipped"], "file": fname, "line": u["line"]})
         for t in tables:
             ps = got.get((ui, t), [])
-            rules, worst = collections.Counter(), None
+            rules, worst, max_rel = collections.Counter(), None, 0.0
             for p in ps:
                 g = p["got_ns"]
                 vals = list(p["by_group"].values())
@@ -327,20 +327,26 @@ def judge_units(units, done) -> list:
                     rules["one group"] += 1
                 else:
                     rules["differs"] += 1
-                if not hit and (worst is None or abs(g - vals[0]) > worst[2]):
-                    worst = (p["point"], vals, abs(g - vals[0]), g)
+                if not hit:
+                    # distance to the nearest group's value, relative
+                    rel = min(abs(g - v) / max(abs(v), 1e-12) for v in vals)
+                    max_rel = max(max_rel, rel)
+                    if worst is None or rel > worst[2]:
+                        worst = (p["point"], vals, rel, g)
             if rules.get("no value"):
                 verdict = "PROBE FAILED"
             elif rules.get("differs"):
-                verdict = "MISMATCH"
+                # within 0.1% everywhere: boson's value, but not bit-exact; above, a misread
+                verdict = "NEAR (within 0.1%)" if max_rel <= 1e-3 else "MISMATCH"
             elif set(rules) == {"exact"}:
                 verdict = "exact"
             else:
                 verdict = "combined: " + ", ".join(f"{k} ({v})" for k, v in rules.most_common())
             detail = ""
-            if worst and verdict == "MISMATCH":
-                pt, vals, _, g = worst
-                detail = f"at {pt}: table {', '.join(f'{v:.6g}' for v in vals)} ns, boson {g:.6g} ns"
+            if worst and verdict in ("MISMATCH", "NEAR (within 0.1%)"):
+                pt, vals, rel, g = worst
+                detail = (f"worst {rel:.2%} at {pt}: table {', '.join(f'{v:.6g}' for v in vals)} ns, "
+                          f"boson {g:.6g} ns")
             rows.append({"cell": cell, "arc": f"{rp}->{pin}", "timing_type": tt, "table": t, "groups": u["groups"],
                          "senses": u["senses"], "whens": u["whens"], "points": len(ps), "rules": dict(rules),
                          "verdict": verdict, "detail": detail, "file": fname, "line": u["line"]})
@@ -352,8 +358,11 @@ def arc_report(rows) -> list:
     md = ["", "## Every delay and transition table (--scope all)", "",
           f"{len(rows)} (arc, table) pairs: " + ", ".join(f"{k} {v}" for k, v in c.most_common()), "",
           "`combined: max of groups` means several groups share the pin pair (when conditions or both senses) and "
-          "boson's value equals the largest of their tables at every point; that is how boson aggregates them.", ""]
-    bad = [r for r in rows if r["verdict"] in ("MISMATCH", "PROBE FAILED")]
+          "boson's value equals the largest of their tables at every point; that is how boson aggregates them. "
+          "`NEAR (within 0.1%)` is not bit-exact but within 0.1% of the table everywhere (numeric precision, "
+          "typically at very small values); `MISMATCH` is further off.", ""]
+    bad = sorted((r for r in rows if r["verdict"] in ("MISMATCH", "PROBE FAILED", "NEAR (within 0.1%)")),
+                 key=lambda r: ({"MISMATCH": 0, "PROBE FAILED": 1}.get(r["verdict"], 2), r["cell"]))
     if bad:
         md += ["| verdict | cell | arc | timing_type | table | groups | detail |", "|---|---|---|---|---|---|---|"]
         md += [f"| {r['verdict']} | {r['cell']} | {r['arc']} | {r['timing_type']} | {r['table']} | {r['groups']} | "

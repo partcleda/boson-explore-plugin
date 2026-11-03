@@ -117,5 +117,6 @@ class Aggregation(unittest.TestCase):
         self.assertEqual(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.2, 0.4]), "combined: max of groups (2)")
         self.assertTrue(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.1, 0.3]).startswith("combined: min of groups"))
         self.assertEqual(self.judge([[0.1, 0.2], [0.3, 0.4]], [0.2, 0.35]), "MISMATCH")
+        self.assertEqual(self.judge([[0.1], [0.3]], [0.10005, 0.3]), "NEAR (within 0.1%)")
         self.assertEqual(self.judge([[0.1], [0.3]], [0.1, 0.3]), "exact")
         self.assertEqual(self.judge([[0.1], [0.3]], [0.1, None]), "PROBE FAILED")
