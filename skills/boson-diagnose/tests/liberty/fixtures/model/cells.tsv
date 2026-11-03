@@ -1,0 +1,7 @@
+cell	area	dont_use	dont_touch	is_sequential	is_latch	is_combinational	is_inverter	is_macro_cell	is_memory_cell	is_pad_cell	is_isolation_cell	is_level_shifter	level_shifter_type	retention_cell	switch_cell_type	always_on	leakage_power	has_multi_input_switching_data
+shapes_fixture/INV_TL	1	false	false	false	false	true	true	false	false	false	false	false				false	0	false
+shapes_fixture/INV_LT	1	false	false	false	false	true	true	false	false	false	false	false				false	0	false
+shapes_fixture/INV_1D	1	false	false	false	false	true	true	false	false	false	false	false				false	0	false
+shapes_fixture/INV_SCALAR	1	false	false	false	false	true	true	false	false	false	false	false				false	0	false
+shapes_fixture/INV_OVERRIDE	1	false	false	false	false	true	true	false	false	false	false	false				false	0	false
+shapes_fixture/DFF_NOCHANGE	4	false	false	true	false	false	false	false	false	false	false	false				false	0	false
