@@ -4,7 +4,7 @@ had to do off-script, what the skill had no method for, what guidance was wrong,
 what inputs or coverage were missing, and whether the question got answered.
 
     F=<plugin>/feedback/skill_feedback.py
-    $F init --skill boson-datapath-audit --question "why is the FMA adder path deep"
+    $F init --skill boson-diagnose --question "why is the FMA adder path deep"
     $F add off_script --what "grep'd the netlist for MAJ chains" --why "no per-stage view"
     $F add missing_framework --what "DC netlist was ungrouped; could not label DW cells"
     $F add wrong_guidance --what "step 2 collect.tcl" --error "No path cells collected"
@@ -39,7 +39,7 @@ KINDS = {
     "missing_input": "Missing inputs or coverage gaps",
 }
 PLUGIN = Path(__file__).resolve().parents[1]
-ANONYMIZER = PLUGIN / "skills" / "boson-netlist-debug" / "scripts" / "anonymize.py"
+ANONYMIZER = PLUGIN / "skills" / "boson-diagnose" / "scripts" / "debug" / "anonymize.py"
 MAX_MESSAGE = 3800  # boson report_feedback caps the message at ~4 KB
 
 
@@ -127,6 +127,7 @@ def plugin_vocabulary() -> set:
     report fields). A word outside this set is treated as a possible design name."""
     words = set()
     for f in list(PLUGIN.glob("skills/*/SKILL.md")) + list(PLUGIN.glob("skills/*/scripts/*")) + \
+            list(PLUGIN.glob("skills/*/scripts/*/*")) + \
             list(PLUGIN.glob("skills/*/references/*")) + [Path(__file__)]:
         try:
             words.update(re.findall(r"[A-Za-z_][\w.]*", f.read_text(errors="ignore")))
@@ -285,7 +286,7 @@ def main(argv=None) -> int:
         print(f"To send it to partcl, the user sources {tcl} in boson (report_feedback prints the payload "
               "and asks before sending). Nothing has been sent.")
         if method == "basic":
-            print("note: basic scrub only; with boson-netlist-debug installed, pass --map name_map.json so the "
+            print("note: basic scrub only; with boson-diagnose installed, pass --map name_map.json so the "
                   "tokens match a debug bundle and the leak check runs.")
         return 0
     save(a.file, fb)

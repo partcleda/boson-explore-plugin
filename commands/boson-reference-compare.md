@@ -3,7 +3,7 @@ description: Explain why a boson netlist is worse than a reference netlist of th
 argument-hint: <boson netlist [+DEF, timing, log, journal]> <reference netlist [+DEF, timing]> --liberty <files> [--old-boson <log/journal>]
 ---
 
-Run the `boson-reference-compare` skill on the inputs below. Check first
+Run the `boson-diagnose` skill's reference compare (`references/compare-reference.md`) on the inputs below. Check first
 that the runs are comparable (`run_ab.py`: version, wire model calibration,
 app variables, stage checkpoints); time both netlists in boson with the
 same libraries, SDC and corner. Then split the area gap by mapping pattern

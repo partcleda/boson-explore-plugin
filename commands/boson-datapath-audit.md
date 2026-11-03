@@ -3,7 +3,7 @@ description: Show what boson built for the arithmetic on the critical paths — 
 argument-hint: <flow or compile command> [--paths N]
 ---
 
-Run the `boson-datapath-audit` skill for the design and flow below. Add
+Run the `boson-diagnose` skill's datapath audit (`references/datapath-audit.md`) for the design and flow below. Add
 `-provenance` to the compile and change nothing else. Source the collector
 after the stage being judged, then run `datapath_audit.py`. Report the table
 and name every block flagged deeper than its architecture, with the rewrite

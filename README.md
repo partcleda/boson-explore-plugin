@@ -12,133 +12,149 @@ nor a testbench — see below.
 
 ## What's in here
 
-- **`skills/boson-timing-power-tradeoff`** — sweep clock period and/or RTL
-  parameters through boson, get back an area/power/timing tradeoff table.
-  Auto-invoked by Claude when you ask things like "sweep this design and
-  show me the power/timing tradeoff" or "which config is smallest".
-- **`skills/boson-sweep-video`** — run a parameter × clock-period sweep
-  (one real compile+place+STA+power per point, DEF written) and render it
-  as an animated GIF/MP4: a boson terminal replaying each point's compile,
-  the parameter grid lighting up, a PPA scatter (area vs achieved clock,
-  size = power) filling in, and the real placement of each point. Ends on
-  the Pareto front. Triggers on "make a sweep video", "animate the PPA space".
-- **`skills/boson-ppa-optimize`** — close timing at a target clock with the
-  *cheapest* boson recipe that works: an escalation ladder (`-effort high`
-  → `-draws 3` → `-select_candidates` → `-datapath_search`, optional
-  `eco_optimize`) that stops at the first rung meeting timing, plus an fmax
-  search. Hands back the ladder table and the recommended compile Tcl.
-  Triggers on "close timing at X ns", "what's the fmax", "which effort
-  should I use".
-  Sample run (picorv32 @ 7 ns on sky130, `--target-ns 7 --find-fmax --max-rung 2`):
+Four skills. Each `SKILL.md` is a short router: what the skill is for, the
+rules every mode shares, and a table that sends Claude to the one reference
+file the task needs. The detailed workflow loads only when that mode is
+chosen.
 
-  | recipe | period (ns) | timing | WNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
-  |---|---|---|---|---|---|---|---|
-  | medium | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
-  | high | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
-  | high+draws3 | 7 | VIOLATED | -0.899 | 127 | 14,364 | 139,405 | 22.0 |
-  | medium | 7.9 | MET | +0.001 | 127 | 14,366 | 139,414 | 19.5 |
-  | medium | 7.74 | VIOLATED | -0.159 | 127 | 14,364 | 139,406 | 19.9 |
-
-  Verdict: no rung closes 7 ns; **fmax ≈ 127 MHz** (closes at 7.9 ns, fails at
-  7.74). On this core the extra effort and placement draws changed nothing —
-  the critical path is architectural, which is what `boson-rtl-timing-closure`
-  is for.
-- **`skills/boson-rtl-timing-closure`** — when settings can't close timing
-  and the RTL has to change: `timing_probe.py` turns a fast boson compile
-  into critical paths that map back to source (launch/capture register
-  names survive synthesis, plus RTL-named nets, logic depth, slowest cells,
-  fanout), and the skill drives an edit → probe → edit loop with hard rules
-  — non-RTL levers first, one edit per probe, restructure before pipeline,
-  ask before any latency change, clean git tree, run the project's tests,
-  confirm at medium effort. Sample probe (picorv32 @ 5 ns on sky130):
-
-  ```
-  period 5 ns · effort fast · WNS -1.442 ns (VIOLATED) · 252/4234 endpoints violating · 14810 cells
-  ### path 1: slack -1.442 ns (VIOLATED), 21 logic stages, arrival 6.179 ns
-  - from `latched_store_reg/Q`
-  - to   `mem_addr_reg[31]/D`
-  - RTL-named nets on the path: `latched_store`
-  - slowest stages: sky130_fd_sc_hd__or4_1 0.659 ns, sky130_fd_sc_hd__or4_1 0.653 ns, sky130_fd_sc_hd__a22oi_4 0.498 ns
-  - high fanout: `n2972` drives 86 loads
-  ```
-- **`skills/boson-datapath-audit`** — what boson actually built for the
-  arithmetic on the critical paths: per adder/subtractor/comparator, the
-  architecture the datapath selector chose (ripple, carry-select, Sklansky,
-  Brent-Kung, Han-Carlson, ...), the mapped cells it puts on each path against
-  that architecture's depth, and the share of its cells each logic rewrite
-  (`dc2`, `dretime`, `prefix_scan`) restructured. Built on `compile
-  -provenance`. Triggers on "did it use Han-Carlson or ripple", "did dc2 undo
-  the adder".
-- **`skills/boson-rtl-evolve`** — an evolutionary RTL-optimisation loop
-  with boson as the evaluator. The objective is max Fmax
-  (1/(T − WNS)), min area or min power, optionally with caps on the
-  others, e.g. area ≤ +15 %. Each candidate is one hypothesis, committed,
-  passed through an equivalence gate (lint, sound formal miter, lockstep
-  co-simulation with directed corners), then scored by boson: compile →
-  place → repair → timing/area/power. The skill includes anti-gaming
-  rules, a results ledger and a budget. It ends with a declared final
-  that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
-  "run an RTL optimisation loop".
-- **`skills/boson-minimal-repro`** — debug a few paths that are far deeper
-  than the clock allows: name the RTL construct on the path, compile it alone
-  as a module-level boson run under the same clock, then A/B equivalent
-  rewrites, widths and clocks of that construct. The result is a finding
-  (coding-style sensitivity, architecture limit, or context) and a debug
-  report that keeps RTL text and names in the user's environment. Includes
-  `path_levels.py`, which counts logic levels per path, excluding buffers and
-  inverters. Triggers on "is this the RTL or boson", "why is this path so
-  deep", "the full run is too slow to debug".
-- **`skills/boson-netlist-debug`** — run on your own machine against a boson
-  run of your design: reads the netlist, timing / QoR / check_timing
-  reports, SDC, log and boson's decision journal (`decision_log_file`), ties
-  each failing path to the decisions that shaped it (adder architecture,
-  sizing that flip-flopped, hold repair that ate setup, repairs that were
-  rolled back, ignored constraints, unbuffered high-fanout nets), lists the
-  netlist's current issues, and builds `boson-debug-bundle.tar.gz` for
-  partcl. Every design name, path, user/host name and library name is
-  replaced by a consistent token (`u3/r12_reg[4]`, `clk0`, `LIBX`); the
-  decoding map stays with you, and a leak check must pass before the
-  tarball is written. Nothing is uploaded. Triggers on "what did boson do
-  wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
-- **`skills/boson-dc-datapath-compare`** — compare a boson netlist with a
-  Design Compiler netlist of the same RTL and split the QoR gap into the part
-  inside the datapath operators (adders, multipliers, comparators, shifters)
-  and the part outside them. Both netlists are timed in one boson session with
-  the same libraries and SDC. DC cells are labelled by the operator names DC
-  gives them (`DP_OP_*`, `add_x_12`, `DW02_mult`, ...), boson cells by
-  `-provenance`. Each failing endpoint's slack gap is split exactly into
-  datapath, logic, buffering, launch and setup. A label-balance check reports
-  the split as inconclusive when DC flattened its operators.
-  `dw_microbench.py` compares isolated operators in both tools. Triggers on
-  "how much of the gap to the DC netlist is in the datapath". Design Compiler
-  and DesignWare are trademarks of Synopsys, Inc.
-- **`skills/boson-reference-compare`** — explain why a boson netlist is
-  worse than a reference netlist of the same RTL and library (another tool's
-  result, or an earlier boson version's), in patterns partcl can fix. First
-  checks the runs are comparable: boson version, a wire model recalibrated
-  from the global route (PAR-252), app variables and the stage-by-stage QoR
-  trajectory (`run_ab.py`). Then splits the std-cell area gap by mapping
-  pattern with every cell classed by its Liberty function, not its name
-  (`cell_mix.py`: full adders against split sum + carry cells, XOR/XNOR,
-  muxes against complex gates, gates wired as XNOR by tied inputs, clock
-  cells in data logic, VT mix), says what the XORs are for and compares the
-  cone of one output (`logic_patterns.py`), compares buffer trees by distance
-  and sink count with buffer spacing from the DEF (`buffer_trees.py`,
-  `route_layers.py`), and groups failing paths into families with their
-  buffer delay against the violation (`path_families.py`). Ends in ranked,
-  evidence-backed findings, each with a concrete example and the next
-  experiment. Triggers on "why is boson's area bigger than the other tool's",
-  "why did the new version regress", "write up what we found for partcl".
+- **`skills/boson-explore`** — explore a block's area/power/timing design
+  space with real boson runs.
+  - *Tradeoff table* (`references/tradeoff-table.md`) — Sweep clock period and/or RTL
+    parameters through boson, get back an area/power/timing tradeoff table.
+    Auto-invoked by Claude when you ask things like "sweep this design and
+    show me the power/timing tradeoff" or "which config is smallest".
+  - *Sweep video* (`references/sweep-video.md`) — Run a parameter × clock-period sweep
+    (one real compile+place+STA+power per point, DEF written) and render it
+    as an animated GIF/MP4: a boson terminal replaying each point's compile,
+    the parameter grid lighting up, a PPA scatter (area vs achieved clock,
+    size = power) filling in, and the real placement of each point. Ends on
+    the Pareto front. Triggers on "make a sweep video", "animate the PPA space".
+- **`skills/boson-close-timing`** — close timing or find fmax without
+  changing the RTL: constraints first, then the cheapest recipe.
+  - *Effort ladder* (`references/ladder.md`) — Close timing at a target clock with the
+    *cheapest* boson recipe that works: an escalation ladder (`-effort high`
+    → `-draws 3` → `-select_candidates` → `-datapath_search`, optional
+    `eco_optimize`) that stops at the first rung meeting timing, plus an fmax
+    search. Hands back the ladder table and the recommended compile Tcl.
+    Triggers on "close timing at X ns", "what's the fmax", "which effort
+    should I use".
+    Sample run (picorv32 @ 7 ns on sky130, `--target-ns 7 --find-fmax --max-rung 2`):
+  
+    | recipe | period (ns) | timing | WNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
+    |---|---|---|---|---|---|---|---|
+    | medium | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
+    | high | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
+    | high+draws3 | 7 | VIOLATED | -0.899 | 127 | 14,364 | 139,405 | 22.0 |
+    | medium | 7.9 | MET | +0.001 | 127 | 14,366 | 139,414 | 19.5 |
+    | medium | 7.74 | VIOLATED | -0.159 | 127 | 14,364 | 139,406 | 19.9 |
+  
+    Verdict: no rung closes 7 ns; **fmax ≈ 127 MHz** (closes at 7.9 ns, fails at
+    7.74). On this core the extra effort and placement draws changed nothing —
+    the critical path is architectural, which is what `boson-rtl-optimize` (meet timing)
+    is for.
+  - *Constraint and engine loop* (`references/constraint-engine-loop.md`) and
+    *placement continuity* (`references/placement-continuity.md`) for suspect
+    SDC, synthesis failures and QoR that moves after netlist edits.
+- **`skills/boson-rtl-optimize`** — change the RTL with boson as the judge.
+  - *Meet timing* (`references/meet-timing.md`) — When settings can't close timing
+    and the RTL has to change: `timing_probe.py` turns a fast boson compile
+    into critical paths that map back to source (launch/capture register
+    names survive synthesis, plus RTL-named nets, logic depth, slowest cells,
+    fanout), and the skill drives an edit → probe → edit loop with hard rules
+    — non-RTL levers first, one edit per probe, restructure before pipeline,
+    ask before any latency change, clean git tree, run the project's tests,
+    confirm at medium effort. Sample probe (picorv32 @ 5 ns on sky130):
+  
+    ```
+    period 5 ns · effort fast · WNS -1.442 ns (VIOLATED) · 252/4234 endpoints violating · 14810 cells
+    ### path 1: slack -1.442 ns (VIOLATED), 21 logic stages, arrival 6.179 ns
+    - from `latched_store_reg/Q`
+    - to   `mem_addr_reg[31]/D`
+    - RTL-named nets on the path: `latched_store`
+    - slowest stages: sky130_fd_sc_hd__or4_1 0.659 ns, sky130_fd_sc_hd__or4_1 0.653 ns, sky130_fd_sc_hd__a22oi_4 0.498 ns
+    - high fanout: `n2972` drives 86 loads
+    ```
+  - *Evolve* (`references/evolve.md`) — An evolutionary RTL-optimisation loop
+    with boson as the evaluator. The objective is max Fmax
+    (1/(T − WNS)), min area or min power, optionally with caps on the
+    others, e.g. area ≤ +15 %. Each candidate is one hypothesis, committed,
+    passed through an equivalence gate (lint, sound formal miter, lockstep
+    co-simulation with directed corners), then scored by boson: compile →
+    place → repair → timing/area/power. The skill includes anti-gaming
+    rules, a results ledger and a budget. It ends with a declared final
+    that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
+    "run an RTL optimisation loop".
+- **`skills/boson-diagnose`** — why a boson result is bad, and the evidence
+  for partcl.
+  - *Journal debug* (`references/journal-debug.md`) — Run on your own machine against a boson
+    run of your design: reads the netlist, timing / QoR / check_timing
+    reports, SDC, log and boson's decision journal (`decision_log_file`), ties
+    each failing path to the decisions that shaped it (adder architecture,
+    sizing that flip-flopped, hold repair that ate setup, repairs that were
+    rolled back, ignored constraints, unbuffered high-fanout nets), lists the
+    netlist's current issues, and builds `boson-debug-bundle.tar.gz` for
+    partcl. Every design name, path, user/host name and library name is
+    replaced by a consistent token (`u3/r12_reg[4]`, `clk0`, `LIBX`); the
+    decoding map stays with you, and a leak check must pass before the
+    tarball is written. Nothing is uploaded. Triggers on "what did boson do
+    wrong", "why is my netlist bad", "prepare a debug bundle for partcl".
+  - *Datapath audit* (`references/datapath-audit.md`) — What boson actually built for the
+    arithmetic on the critical paths: per adder/subtractor/comparator, the
+    architecture the datapath selector chose (ripple, carry-select, Sklansky,
+    Brent-Kung, Han-Carlson, ...), the mapped cells it puts on each path against
+    that architecture's depth, and the share of its cells each logic rewrite
+    (`dc2`, `dretime`, `prefix_scan`) restructured. Built on `compile
+    -provenance`. Triggers on "did it use Han-Carlson or ripple", "did dc2 undo
+    the adder".
+  - *Minimal repro* (`references/minimal-repro.md`) — Debug a few paths that are far deeper
+    than the clock allows: name the RTL construct on the path, compile it alone
+    as a module-level boson run under the same clock, then A/B equivalent
+    rewrites, widths and clocks of that construct. The result is a finding
+    (coding-style sensitivity, architecture limit, or context) and a debug
+    report that keeps RTL text and names in the user's environment. Includes
+    `path_levels.py`, which counts logic levels per path, excluding buffers and
+    inverters. Triggers on "is this the RTL or boson", "why is this path so
+    deep", "the full run is too slow to debug".
+  - *Reference compare* (`references/compare-reference.md`) — Explain why a boson netlist is
+    worse than a reference netlist of the same RTL and library (another tool's
+    result, or an earlier boson version's), in patterns partcl can fix. First
+    checks the runs are comparable: boson version, a wire model recalibrated
+    from the global route (PAR-252), app variables and the stage-by-stage QoR
+    trajectory (`run_ab.py`). Then splits the std-cell area gap by mapping
+    pattern with every cell classed by its Liberty function, not its name
+    (`cell_mix.py`: full adders against split sum + carry cells, XOR/XNOR,
+    muxes against complex gates, gates wired as XNOR by tied inputs, clock
+    cells in data logic, VT mix), says what the XORs are for and compares the
+    cone of one output (`logic_patterns.py`), compares buffer trees by distance
+    and sink count with buffer spacing from the DEF (`buffer_trees.py`,
+    `route_layers.py`), and groups failing paths into families with their
+    buffer delay against the violation (`path_families.py`). Ends in ranked,
+    evidence-backed findings, each with a concrete example and the next
+    experiment. Triggers on "why is boson's area bigger than the other tool's",
+    "why did the new version regress", "write up what we found for partcl".
+  - *DC datapath compare* (`references/compare-dc.md`) — Compare a boson netlist with a
+    Design Compiler netlist of the same RTL and split the QoR gap into the part
+    inside the datapath operators (adders, multipliers, comparators, shifters)
+    and the part outside them. Both netlists are timed in one boson session with
+    the same libraries and SDC. DC cells are labelled by the operator names DC
+    gives them (`DP_OP_*`, `add_x_12`, `DW02_mult`, ...), boson cells by
+    `-provenance`. Each failing endpoint's slack gap is split exactly into
+    datapath, logic, buffering, launch and setup. A label-balance check reports
+    the split as inconclusive when DC flattened its operators.
+    `dw_microbench.py` compares isolated operators in both tools. Triggers on
+    "how much of the gap to the DC netlist is in the datapath". Design Compiler
+    and DesignWare are trademarks of Synopsys, Inc.
 - **`feedback/`** — the standard "Skill feedback" section that every
   customer-facing skill ends its report with: off-script actions, missing
   framework, wrong guidance, missing inputs/coverage, and outcome. It is
   recorded in `skill_feedback.json` by `skill_feedback.py`, anonymized on the
   customer's machine, and sent to partcl only when the user sources the
   generated boson `report_feedback` script.
-- **`commands/`** — `/boson-dse`, `/boson-sweep-video`, `/boson-ppa-optimize`,
-  `/boson-rtl-fix`, `/boson-rtl-evolve`, `/boson-datapath-audit`,
-  `/boson-minimal-repro`, `/boson-netlist-debug`, `/boson-dc-datapath-compare`,
-  `/boson-reference-compare` slash commands, direct shortcuts into the skills.
+- **`commands/`** — slash commands that jump straight to a mode: `/boson-dse`,
+  `/boson-sweep-video` (explore); `/boson-ppa-optimize` (close timing);
+  `/boson-rtl-fix`, `/boson-rtl-evolve` (RTL optimize); `/boson-diagnose`,
+  `/boson-netlist-debug`, `/boson-datapath-audit`, `/boson-minimal-repro`,
+  `/boson-reference-compare`, `/boson-dc-datapath-compare` (diagnose).
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters
@@ -160,13 +176,13 @@ Then, in a project (or just ask Claude directly):
 > Sweep picorv32 across a few clock periods and configs and show me the
 > power/area/timing tradeoff.
 
-Claude will reach for the `boson-timing-power-tradeoff` skill and run
-`skills/boson-timing-power-tradeoff/scripts/boson_dse.py`.
+Claude will reach for the `boson-explore` skill and run
+`skills/boson-explore/scripts/boson_dse.py`.
 
 Or invoke the underlying script yourself:
 
 ```
-python3 skills/boson-timing-power-tradeoff/scripts/boson_dse.py \
+python3 skills/boson-explore/scripts/boson_dse.py \
   --rtl designs/picorv32/picorv32.v --top picorv32 \
   --liberty <path-to-a-liberty-file> \
   --periods 6,8,12,20 \
@@ -179,7 +195,7 @@ or at SkyWater's open sky130 `sky130_fd_sc_hd` corner libs
 
 ## Demo
 
-**Sweep video** (`boson-sweep-video`, picorv32 on sky130: `ENABLE_FAST_MUL` ×
+**Sweep video** (`boson-explore` sweep video, picorv32 on sky130: `ENABLE_FAST_MUL` ×
 `TWO_CYCLE_ALU` × `COMPRESSED_ISA` × {4, 6, 12 ns} — 24 real
 compile+place+STA+power runs, 4 in parallel, ~2 h wall on a busy host):
 
@@ -199,7 +215,7 @@ The smaller 8-point run (`ENABLE_MUL` × `BARREL_SHIFTER` × {8, 20 ns}) is
 in `demo/picorv32_sweep.{gif,mp4}`; it was made with:
 
 ```
-S=skills/boson-sweep-video/scripts
+S=skills/boson-explore/scripts/video
 python3 $S/run_sweep.py --rtl designs/picorv32/picorv32.v --top picorv32 \
   --liberty <sky130_fd_sc_hd__tt_025C_1v80.lib> --lef <sky130_fd_sc_hd__nom.tlef> --lef <sky130_fd_sc_hd.lef> \
   --axis ENABLE_MUL=0,1 --axis BARREL_SHIFTER=0,1 --periods 8,20 \
@@ -223,7 +239,7 @@ The timing-driven compile hits ~125 MHz on sky130 for every config at the
 and buy no fmax here. The 20 ns points are the low-power corner (the tool
 stops optimising once timing is met, so they land at ~7 mW).
 
-**Tradeoff table** (`boson-timing-power-tradeoff`, preset sweep):
+**Tradeoff table** (`boson-explore` tradeoff table, preset sweep):
 
 ![boson_dse.gif](demo/boson_dse.gif)
 
@@ -253,10 +269,18 @@ intuition.
 
 The sweep script's `PARAM_PRESETS` dict is picorv32-specific — for another
 design, either edit it to that design's own parameters, or drive boson's
-`compile ... -G NAME=VALUE` flags directly (see `SKILL.md` for the exact
-command shapes boson expects). PRs adding more skills — floorplan/
+`compile ... -G NAME=VALUE` flags directly (see
+`skills/boson-explore/references/tradeoff-table.md` for the exact command
+shapes boson expects).
+
+A new workflow goes in as a mode of the skill whose intent it serves: a
+reference file under that skill's `references/`, its scripts under
+`scripts/<mode>/`, its tests under `tests/<mode>/`, and one row in the
+routing table of that skill's `SKILL.md`. Keep `SKILL.md` to the routing
+table and the rules every mode shares; a new skill is only for a new user
+intent that none of the four covers. PRs adding modes — floorplan /
 utilization sweeps, clock-gating power compares, effort-level compares —
-are welcome; see the ideas list in `SKILL.md`'s sibling issues.
+are welcome.
 
 ## Disclaimer and no liability
 
