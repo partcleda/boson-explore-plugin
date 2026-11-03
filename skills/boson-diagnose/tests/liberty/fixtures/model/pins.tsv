@@ -1,0 +1,14 @@
+pin	direction	function	capacitance	rise_capacitance	fall_capacitance	max_capacitance	max_transition	max_fanout	is_clock_pin
+INV_TL/A	input		0.001						false
+INV_TL/Y	output	!A							false
+INV_LT/A	input		0.001						false
+INV_LT/Y	output	!A							false
+INV_1D/A	input		0.001						false
+INV_1D/Y	output	!A							false
+INV_SCALAR/A	input		0.001						false
+INV_SCALAR/Y	output	!A							false
+INV_OVERRIDE/A	input		0.001						false
+INV_OVERRIDE/Y	output	!A							false
+DFF_NOCHANGE/CK	input		0.001						true
+DFF_NOCHANGE/D	input		0.001						false
+DFF_NOCHANGE/Q	output	IQ							false
