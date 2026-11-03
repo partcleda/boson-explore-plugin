@@ -1,0 +1,4 @@
+  boson v2.10.0 (build 2222222) GPU-accelerated EDA toolkit
+Information: PAR-252: The wire model is calibrated from the global route over 12000 routed signal net(s): 30.0000 to 60.0000 ohm/um and 0.1500 to 0.1700 fF/um across all routed wire; report_layer_rc shows the model and where it came from.
+Warning: SDC-201: something matched 2 pins
+Warning: SDC-201: something matched 2 pins

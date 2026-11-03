@@ -1,0 +1,283 @@
+library (testlib) {
+  time_unit : "1ns";
+  /* a comment
+ spanning lines */
+  cell (INV_X1) {
+    area : 0.5;
+    pin (I) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!I";
+      timing () {
+        related_pin : "I";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (BUF_X1) {
+    area : 0.6;
+    pin (I) { direction : input; capacitance : 0.001; }
+    pin (Z) {
+      direction : output;
+      function : "I";
+      timing () {
+        related_pin : "I";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (CLKBUF_X1) {
+    area : 0.7;
+    pin (I) { direction : input; capacitance : 0.001; }
+    pin (Z) {
+      direction : output;
+      function : "I";
+      timing () {
+        related_pin : "I";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (CLKNAND2_X1) {
+    area : 0.7;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1 & A2)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (NAND2_X1) {
+    area : 0.6;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1 A2)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (NOR2_X1) {
+    area : 0.6;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "(A1+A2)'";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (AND2_X1) {
+    area : 0.7;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (Z) {
+      direction : output;
+      function : "A1*A2";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (NOR4_X1) {
+    area : 1.0;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (A3) { direction : input; capacitance : 0.001; }
+    pin (A4) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1|A2|A3|A4)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (NAND4_X1) {
+    area : 1.0;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (A3) { direction : input; capacitance : 0.001; }
+    pin (A4) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1&A2&A3&A4)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (XOR2_X1) {
+    area : 1.2;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (Z) {
+      direction : output;
+      function : "A1^A2";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (XNOR2_X1) {
+    area : 1.2;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1^A2)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (MUX2_X1) {
+    area : 1.3;
+    pin (I0) { direction : input; capacitance : 0.001; }
+    pin (I1) { direction : input; capacitance : 0.001; }
+    pin (S) { direction : input; capacitance : 0.001; }
+    pin (Z) {
+      direction : output;
+      function : "(I0 & !S) | (I1 & S)";
+      timing () {
+        related_pin : "I0";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (AOI22_X1) {
+    area : 0.9;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (B1) { direction : input; capacitance : 0.001; }
+    pin (B2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!((A1&A2)|(B1&B2))";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (AO2N2_X1) {
+    area : 0.9;
+    pin (A1) { direction : input; capacitance : 0.001; }
+    pin (A2) { direction : input; capacitance : 0.001; }
+    pin (B1) { direction : input; capacitance : 0.001; }
+    pin (B2) { direction : input; capacitance : 0.001; }
+    pin (ZN) {
+      direction : output;
+      function : "!(A1|A2) | (B1&B2)";
+      timing () {
+        related_pin : "A1";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (FA_X1) {
+    area : 2.4;
+    pin (A) { direction : input; capacitance : 0.001; }
+    pin (B) { direction : input; capacitance : 0.001; }
+    pin (CI) { direction : input; capacitance : 0.001; }
+    pin (S) {
+      direction : output;
+      function : "A^B^CI";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+    pin (CO) {
+      direction : output;
+      function : "(A&B)|(A&CI)|(B&CI)";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (HA_X1) {
+    area : 1.5;
+    pin (A) { direction : input; capacitance : 0.001; }
+    pin (B) { direction : input; capacitance : 0.001; }
+    pin (S) {
+      direction : output;
+      function : "A^B";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+    pin (CO) {
+      direction : output;
+      function : "A&B";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (SUM3_X1) {
+    area : 1.8;
+    pin (A) { direction : input; capacitance : 0.001; }
+    pin (B) { direction : input; capacitance : 0.001; }
+    pin (CI) { direction : input; capacitance : 0.001; }
+    pin (S) {
+      direction : output;
+      function : "A^B^CI";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (MAJI3_X1) {
+    area : 1.4;
+    pin (A) { direction : input; capacitance : 0.001; }
+    pin (B) { direction : input; capacitance : 0.001; }
+    pin (CI) { direction : input; capacitance : 0.001; }
+    pin (CON) {
+      direction : output;
+      function : "!((A&B)|(A&CI)|(B&CI))";
+      timing () {
+        related_pin : "A";
+        cell_rise (scalar) { values ("0.01"); }
+      }
+    }
+  }
+  cell (DFF_X1) {
+    area : 4.0;
+    ff (IQ, IQN) { next_state : "D"; clocked_on : "CP"; }
+    pin (D) { direction : input; }
+    pin (CP) { direction : input; clock : true; }
+    pin (Q) { direction : output; function : "IQ"; }
+  }
+  cell (ICG_X1) {
+    area : 3.0;
+    clock_gating_integrated_cell : "latch_posedge";
+    pin (CP) { direction : input; clock : true; }
+    pin (E) { direction : input; }
+    pin (Q) { direction : output; }
+  }
+  cell (SRAM_MACRO) {
+    area : 1000.0;
+    pin (CLK) { direction : input; clock : true; }
+    pin (Q) { direction : output; }
+  }
+}
