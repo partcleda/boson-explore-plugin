@@ -1,6 +1,6 @@
 ---
 name: boson-diagnose
-description: Use when a boson result is bad and the question is why, or when partcl should get the evidence — "what did boson do wrong", "why is my netlist bad", "why did timing get worse after layout", "is this my RTL, my constraints or boson", "why is this path 59 levels", "did it pick Han-Carlson or ripple", "why is boson's area bigger than the other tool's / Design Compiler's", "why did the new boson version regress", "prepare a debug bundle for partcl without leaking IP". Reads boson's netlist, reports, log and decision journal, or compares against a reference netlist, and ends in evidence-backed findings.
+description: Use when a boson result is bad and the question is why, or when partcl should get the evidence — "what did boson do wrong", "why is my netlist bad", "why did timing get worse after layout", "is this my RTL, my constraints or boson", "why is this path 59 levels", "did it pick Han-Carlson or ripple", "why is boson's area bigger than the other tool's / Design Compiler's", "why did the new boson version regress", "boson can't parse my lib", "invalid constraint table", "does boson read every table in my Liberty correctly", "prepare a debug bundle for partcl without leaking IP". Reads boson's netlist, reports, log and decision journal, compares against a reference netlist, or tests every Liberty table shape against boson, and ends in evidence-backed findings.
 ---
 
 # Diagnosing a boson result
@@ -17,6 +17,7 @@ journal seq numbers, cell counts and areas on both sides), never impressions.
 | a few paths far deeper than the clock allows; "is it the RTL or boson"; the full run is too slow to iterate | minimal repro | [references/minimal-repro.md](references/minimal-repro.md) | `scripts/repro/` |
 | a reference netlist of the same RTL and library (another tool's, or an older boson version's); "why is the area / timing worse", "why did the new version regress" | reference compare | [references/compare-reference.md](references/compare-reference.md) | `scripts/compare/` |
 | a Design Compiler netlist, and the question is how much of the gap is inside the datapath operators | DC datapath compare | [references/compare-dc.md](references/compare-dc.md) | `scripts/compare_dc/` |
+| Liberty files boson rejects, warns about or may misread ("invalid constraint table", a 3-D or unusual table, a new library to trust) | Liberty table shapes | [references/liberty-shapes.md](references/liberty-shapes.md) | `scripts/liberty/` |
 
 Read only the reference you need; the methods chain, and each reference
 says when to hand over to another (a reference compare that lands in the
