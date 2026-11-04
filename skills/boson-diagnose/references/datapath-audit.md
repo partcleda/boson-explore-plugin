@@ -54,6 +54,50 @@ run many repair rounds. Record cold/warm characterization caches and thread
 counts; do not attribute a cache speedup to a netlist setting or sum nested
 profile spans as independent work.
 
+## Auditing the datapath compiler pass by pass
+
+First establish which optimizer ran. On builds that expose
+`datapath_compiler`, its default is `false`: a plain medium compile uses the
+legacy word-level passes. Set `datapath_compiler true` before the plain
+`compile -effort medium` command to investigate the `datapath/` crate. Keep
+the command on that recipe; other compile modes may refuse this setting.
+The `DPC-002` messages name the passes that actually ran.
+
+Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
+snapshot index against the compiler's enabled pass list, including repeated
+passes. Some builds record only the graph stamped after the datapath
+compiler finishes. Likewise, `report_elaborated -full` may read the original
+elaboration tape even after `dp_<pass>` commands changed the working design.
+An unchanged report is then missing observation, not evidence of a no-op.
+
+When the shell lacks intermediate snapshots, use the matching checkout's
+Rust API. `compile_datapath` with `DatapathOptSettings.take_snapshots = true`
+returns a tape after each enabled pass. Alternatively, run the enabled pass
+list over `Design` and dump `design.to_tape()` after each pass with
+`boson_elab_tape::dump_tape_text`. Add a sequence number to every filename:
+pass names can repeat. Retain the initial tape, complete intermediate tapes,
+operator widths and fanins, live-node counts by kind, and the final tape.
+Validate every tape. The runner must match the checkout and API under test;
+record the commit, dirty diff, binary identity, seed, constraints, library
+and enabled pass order beside its output.
+
+For every generated RTL case, inspect the stages that change the implicated
+cone, then compile it through mapping and collect timing and provenance as
+above. Include negative controls for width extension, signed operands,
+overflow, shared producers and out-of-range shifts. Test equivalence across
+the changed pass; fewer word-level nodes alone does not establish a gain in
+mapped area or timing. A pass ablation must use the same RTL and constraints
+and start from a fresh design.
+
+If an experimental word-level timing model is used, label its delays and
+areas as estimates and identify its source tree and library. Keep its pass
+decisions distinct from those of the production compiler. Match input and
+output delays as well as the clock period before comparing against mapped
+STA. Snapshot instrumentation must not change optimization decisions: use a
+separate observer or verify its final graph and estimates against a run
+without observation. Flag disagreements for model calibration instead of
+treating estimated improvements as measured timing gains.
+
 ## Audit
 
 ```sh
