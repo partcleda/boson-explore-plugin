@@ -29,6 +29,28 @@ def graph(name):
 
 
 class FunctionClassTest(unittest.TestCase):
+    def test_cell_area_without_a_semicolon_matches_asap7_invbuf(self):
+        text = '''library(test) {
+  cell(INV_X1) {
+    area : 0.04374
+    pin(A) { direction : input; }
+    pin(Y) { direction : output; function : "!A"; }
+  }
+  cell(BUF_X1) {
+    area : 7.29e-2;
+    pin(A) { direction : input; }
+    pin(Y) { direction : output; function : "A"; }
+  }
+}'''
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "invbuf.lib"
+            path.write_text(text)
+            lib = _cmp.read_liberty([str(path)])
+        self.assertAlmostEqual(lib["INV_X1"].area, 0.04374)
+        self.assertEqual(lib["INV_X1"].category, "inverter")
+        self.assertAlmostEqual(lib["BUF_X1"].area, 0.0729)
+        self.assertEqual(lib["BUF_X1"].category, "buffer")
+
     def test_cells_are_classed_by_function_not_name(self):
         lib = _cmp.read_liberty([LIB])
         expect = {"CLKNAND2_X1": "simple", "CLKBUF_X1": "buffer", "INV_X1": "inverter", "XNOR2_X1": "xor_xnor",
