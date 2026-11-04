@@ -98,6 +98,11 @@ separate observer or verify its final graph and estimates against a run
 without observation. Flag disagreements for model calibration instead of
 treating estimated improvements as measured timing gains.
 
+For a literal zero-period or all-area-recovery-disabled comparison, follow
+[delay-only-experiments.md](delay-only-experiments.md) before launching the
+corpus. It checks objective propagation, full-flow recovery policy, explicit
+full-pass controls and final native versus internally judged timing.
+
 ## Audit
 
 ```sh
