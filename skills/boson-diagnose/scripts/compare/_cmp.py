@@ -60,7 +60,7 @@ BUFFERING = frozenset({"buffer", "inverter"})
 # ---------------------------------------------------------------- liberty
 
 _GROUP = re.compile(r"(\w+)\s*\(\s*([^)]*?)\s*\)\s*\{")
-_ATTR = re.compile(r"(\w+)\s*:\s*(\"(?:[^\"\\]|\\.)*\"|[^;{}]*?)\s*;")
+_ATTR = re.compile(r"(\w+)\s*:\s*(\"(?:[^\"\\]|\\.)*\"|[^;{}\n]*?)\s*(?:;|(?=$|\}))")
 _COMPLEX = re.compile(r"(\w+)\s*\(([^)]*)\)\s*;")
 _TOKEN = re.compile(r"\{|\}|" + _GROUP.pattern + "|" + _ATTR.pattern + "|" + _COMPLEX.pattern)
 _SKIP_GROUPS = {"test_cell", "pg_pin", "internal_power", "timing", "leakage_power", "dynamic_current",
