@@ -15,6 +15,15 @@ its final estimated WNS. Treat these as build-specific interfaces, not commands
 available in every release. Prefer an existing matching binary to a different
 version's standalone model runner.
 
+Hold the allowed threshold-voltage set fixed across isolated-operator
+characterization, composition calibration and mapped STA. For a single-VT
+experiment, load only that VT's Liberty files, explicitly disable any VT-swapping
+repair, and audit every mapped cell reference against the loaded libraries.
+A single-VT netlist does not make a model calibrated with mixed-VT cells
+comparable: regenerate both the operator tables and composition parameters.
+Record the allowed-library hashes and use a fresh cache identity. Drive-strength
+sizing within the allowed VT is a separate choice; keep its policy fixed too.
+
 Generate a small reproducible corpus using fixed random seeds. Include ordinary
 mixed arithmetic/shift/mux datapaths and hypothesis-driven controls. Keep the
 Verilog sizing explicit, preserve each generated RTL file and record the seeds.
