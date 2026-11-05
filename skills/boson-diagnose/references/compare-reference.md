@@ -168,6 +168,23 @@ python3 $S/buffer_trees.py --liberty lib.lib boson=boson.v ref=reference.v \
     --def boson=boson.def --def ref=reference.def --out-md trees.md
 ```
 
+When clone or rebuffer choices differ, select their instance names and compare
+how many loads each selected output drives:
+
+```sh
+python3 $S/buffer_trees.py --liberty lib.lib ours=ours.v ref=reference.v \
+    --driver-pattern '^(nr_clone_|fanout_clone_)' --out-json clone-fanout.json
+```
+
+This adds a direct-fanout histogram and the largest selected outputs, including
+selected buffers and inverters. Counts are connected cell input pins on data
+nets. The regular expression selects names; it does not establish which cells
+are equivalent clones. Establish correspondence from the decision journal or
+matching functions and input nets before attributing a timing difference. A
+large excess of one-load copies can reveal a planner that isolates individual
+sinks where the reference splits a critical group. Compare the resulting load
+and input-capacitance tradeoff on both sides.
+
 Compare both netlists before clock-tree synthesis (clock nets are excluded
 either way). Two tables, side by side: by driver-to-farthest-sink distance
 (trees, buffered, average and maximum levels, spacing) and by sink count
