@@ -40,6 +40,11 @@ Audit the deployed repair code, not only an offline training evaluator.
 1. **Visibility:** does a window include the driver and all needed receivers?
    Distinguish a core driver from a boundary source. Expand grouped sinks to
    actual pins. Record masks, area budget, cell vocabulary and edit budget.
+   Trace attempted windows before construction and reachability checks, then
+   count which actually reach policy evaluation. A missing proposal record
+   can mean the entire window was rejected. Check unknown cell vocabulary
+   entries and untimed branches from opaque blocks; an unrelated untimed
+   branch must not silently erase the evidence about a timed repair.
 2. **Proposals:** record net rank, sink partition and cell-size proposals.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
