@@ -103,6 +103,17 @@ reference repair's exact sink partition and cell sizes in the window. Check
 whether it was absent from candidates, pruned by a surrogate score, evaluated
 incorrectly, or rejected by the whole-design guard. Change one cause at a time.
 
+Check competition between windows separately from choices inside each window.
+Record each plan's starting WNS, local gain, rank, and whole-design replay result.
+A large local gain in a noncritical window can outrank an accurate improvement
+of the design's bottleneck. If every rejected batch prefix contains the same
+head window, shrinking prefixes cannot discover a useful plan below that head.
+Replay the omitted plans individually before concluding that a new action or
+better estimator is needed. Carry a plan's original criticality into selection;
+compare any ranking correction on an identical frozen state with equal extra
+work, then on fresh compiles. A frozen improvement does not establish that the
+changed early repair trajectory improves the complete flow.
+
 Compare candidate scoring and final acceptance independently. A local weighted
 WNS/TNS score and a separate strict TNS veto can reject a WNS tradeoff that the
 reference repair accepts. Replay both policies on the identical frozen input;
