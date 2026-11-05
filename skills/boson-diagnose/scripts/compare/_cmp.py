@@ -69,7 +69,7 @@ _SKIP_GROUPS = {"test_cell", "pg_pin", "internal_power", "timing", "leakage_powe
 
 
 class LibCell:
-    __slots__ = ("name", "area", "inputs", "outputs", "functions", "clock_pins", "kind", "dont_use", "category")
+    __slots__ = ("name", "area", "inputs", "outputs", "functions", "clock_pins", "kind", "dont_use", "category", "three_state")
 
     def __init__(self, name):
         self.name = name
@@ -81,6 +81,7 @@ class LibCell:
         self.kind = None            # "sequential" | "clock_gate" | None
         self.dont_use = False
         self.category = "macro"
+        self.three_state = False
 
 
 def _liberty_lines(path):
@@ -163,6 +164,8 @@ def read_liberty(paths) -> dict[str, LibCell]:
                         cell.outputs.append(pin)
                     elif val == "input":
                         cell.inputs.append(pin)
+                elif pin is not None and key == "three_state":
+                    cell.three_state = True
                 elif pin is not None and key == "function":
                     cell.functions[pin] = val
                 elif pin is not None and key == "clock" and val.lower() == "true":
@@ -447,6 +450,7 @@ def _parse_modules(path) -> dict[str, Module]:
             mods[cur.name] = cur
             kind, rng = None, ""
             for part in _split_top(m.group(2) or ""):    # ANSI headers: "input [3:0] a, b"
+                part = part.strip()
                 words = part.split()
                 if words and words[0] in ("input", "output", "inout"):
                     kind = words[0]
@@ -633,6 +637,9 @@ def read_netlist(path, top: str | None = None) -> Netlist:
                     child_bind[pb] = local(b)
             flatten(child, prefix + inst + "/", child_bind)
     top_mod = mods[top]
+    for port in top_mod.ports:
+        for bit in _bits(port, top_mod.widths):
+            net(bit)
     flatten(top_mod, "", {})
     nl.pins = [[(p, find(n)) for p, n in row] for row in raw_pins]
     nl.net_name = [names[find(i)] for i in range(len(names))]
