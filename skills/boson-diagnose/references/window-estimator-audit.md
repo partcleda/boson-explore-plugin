@@ -114,6 +114,21 @@ compare any ranking correction on an identical frozen state with equal extra
 work, then on fresh compiles. A frozen improvement does not establish that the
 changed early repair trajectory improves the complete flow.
 
+An accepted batch can also hide a better smaller batch. Measure the existing
+batch sizes against one unchanged starting design, retaining the same native
+acceptance checks for every alternative. Compare measured WNS and TNS before
+choosing; stopping at the first acceptable large batch is a selection policy,
+not evidence that it is the best available result. Check the selected batch
+again with full STA, then compare fresh compiles and runtime overhead.
+
+Audit action availability by stage as well as by name. Ownership flags can
+suppress a reference action while the replacement enables it only in late
+refinement. Test disabling the reference action and enabling the replacement
+action earlier separately. These ablations measure different trajectories;
+do not subtract them as independent causal contributions. A reference final
+pin assignment or buffer removal may regress when transplanted alone, so
+trace the accepted sequence before claiming a missing primitive is decisive.
+
 Compare candidate scoring and final acceptance independently. A local weighted
 WNS/TNS score and a separate strict TNS veto can reject a WNS tradeoff that the
 reference repair accepts. Replay both policies on the identical frozen input;
