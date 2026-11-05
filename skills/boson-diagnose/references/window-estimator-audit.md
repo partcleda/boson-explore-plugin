@@ -116,6 +116,11 @@ the factorization can help while removing its buffer loses. Validate generated
 networks against the original truth table for every input assignment, then
 check simulator mutation, applied connectivity and incremental/full timing.
 Keep the output identity traceable when replacement retires its original pin.
+Competing windows can skip an earlier mutation but retain its dependent later
+edits. Check replay against the live cell interface and input bindings: a resize
+for a replacement gate must not reach the unreplaced cell. Test skipped ancestors
+explicitly. Reload the final emitted netlist, link it, and compare its WNS and TNS
+before treating a promising in-memory result as valid QoR evidence.
 
 A newly available choice can change an entire greedy repair trajectory. Use
 controlled option ablations on the same input, then replay complete choices on
