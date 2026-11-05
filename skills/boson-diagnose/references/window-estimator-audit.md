@@ -73,6 +73,15 @@ If arrivals agree but slack differs, trace the required-time side separately:
 receiver delay depends on changed input slew, downstream constraints or loads
 may change, and grouped boundary sinks may hide different requirements.
 
+Check objective invariance under sink grouping. Replacing several sinks by
+their minimum requirement preserves WNS, but not their slack sum. Retain each
+physical sink's rise/fall requirements, take its worst matched transition,
+then sum its negative slack. Across clock domains, take the worst domain per
+sink before summing; taking the worst domain's total is a different quantity.
+Test grouped and ungrouped representations before and after an arrival change.
+Boundary slack sums still approximate downstream endpoint TNS: label them as
+such and retain whole-design validation.
+
 ## Check incrementality independently of search quality
 
 For the same candidate mutations, compare incremental and full recomputation
@@ -93,6 +102,20 @@ Once fidelity is established, investigate missed choices: replay the
 reference repair's exact sink partition and cell sizes in the window. Check
 whether it was absent from candidates, pruned by a surrogate score, evaluated
 incorrectly, or rejected by the whole-design guard. Change one cause at a time.
+
+Compare candidate scoring and final acceptance independently. A local weighted
+WNS/TNS score and a separate strict TNS veto can reject a WNS tradeoff that the
+reference repair accepts. Replay both policies on the identical frozen input;
+report TNS debt explicitly. When sharing the reference's acceptance policy,
+retain its hold, electrical, area and preservation checks. An acceptance-only
+ablation can be unchanged on one design and decisive on another.
+
+If the reference factors a compound gate, test the complete equivalent network
+with the same output load. Test output-buffer removal separately and together:
+the factorization can help while removing its buffer loses. Validate generated
+networks against the original truth table for every input assignment, then
+check simulator mutation, applied connectivity and incremental/full timing.
+Keep the output identity traceable when replacement retires its original pin.
 
 A newly available choice can change an entire greedy repair trajectory. Use
 controlled option ablations on the same input, then replay complete choices on
