@@ -158,6 +158,16 @@ for a replacement gate must not reach the unreplaced cell. Test skipped ancestor
 explicitly. Reload the final emitted netlist, link it, and compare its WNS and TNS
 before treating a promising in-memory result as valid QoR evidence.
 
+When reload introduces a loop absent from the in-memory graph, inspect output
+ports and emitted aliases as well as replacement cells. Moving a cell-driven
+output port off the net named for it can leave that port name upstream of a
+new buffer; the writer's continuity assignment then joins its input and output.
+Keep the output port on its named net and move the original driver and
+unselected side loads upstream, following the native buffering convention.
+Test a vector port, an unselected side branch, a buffer chain and deletion.
+Compare pin-to-pin connectivity after emit/reload independently of net spelling;
+a matching WNS alone can hide the new loop while TNS changes.
+
 A newly available choice can change an entire greedy repair trajectory. Use
 controlled option ablations on the same input, then replay complete choices on
 a frozen netlist; transplanting only a size or pin assignment can lose when its
