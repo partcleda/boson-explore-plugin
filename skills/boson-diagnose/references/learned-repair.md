@@ -45,6 +45,8 @@ Audit the deployed repair code, not only an offline training evaluator.
    can mean the entire window was rejected. Check unknown cell vocabulary
    entries and untimed branches from opaque blocks; an unrelated untimed
    branch must not silently erase the evidence about a timed repair.
+   Verify the executed round and proposal limits in code or traces; a CLI
+   argument alone does not establish the compute budget of a separate model path.
 2. **Proposals:** record net rank, sink partition and cell-size proposals.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
@@ -66,6 +68,9 @@ A baseline match can conceal a wrong response to edits. Calibration may
 fold omitted delay into a fixed arrival, slew or per-cell offset.
 
 Trace boundary timing and what retiming recomputes after loads change.
+Preserve rise/fall capacitances when compacting receiver groups. Pair each
+arrival with the required time of the same transition and clock domain;
+independently collapsed scalar values cannot be recombined into a valid slack.
 A primary input with an external driving cell is not a fixed waveform:
 isolating receivers changes driver delay and transition. Likewise inspect
 clock-to-Q launch loads and outside-window gate sources. Verify these
