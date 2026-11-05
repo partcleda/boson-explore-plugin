@@ -36,6 +36,26 @@ The outcome is one of three findings, and each has a different owner:
    design's: similar depth, similar cell mix, same endpoint family. If it
    doesn't, you are debugging something else.
 
+## Sequential equivalence and reset
+
+Record the initial-state and reset contract before accepting a sequential
+comparison. Check the same arbitrary initial register values on both sides,
+with no reset constraint, first. Include encodings outside the reset-reachable
+set: a three-bit pointer for five positions can power up in 5, 6 or 7.
+
+If the unconstrained check fails but a reset-constrained check passes, preserve
+the counterexample and replay it from the same logical state in both designs.
+An output difference before reset is observable behavior, not a harness false
+positive. Do not add a reset hold merely to make the proof pass. Reset-dependent
+optimization needs an explicit design promise or an opt-in control; verify the
+default separately from that mode.
+
+For the opt-in control, record which ports are asserted, their active levels,
+and how many cycles they are held through reset synchronizers. Check that the
+compiler's reported precondition reaches the checker. A recognized diagnostic
+format is part of that handoff. State the proof depth: a bounded check that
+passes after reset is not an unbounded proof, even if its verdict says PROVEN.
+
 ## 1. Find the construct
 
 From the full run (or the last one that finished):
