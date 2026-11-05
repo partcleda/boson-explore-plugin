@@ -25,6 +25,13 @@ propagated for repair ranking is not interchangeable with transition-specific
 STA slack. Neither is `min(required) - max(arrival)` interchangeable with the
 minimum of matched required-minus-arrival lanes.
 
+A forced `-through` timing report follows a selected path. Its arrival at an
+intermediate gate can be earlier than that gate's maximum arrival from another
+fanin, even within one clock domain. Compare path-conditioned quantities with
+the same path, and maximum pin quantities with maximum pin quantities. A large
+improvement on the forced path can leave WNS almost unchanged when another
+path takes over; it is not by itself evidence that the local timer is wrong.
+
 In Boson's Rust repair harness, `RepairTiming::pin_slack_ps` reads
 `view.slack_ps`; that column can carry scalar repair priorities. After a raw
 timer call, internal `pin_lanes` slack lanes can be unavailable. Use the same
