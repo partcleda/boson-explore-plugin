@@ -14,6 +14,7 @@ journal seq numbers, cell counts and areas on both sides), never impressions.
 |---|---|---|---|
 | a boson run of the user's design; "what did boson decide wrong on the failing paths"; a bundle for partcl | journal debug | [references/journal-debug.md](references/journal-debug.md) (+ [journal-schema.md](references/journal-schema.md), [privacy.md](references/privacy.md)) | `scripts/debug/` |
 | "what did boson build for this adder / multiplier", "did a rewrite undo the architecture" | datapath audit | [references/datapath-audit.md](references/datapath-audit.md) | `scripts/datapath/` |
+| a candidate repair looks good in a local/window timer but loses in whole-design STA | estimator audit | [references/window-estimator-audit.md](references/window-estimator-audit.md) | existing candidate replay/probe, when available |
 | a few paths far deeper than the clock allows; "is it the RTL or boson"; the full run is too slow to iterate | minimal repro | [references/minimal-repro.md](references/minimal-repro.md) | `scripts/repro/` |
 | a reference netlist of the same RTL and library (another tool's, or an older boson version's); "why is the area / timing worse", "why did the new version regress" | reference compare | [references/compare-reference.md](references/compare-reference.md) | `scripts/compare/` |
 | a Design Compiler netlist, and the question is how much of the gap is inside the datapath operators | DC datapath compare | [references/compare-dc.md](references/compare-dc.md) | `scripts/compare_dc/` |
