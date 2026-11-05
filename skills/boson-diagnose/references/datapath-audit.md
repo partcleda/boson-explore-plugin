@@ -100,6 +100,14 @@ treating estimated improvements as measured timing gains.
 
 ## Comparing word-level graphs
 
+For archived `synth_graph_snapshot_dir` output, trace recorded node properties
+across word-level stages with
+`python3 scripts/datapath/snapshot_trace.py <snapshot-dir> --origin 'file.sv:123'`.
+Repeat `--origin` for additional locations. The JSON retains stage sequence,
+node IDs, kinds, widths, details and origin labels, and emits a row when the
+matching properties change or disappear. These are recorded properties, not
+an equivalence check; verify connectivity and timing before attributing a gain.
+
 A word-level graph can contain a cycle even when its bit-level circuit is
 acyclic: a wide routing or select node can read a disjoint slice of its own
 result. A whole-node topological walk can therefore loop or exhaust memory
