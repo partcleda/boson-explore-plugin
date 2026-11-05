@@ -98,6 +98,31 @@ separate observer or verify its final graph and estimates against a run
 without observation. Flag disagreements for model calibration instead of
 treating estimated improvements as measured timing gains.
 
+## Comparing word-level graphs
+
+A word-level graph can contain a cycle even when its bit-level circuit is
+acyclic: a wide routing or select node can read a disjoint slice of its own
+result. A whole-node topological walk can therefore loop or exhaust memory
+on a valid graph. Track visited states and report a cycle explicitly. For
+structural comparison, resolve the requested output bits through edge ranges,
+Gather maps, concatenations and extensions; do not replace an unresolved
+cycle with a constant or an unrelated symbolic input. Compare the implicated
+cones first, with measured memory, before expanding to the whole design.
+
+Register names can change when aliases are retained differently. Establish
+register identity from its RTL declaration, instance and bit range, checking
+that the match is unique and that reset and enable semantics agree. A name
+mismatch alone is not a different register. Exact structural signatures also
+need operand extension, constant routing and commutativity normalization;
+unequal signatures do not prove functional inequivalence or explain a timing
+regression. Confirm the candidate difference in connectivity and mapped STA.
+
+For an addition with a late one-bit operand, measure that operand's own path
+through the carry network. Compare it with the equivalent carry-in form of
+the same addition, including overflow and truncation checks. A shorter path
+in lowering can be serialized again by AIG optimization or mapping: compare
+the stage snapshots and final mapped timing before claiming an improvement.
+
 ## Audit
 
 ```sh
