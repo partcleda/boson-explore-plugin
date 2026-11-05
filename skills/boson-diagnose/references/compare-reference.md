@@ -102,6 +102,17 @@ One table, both netlists timed by boson at one corner:
 Std-cell area excludes macros (`cell_mix.py` reports both). When several
 boson runs are compared, one row each, with what differs in the row label.
 
+For a residual of a few ps after repair, a small paired clock-target perturbation
+can test whether the ranking is stable. Keep each binary fixed; vary only the
+clock period by the same small offsets for both arms, holding absolute I/O
+delays fixed. Re-run synthesis and repair: retiming an unchanged netlist does
+not exercise target-dependent choices. Report every target's paired WNS, TNS
+and violating-endpoint count, together with pre-repair WNS. Rank reversals show
+target sensitivity; use the pre/post evidence to determine whether repair
+introduced the reversal, since lowering and mapping can also respond to the
+clock. This check does not explain an unresolved pre-repair gap or replace a
+gate/graph diagnosis.
+
 ## Step 2: area by mapping pattern
 
 ```sh
