@@ -27,6 +27,7 @@ import json
 import re
 import sys
 from collections import Counter
+from itertools import zip_longest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -58,6 +59,14 @@ def main(argv=None) -> int:
         if label in qors:
             r["qor"] = parse_qor(Path(qors[label]))
         report[label] = r
+    compared = [label for label in report if label in journals]
+    if compared:
+        reference = compared[0]
+        for label in compared[1:]:
+            report[label]["decision_comparison"] = {
+                "reference": reference,
+                "first_difference": first_decision_difference(Path(journals[reference]), Path(journals[label])),
+            }
     md = to_md(report)
     if a.out_md:
         Path(a.out_md).write_text(md)
@@ -111,6 +120,29 @@ def read_journal(path: Path) -> dict:
     return {"app_vars": app_vars, "checkpoints": checkpoints}
 
 
+def decisions(path: Path):
+    with open_text(path) as stream:
+        for line_number, line in enumerate(stream, 1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise ValueError(f"{path}:{line_number}: {error.msg}") from error
+            if not isinstance(row, dict):
+                raise ValueError(f"{path}:{line_number}: expected a JSON object")
+            if row.get("kind") == "decision" and not row.get("probe"):
+                yield {"line": line_number, "seq": row.get("seq"),
+                       "decision": {k: v for k, v in row.items() if k not in ("seq", "t_s")}}
+
+
+def first_decision_difference(left: Path, right: Path):
+    for index, (a, b) in enumerate(zip_longest(decisions(left), decisions(right)), 1):
+        if a is None or b is None or a["decision"] != b["decision"]:
+            return {"index": index, "reference": a, "run": b}
+    return None
+
+
 def to_md(report: dict) -> str:
     labels = list(report)
     o = ["# boson run A/B", ""]
@@ -145,6 +177,18 @@ def to_md(report: dict) -> str:
         o.append("## QoR")
         o.append(md_table(["metric"] + [f"`{lb}`" for lb in labels],
                           [[k] + [report[lb].get("qor", {}).get(k, "–") for lb in labels] for k in keys]))
+    for lb in labels:
+        comparison = report[lb].get("decision_comparison")
+        if not comparison:
+            continue
+        o.append(f"## First different decision of `{lb}` against `{comparison['reference']}`")
+        difference = comparison["first_difference"]
+        if difference is None:
+            o.append("All non-probe decisions match after ignoring sequence numbers and timestamps.")
+        else:
+            o.append(f"Non-probe decision {difference['index']} differs; an absent row means that journal ended.")
+            o.extend(["```json", json.dumps(difference, indent=2), "```"])
+        o.append("")
     for lb in labels:
         cps = report[lb].get("checkpoints")
         if not cps:
