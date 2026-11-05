@@ -76,6 +76,14 @@ Audit the deployed repair code, not only an offline training evaluator.
 Keep a reference tree outside the model's vocabulary/action space separate
 from a legal simpler move's result.
 
+For a multi-edit tree, replay every primitive prefix with full STA and the
+local simulator. Record WNS, TNS, potential, area and step budget at each
+prefix. A completed tree can improve while its early prefixes regress; a
+shallow label-generating teacher may never select that route. A demonstrated
+barrier for one route does not prove every improving route needs that depth.
+If sampled rollouts find a better local potential, replay the exact winner
+before changing search: its WNS/TNS tradeoff may still fail the actual gate.
+
 ## Test the timing response, not just the starting value
 
 A baseline match can conceal a wrong response to edits. Calibration may
