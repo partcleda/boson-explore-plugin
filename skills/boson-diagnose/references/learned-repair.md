@@ -55,7 +55,14 @@ Audit the deployed repair code, not only an offline training evaluator.
    Record before/after WNS, TNS, area and the exact acceptance potential.
    Compare its predicted timing change with full-design replay.
 4. **Acceptance:** if local scoring predicts a benefit, follow expansion,
-   pruning, replay conflicts, global acceptance and rollback. If local
+   pruning, replay conflicts, global acceptance and rollback. Identify the
+   timer that actually judges a candidate: a full-design trial can still
+   use an incremental estimator instead of STA. Trace the selected code path
+   and settings rather than inferring accuracy from a helper's name.
+   Replay the exact selected edit sequence with full STA before changing
+   fallback or search policy when the outer judge rejects it. Preserve
+   references to newly created buffers and verify unchanged logic connectivity.
+   If local
    scoring predicts harm while full STA improves, better neural priors
    alone cannot make improving-only search accept that move.
 
@@ -98,7 +105,7 @@ Follow the host's build and experiment scheduling rules.
 
 Use the parent skill's feedback workflow. Coverage keys:
 
-    python3 $F coverage wire_model_matched=yes placed=no receiver_sets_matched=yes legal_counterfactual=yes local_delta_checked=yes full_sta_delta_checked=yes training_boundary_checked=yes native_boundary_checked=yes
+    python3 $F coverage wire_model_matched=yes placed=no receiver_sets_matched=yes legal_counterfactual=yes local_delta_checked=yes full_sta_delta_checked=yes training_boundary_checked=yes native_boundary_checked=yes actual_acceptance_timer_checked=yes
 
 Replace values with actual coverage. Missing simulator access or decision
 traces are coverage gaps, not evidence that the policy is at fault.
