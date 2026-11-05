@@ -70,6 +70,8 @@ python3 $S/run_ab.py old=old.log new=new.log --journal old=old.jsonl --journal n
     --qor old=old_qor.rpt --qor new=new_qor.rpt
 ```
 
+When journals are supplied for multiple runs, `run_ab.py` also reports the first different non-probe decision against the first journal, including its original sequence number and line. It ignores timestamps and sequence numbers when comparing decisions. Use that first difference to locate the producing stage before comparing later edits; probe decisions may be interleaved differently.
+
 Read, in this order:
 
 - **Wire model.** PAR-252 means boson recalibrated the wire model from its

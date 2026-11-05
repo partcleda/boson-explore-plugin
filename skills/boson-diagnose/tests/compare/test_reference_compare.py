@@ -161,6 +161,33 @@ class RouteAndRunTest(unittest.TestCase):
         nets = {n: (use, lengths) for n, use, lengths, _ in _cmp.read_def_routing(str(FIX / "reference.def"))}
         self.assertEqual(nets["far_net"][1], {"M2": 2.0, "M7": 450.0})
 
+    def test_first_decision_difference_ignores_metadata_and_probes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            left, right = [Path(directory) / name for name in ("left.jsonl", "right.jsonl")]
+            left.write_text('\n'.join(json.dumps(row) for row in [
+                {"kind": "decision", "probe": True, "chosen": "ignored"},
+                {"kind": "decision", "seq": 2, "t_s": 1.0, "chosen": "buffer"},
+            ]))
+            right.write_text(json.dumps({"kind": "decision", "seq": 77, "t_s": 5.0, "chosen": "buffer"}))
+            self.assertIsNone(run_ab.first_decision_difference(left, right))
+            right.write_text(right.read_text() + '\n' + json.dumps({"kind": "decision", "seq": 78, "chosen": "resize"}))
+            difference = run_ab.first_decision_difference(left, right)
+            self.assertEqual(difference["index"], 2)
+            self.assertIsNone(difference["reference"])
+            self.assertEqual(difference["run"]["seq"], 78)
+
+    def test_first_decision_difference_keeps_metrics_and_reports_invalid_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            left, right = [Path(directory) / name for name in ("left.jsonl", "right.jsonl")]
+            for path, area in [(left, 2), (right, 3)]:
+                path.write_text(json.dumps({"kind": "decision", "inputs": {"area": area}}))
+            difference = run_ab.first_decision_difference(left, right)
+            self.assertEqual(difference["reference"]["decision"]["inputs"]["area"], 2)
+            self.assertEqual(difference["run"]["decision"]["inputs"]["area"], 3)
+            right.write_text("{broken}")
+            with self.assertRaisesRegex(ValueError, "right.jsonl:1:"):
+                run_ab.first_decision_difference(left, right)
+
     def test_wire_model_calibration_is_flagged(self):
         r = run_ab.read_log(FIX / "new.log")
         self.assertEqual(r["version"], "2.10.0")
