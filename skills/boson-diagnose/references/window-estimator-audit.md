@@ -94,6 +94,15 @@ reference repair's exact sink partition and cell sizes in the window. Check
 whether it was absent from candidates, pruned by a surrogate score, evaluated
 incorrectly, or rejected by the whole-design guard. Change one cause at a time.
 
+A newly available choice can change an entire greedy repair trajectory. Use
+controlled option ablations on the same input, then replay complete choices on
+a frozen netlist; transplanting only a size or pin assignment can lose when its
+benefit depends on a buffer-tree change. Report the original and final worst
+path, whole-design WNS and TNS, and a control with equal extra refinement work.
+If enabling the new action early regresses, test a separate late refinement
+from the identical frozen state rather than claiming the action always helps.
+Do not add option-ablation deltas as if they were independent contributions.
+
 ## Skill feedback
 
 Record: `same_edits`, `matched_slack_basis`, `boundary_response_checked`,
