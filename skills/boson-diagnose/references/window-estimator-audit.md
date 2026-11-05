@@ -121,6 +121,16 @@ report TNS debt explicitly. When sharing the reference's acceptance policy,
 retain its hold, electrical, area and preservation checks. An acceptance-only
 ablation can be unchanged on one design and decisive on another.
 
+Even correctly aggregated boundary slacks are not whole-design endpoint TNS.
+Replay the exact competing choices, such as a resize and a buffered sink
+partition, and compare their local and global WNS/TNS ordering. Agreement on
+WNS can coexist with a reversed TNS ordering. When the user's target is WNS,
+test making WNS primary and using the approximate secondary score only among
+equivalent primary outcomes, with the existing numerical resolution and
+whole-design hold, electrical, area and preservation checks. Report actual
+TNS debt. An objective ablation establishes a mechanism; it is not a license
+to tune a multiplier or infer that the new greedy trajectory always wins.
+
 If the reference factors a compound gate, test the complete equivalent network
 with the same output load. Test output-buffer removal separately and together:
 the factorization can help while removing its buffer loses. Validate generated
