@@ -72,6 +72,14 @@ python3 $S/run_ab.py old=old.log new=new.log --journal old=old.jsonl --journal n
 
 When journals are supplied for multiple runs, `run_ab.py` also reports the first different non-probe decision against the first journal, including its original sequence number and line. It ignores timestamps and sequence numbers when comparing decisions. Use that first difference to locate the producing stage before comparing later edits; probe decisions may be interleaved differently.
 
+If startup stalls, inspect a stack or profile before attributing the wait to an
+optimization pass. Boson preloads its STA kernels; without a matching
+`cuda-kernels` directory beside the executable, it can spend minutes in NVRTC
+and ptxas. An existing directory does not establish a cache hit: compare the
+requested cubin's full hashed name and toolchain metadata with the shipped
+files. Preserve the matching cache when moving a binary, and compare runtime
+with equally warm caches.
+
 Read, in this order:
 
 - **Wire model.** PAR-252 means boson recalibrated the wire model from its
