@@ -117,6 +117,16 @@ fanins: provenance may retain an adder/subtractor label after its carry structur
 has disappeared. Stage counts locate simplification but do not by themselves
 attribute it to one optimization pass.
 
+For an adder tree, record both the result width and the widths and signedness of
+its terms. The same result width and term count can describe a population count
+or a sum of full words, with different compressor depths. Do not substitute the
+input width for the result width in a table whose probes truncate at that width:
+a one-bit output loses the carries a population count needs. Check whether the
+term count lies beyond the characterized range, and whether the probe fixes a
+compressor topology different from the emitted implementation. Use generic
+paired-width controls before adding a cost dimension, and compare mapped
+netlist hashes and timing to distinguish a pricing correction from a QoR gain.
+
 For a long chain of word muxes, inspect the corresponding bit in both arms.
 A partial assignment may carry an unchanged bit through different versions of
 the word. Follow routing and recursively prove equal-arm muxes redundant before
