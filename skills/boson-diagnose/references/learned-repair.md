@@ -109,6 +109,18 @@ isolating receivers changes driver delay and transition. Likewise inspect
 clock-to-Q launch loads and outside-window gate sources. Verify these
 dependencies, not just the initial arrival/slew.
 
+An outside-load term preserves capacitance without preserving timing demand.
+After a boundary driver's load changes, inspect every other fanout branch,
+including paths that leave the window and later reenter it at a frozen input.
+Replay primitive prefixes and identify the first changed critical launch,
+endpoint or branch. A present driver model does not establish that those
+paths participate in the score. Test read-only timing endpoints for omitted
+fanouts while preserving the original edit set; transfer their capacitance
+out of the outside-load term so it is counted once. Compare the predicted
+loss with full STA, then rerun the unchanged policy and search. These guards
+still approximate downstream delay and reconvergence; measuring part of a
+loss does not establish exact response or a feasible optimization gain.
+
 Inspect training separately. Training and native inference may use
 different boundary representations despite feature/network-output parity.
 A shared frozen-boundary assumption can bias teacher labels; a native-only
