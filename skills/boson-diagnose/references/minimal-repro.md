@@ -39,9 +39,11 @@ The outcome is one of three findings, and each has a different owner:
 ## Sequential equivalence and reset
 
 Record the initial-state and reset contract before accepting a sequential
-comparison. Check the same arbitrary initial register values on both sides,
-with no reset constraint, first. Include encodings outside the reset-reachable
-set: a three-bit pointer for five positions can power up in 5, 6 or 7.
+comparison. Preserve initial values declared in the RTL and reset guarantees
+supplied by the user. Without those guarantees, start from the same arbitrary
+initial register values on both sides, with no reset constraint. Include
+encodings outside the reset-reachable set: a three-bit pointer for five
+positions can power up in 5, 6 or 7.
 
 If the unconstrained check fails but a reset-constrained check passes, preserve
 the counterexample and replay it from the same logical state in both designs.
