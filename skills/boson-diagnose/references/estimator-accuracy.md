@@ -24,6 +24,16 @@ comparable: regenerate both the operator tables and composition parameters.
 Record the allowed-library hashes and use a fresh cache identity. Drive-strength
 sizing within the allowed VT is a separate choice; keep its policy fixed too.
 
+Hold the optimization objective fixed too. For an Fmax-only comparison, disable
+explicit area recovery and VT swapping in every stage, select arithmetic
+topologies by their measured delays, and retain timing improvements even after
+the clock is met. Inspect mapper-internal area rounds separately: disabling a
+post-mapping recovery pass does not disable those rounds. A stage named for area
+recovery may also contain timing-improving resynthesis; preserve that work as
+timing-ranked alternatives while removing area-only trades. Recharacterize after
+changing the mapping policy rather than pricing the fastest isolated topology
+while shipping another implementation.
+
 Generate a small reproducible corpus using fixed random seeds. Include ordinary
 mixed arithmetic/shift/mux datapaths and hypothesis-driven controls. Keep the
 Verilog sizing explicit, preserve each generated RTL file and record the seeds.
@@ -64,11 +74,22 @@ capture check: the register node's own arrival may be its clock-to-Q launch,
 so subtracting that value from a data-input arrival gives a misleading negative
 stage. Retain the full results, including cases that agree.
 
+For Fmax, measure the minimum feasible period of each frozen mapped netlist by
+changing only its clock period and rerunning STA. Bracket a feasible period and
+bisect with a stated tolerance; keep waveform relationships, clock constraints
+and external timing intent consistent. `period - WNS` is not a general minimum
+period formula for paths spanning opposite clock edges. Recheck the worst path
+after changing the period. A clock-gating enable check is not automatically a
+half-cycle path; inspect its launch/capture edges and setup requirement.
+
 A loose clock lets mapping/repair spend slack; an impossible clock can make
 repair give up. Use the first run to find each design's achieved delay, then
 recompile near that value (for example at 90% of it). Repeat the largest misses
 under several logic-neutral operand-order seeds, where the build supports them,
-and report medians and ranges. Do not infer a speed change from runtime on an
+and report medians and ranges. When comparing compile targets, retain the
+candidate with the best measured timing and its own estimate; a tighter target
+does not guarantee a faster result. Ensure a standalone diagnostic applies the
+same operand-order transformation as the compiler. Do not infer a speed change from runtime on an
 uncontrolled host.
 
 ## Diagnose a large miss
