@@ -51,6 +51,11 @@ Audit the deployed repair code, not only an offline training evaluator.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
    action absent from the proposal set.
+   For factorized receiver probabilities, compare the greedy partition with
+   the probability of an empty sample and the expected number of selected
+   receivers. Every probability can be below one half while most sampled
+   partitions are nonempty. An empty thresholded partition is not evidence
+   that the policy usually samples no repair.
 3. **Scoring:** force the legal counterfactual through the local simulator.
    Record before/after WNS, TNS, area and the exact acceptance potential.
    Compare its predicted timing change with full-design replay.
@@ -83,6 +88,12 @@ shallow label-generating teacher may never select that route. A demonstrated
 barrier for one route does not prove every improving route needs that depth.
 If sampled rollouts find a better local potential, replay the exact winner
 before changing search: its WNS/TNS tradeoff may still fail the actual gate.
+Preserve the nondominated WNS/TNS candidates from the same proposals when
+testing whether winner retention loses a valid repair. Record the additional
+full-STA evaluations separately from the proposal budget. After correcting a
+simulator response, rerun the unchanged policy and search: the correction can
+change later observations and proposals as well as their scores. A better
+forced-prefix estimate alone does not establish an optimization gain.
 
 ## Test the timing response, not just the starting value
 
