@@ -57,6 +57,18 @@ through both window representations; running two searches alone confounds a
 timer correction with different choices. Keep truly independent boundaries
 outside to avoid turning every window into the entire design.
 
+Check primary inputs with `set_driving_cell` before treating them as fixed
+sources. Changing their fanout or sink capacitance changes the external driver's
+NLDM delay and output slew. Boson can report the raw input-delay arrival and zero
+slew on the port pin while applying the driving cell on its outgoing net arcs;
+compare the first receiving pins as well. A local graph with zero-delay net edges
+must represent the virtual driver's output, including during calibration. The
+external-driver delay uses a zero-load reference: subtract that reference per
+library arc before reducing alternatives, and retain the loaded output slew.
+Validate both a load increase (such as an upsize) and side-sink buffering. A
+frozen port can make an actually losing upsize appear beneficial and hide a
+useful buffer even when incremental and full local recomputation agree.
+
 If arrivals agree but slack differs, trace the required-time side separately:
 receiver delay depends on changed input slew, downstream constraints or loads
 may change, and grouped boundary sinks may hide different requirements.
