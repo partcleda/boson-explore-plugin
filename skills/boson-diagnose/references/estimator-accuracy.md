@@ -50,7 +50,10 @@ is short. If the model subtracts uncertainty or latency, recover its actual
 budget; do not assume it equals the SDC period. With registers or nonzero I/O
 delays, match endpoint names and timing checks, including setup, launch delay and
 external delay. Do not compare a model word's latest bit with an arbitrary STA
-bit. Retain the full results, including cases that agree.
+bit. At a register endpoint, trace the selected data or enable input and its
+capture check: the register node's own arrival may be its clock-to-Q launch,
+so subtracting that value from a data-input arrival gives a misleading negative
+stage. Retain the full results, including cases that agree.
 
 A loose clock lets mapping/repair spend slack; an impossible clock can make
 repair give up. Use the first run to find each design's achieved delay, then
@@ -83,6 +86,21 @@ worst bit. Read AIG counts/depths at successive stages and inspect mapped cell
 fanins: provenance may retain an adder/subtractor label after its carry structure
 has disappeared. Stage counts locate simplification but do not by themselves
 attribute it to one optimization pass.
+
+For a long chain of word muxes, inspect the corresponding bit in both arms.
+A partial assignment may carry an unchanged bit through different versions of
+the word. Follow routing and recursively prove equal-arm muxes redundant before
+counting updates; comparing only the immediate source node IDs misses this.
+Consecutive writes of the same value can merge their enables, for example
+`s2 ? 1 : (s1 ? 1 : q)` equals `(s1 | s2) ? 1 : q`. Preserve the priority between
+different values and any intervening variable write; do not assume enables are
+exclusive. Check the new critical endpoint, because removing one false chain can
+expose another bit's unchanged-data muxes.
+
+Keep constant lookup tables and format selectors visible as word structures.
+Decomposing every mux into per-bit logic can regress mapping even when each
+identity is correct. Verify neighboring timing, area and constraint violations,
+and preserve shared or adjacent fields when applying partial-update rewrites.
 
 Report a compact table of estimated delay, measured median/range, error and clock
 for each representative case. Attach the worst-case RTL, SDC, logs and rerun
