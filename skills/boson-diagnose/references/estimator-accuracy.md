@@ -71,6 +71,19 @@ can expose a threshold discontinuity: describe it as a changed-input diagnostic,
 not an equivalent rewrite or a performance fix. Establish causality with a model
 ablation if a stronger claim is needed.
 
+When a serial arithmetic/shift estimate greatly exceeds mapped delay, derive an
+individual output bit's Boolean function before adjusting operator costs. For a
+32-bit mask and a 5-bit unsigned selector, `((1 << (x + 1)) - 1)[j]` is `x >= j`;
+combining two such masks as `~low & high` gives `(lo < j) && (j <= hi)`. The
+increment, shift and subtract can disappear into constant-threshold decode logic.
+Check the actual expression widths and signedness, including shift-by-width and
+overflow cases; verify the identity exhaustively when the input space is small.
+Compare the same output bit's estimate and STA arrival as well as each word's
+worst bit. Read AIG counts/depths at successive stages and inspect mapped cell
+fanins: provenance may retain an adder/subtractor label after its carry structure
+has disappeared. Stage counts locate simplification but do not by themselves
+attribute it to one optimization pass.
+
 Report a compact table of estimated delay, measured median/range, error and clock
 for each representative case. Attach the worst-case RTL, SDC, logs and rerun
 command. A synthetic counterexample proves a limitation, not its prevalence in
