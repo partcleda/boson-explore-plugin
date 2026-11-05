@@ -55,8 +55,15 @@ Audit the deployed repair code, not only an offline training evaluator.
    Record before/after WNS, TNS, area and the exact acceptance potential.
    Compare its predicted timing change with full-design replay.
 4. **Acceptance:** if local scoring predicts a benefit, follow expansion,
-   pruning, replay conflicts, global acceptance and rollback. Identify the
-   timer that actually judges a candidate: a full-design trial can still
+   pruning, replay conflicts, global acceptance and rollback. Record each
+   root candidate's prior, visit count and state (unexpanded, rejected or
+   evaluated), plus the selected edit sequence after every search batch.
+   A useful generated proposal can remain unexpanded through repeated
+   simulations: first-play urgency and concentrated priors can favor
+   revisiting unhelpful branches. Distinguish that from a bad local score or
+   a rejected global trial. Test proposal coverage at the same simulation
+   budget before attributing the miss to action expressiveness or training.
+   Identify the timer that actually judges a candidate: a full-design trial can still
    use an incremental estimator instead of STA. Trace the selected code path
    and settings rather than inferring accuracy from a helper's name.
    Replay the exact selected edit sequence with full STA before changing
