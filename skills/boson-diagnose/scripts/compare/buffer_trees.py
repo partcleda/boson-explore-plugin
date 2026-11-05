@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from collections import Counter
 import sys
 from pathlib import Path
 
@@ -40,9 +42,14 @@ def main(argv=None) -> int:
     ap.add_argument("--def", dest="defs", action="append", default=[], help="label=placed.def")
     ap.add_argument("--top")
     ap.add_argument("--examples", type=int, default=5, help="deepest trees listed per netlist")
+    ap.add_argument("--driver-pattern", help="also report direct output fanout of instance names matching this regex")
     ap.add_argument("--out-md")
     ap.add_argument("--out-json")
     a = ap.parse_args(argv)
+    try:
+        pattern = re.compile(a.driver_pattern) if a.driver_pattern is not None else None
+    except re.error as error:
+        ap.error(f"invalid --driver-pattern: {error}")
     lib = read_liberty(a.liberty)
     defs = dict(d.split("=", 1) for d in a.defs)
     report = {}
@@ -51,6 +58,11 @@ def main(argv=None) -> int:
         loc = read_def_locations(defs[label]) if label in defs else None
         trees = list(walk_trees(g, loc))
         report[label] = summarize(trees, loc is not None, a.examples)
+        if pattern is not None:
+            try:
+                report[label]["selected_outputs"] = selected_output_fanouts(g, pattern, a.examples)
+            except ValueError as error:
+                ap.error(f"{label}: {error}")
         if loc is not None:
             missing = sum(1 for n in g.nl.inst_name if def_name(n) not in loc)
             report[label]["cells_without_location"] = missing
@@ -63,6 +75,26 @@ def main(argv=None) -> int:
     if a.out_json:
         Path(a.out_json).write_text(json.dumps(report, indent=1))
     return 0
+
+
+def selected_output_fanouts(g: Graph, pattern, examples: int):
+    """Count cell input pins at each selected data output, including buffer outputs."""
+    if g.unknown_types:
+        missing = ", ".join(sorted(g.unknown_types))
+        raise ValueError(f"--driver-pattern needs Liberty definitions for every cell type: {missing}")
+    outputs = []
+    for i, name in enumerate(g.nl.inst_name):
+        if not pattern.search(name):
+            continue
+        for pin, net in g.outputs[i]:
+            if net in g.clock_nets:
+                continue
+            outputs.append({"driver": name, "master": g.nl.inst_type[i], "pin": pin,
+                            "net": g.nl.net_name[net], "loads": len(g.loads.get(net, ()))})
+    outputs.sort(key=lambda row: (-row["loads"], row["driver"], row["pin"]))
+    return {"pattern": pattern.pattern, "count": len(outputs),
+            "fanout_histogram": dict(sorted(Counter(row["loads"] for row in outputs).items())),
+            "largest": outputs[:examples]}
 
 
 def walk_trees(g: Graph, loc):
@@ -197,6 +229,18 @@ def to_md(report: dict) -> str:
                     + side("by_sinks", "buf_inv_area", b, 1) + side("by_sinks", "avg_level", b)
                     + side("by_sinks", "max_level", b))
     o.append(md_table(heads, rows))
+    selected = {lb: report[lb]["selected_outputs"] for lb in labels if "selected_outputs" in report[lb]}
+    if selected:
+        o.extend(["## Selected driver outputs", "",
+                  "Direct loads count connected cell input pins. Selected buffers and inverters are included; "
+                  "clock-net outputs are excluded. Instance names select the report's scope and do not prove clone correspondence.", ""])
+        counts = sorted({int(n) for row in selected.values() for n in row["fanout_histogram"]})
+        o.append(md_table(["direct loads"] + list(selected),
+                          [[n] + [row["fanout_histogram"].get(n, row["fanout_histogram"].get(str(n), 0))
+                                  for row in selected.values()] for n in counts]))
+        for lb, row in selected.items():
+            o.append(f"- `{lb}`: {row['count']} outputs matching `{row['pattern']}`. " + "; ".join(
+                f"`{r['driver']}/{r['pin']}` {r['loads']} loads" for r in row["largest"]))
     o.append("## Deepest trees")
     for lb in labels:
         o.append(f"- `{lb}`: " + "; ".join(
