@@ -247,6 +247,32 @@ Measurement notes: <levels, spacing, origins, excluded nets, stage, host load>.
 Corrections to earlier numbers: <what changed and why>.
 ```
 
+## Checking an affine rewrite
+
+For XOR/XNOR reassociation or cancellation, compare the original and rewritten
+netlists exactly at matching register cut points:
+
+```sh
+python3 $S/linear_equiv.py --liberty cells.lib --top top before.v after.v
+```
+
+Repeat `--liberty` for each library. The checker derives each combinational
+output's affine function from Liberty and propagates GF(2) coefficient bitsets.
+It compares every primary output and every register input, including clock and
+control pins. This covers all assignments to common primary inputs and register
+output pins, including reconvergent cancellation; it is not random simulation.
+Run a planted negative control too: change one capture data input and require
+exit 1. Exit 0 means equal cut-point functions, 1 means a counterexample exists,
+and 2 means unsupported or inconclusive (for example nonlinear logic, unmatched
+boundaries, unknown cells, multiple drivers or a combinational cycle).
+
+Use this only for gate-level netlists with corresponding register instances and
+known-equivalent clock/reset/latch semantics. The checker does not prove those
+sequential semantics or reconstruct state correspondence after retiming or
+register merging. Each register output pin is an independent common variable.
+Use full LEC for nonlinear rewrites or changes to the sequential elements. Keep
+the netlists and libraries local under the same sharing rules as the QoR data.
+
 ## Sharing with partcl
 
 What partcl can act on is the pattern and its size, not the design. Before
