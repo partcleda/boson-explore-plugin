@@ -131,6 +131,15 @@ work and time per replay. Separate timer/search time from synthesis, model
 inference and whole-design validation. A faster local timer alone is not a
 faster compile, and numbers within the interleaved spread are inconclusive.
 
+Attribute a whole-process profile to callers and phases before changing the
+simulator's storage. Memory copies can come from loading or constraint-name
+matching. Check whether call chains unwind completely; truncated stacks cannot
+establish a phase percentage. If useful markers exist, gate counters after
+window construction and through the repair round, recording any native commit
+included. Verify first/last sample bounds and retain final STA, connectivity and
+netlist-identity checks. An instrumented shared-node profile attributes costs;
+it is not a controlled runtime comparison.
+
 Once fidelity is established, investigate missed choices: replay the
 reference repair's exact sink partition and cell sizes in the window. Check
 whether it was absent from candidates, pruned by a surrogate score, evaluated
