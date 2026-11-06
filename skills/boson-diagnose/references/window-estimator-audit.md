@@ -57,6 +57,17 @@ through both window representations; running two searches alone confounds a
 timer correction with different choices. Keep truly independent boundaries
 outside to avoid turning every window into the entire design.
 
+Include interactions between load-dependent cut sources, not only paths from an
+editable gate back into the editable core. Removing a buffer can load one cut
+source more heavily while another cut source lies downstream of it. Freezing
+the second source hides arrival changes even when the first source's NLDM
+response is accurate. Close the connecting paths among the edit roots and their
+immediate cut sources. Keep added timing observations separate from cell-edit
+permissions: changing an observed gate's input caps would require additional
+upstream timing coverage. Its side exits can constrain WNS without adding new
+terms to the original window's TNS objective. Test a dependent cut-source chain
+and a side exit against native STA before and after the exact buffer deletion.
+
 Check primary inputs with `set_driving_cell` before treating them as fixed
 sources. Changing their fanout or sink capacitance changes the external driver's
 NLDM delay and output slew. Boson can report the raw input-delay arrival and zero
