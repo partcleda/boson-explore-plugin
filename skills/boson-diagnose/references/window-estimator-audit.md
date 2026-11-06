@@ -25,6 +25,20 @@ propagated for repair ranking is not interchangeable with transition-specific
 STA slack. Neither is `min(required) - max(arrival)` interchangeable with the
 minimum of matched required-minus-arrival lanes.
 
+Record units per interface and verify them against a nonzero pin in a trusted
+report. `report_units` describes the loaded library metadata; it does not prove
+that every diagnostic attribute uses those units. Current Boson timing attributes
+such as `max_rise_arrival`, `max_fall_arrival` and `actual_rise_transition` convert
+stored picoseconds to nanoseconds. Inspect the implementation and cross-check a
+pin before converting; check capacitance units separately.
+
+For a small measured gain, run an untouched control through the exact same
+input, edit/serialization, timing, emit and reload pipeline, including executable
+options. Reusing an earlier audit from a different pipeline does not establish
+its zero-edit baseline. Report the gain relative to that control; a small WNS
+variation within the audit tolerance does not establish an optimization gain or
+certify the accompanying TNS difference.
+
 A forced `-through` timing report follows a selected path. Its arrival at an
 intermediate gate can be earlier than that gate's maximum arrival from another
 fanin, even within one clock domain. Compare path-conditioned quantities with
