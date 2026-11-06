@@ -264,6 +264,12 @@ original cells, connectivity and Boolean function, or use provenance to establis
 a correspondence. Retain matched-endpoint reports and maximum rise/fall pin
 measurements separately; a coincident generated name is not a timing comparison.
 
+When a path comes from a reloaded emitted design, its labels may retain a
+Verilog escape marker that a netlist parser already removed. Normalize only the
+recognized lexical escape when looking up a cell; retain the raw report label.
+Keep bus indices and hierarchy separators intact and verify actual bindings
+before treating normalized names as matching circuit points.
+
 For exploratory correspondence, deterministic bit-parallel simulation can shortlist
 candidate matching signals across netlists. It is not an equivalence proof:
 rarely asserted functions can coincide on every sampled vector, and buffers or
