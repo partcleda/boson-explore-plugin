@@ -218,6 +218,15 @@ the shortened prefixes too. A successful final tree does not imply that each
 intermediate move helps, or that a multistep barrier is necessary: compare
 simpler legal strength alternatives before making that claim. Report action
 likelihood separately from fresh-search quality after self-imitation updates.
+Keep the no-edit state in strength counterfactuals: the smallest buffer can
+be the least harmful strength for an insertion that every legal strength
+makes worse. Compare the local-score-selected endpoint of a trajectory with
+its measured native prefixes. If an earlier prefix dominates the final plan
+in WNS, TNS and area, use that validated prefix as the teacher while retaining
+its intermediate actions. Do not teach a dominated suffix merely because
+the complete episode improved on its starting design. When testing candidate
+retention changes, derive both candidate sets from one captured action and
+timing stream and keep the full-STA cap fixed for each set.
 
 For launch-centered windows, verify actual growth from a sequential source.
 A traversal that stops at every register can return only the launch cell and
