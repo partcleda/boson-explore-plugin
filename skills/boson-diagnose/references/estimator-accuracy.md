@@ -171,6 +171,14 @@ routing tests, distinguish a proven constant from an untimed source in one clock
 context, preserve the final inverter of an odd inversion chain, and exercise
 shared boundaries plus trial commit and rollback.
 
+Distinguish a discarded-padding projection from an ordinary same-width alias.
+A model can recognize the former without rewriting the word graph or making
+all aliases and inversion chains transparent. Verify graph hashes, fresh model
+costs and mapped netlist hashes separately; improved estimates on identical
+hardware are an accuracy gain, not a physical timing gain. For clock-phase
+controls, include a falling-edge launch so primary inputs excluded from that
+context cannot accidentally mask a disappearing-gate error.
+
 ## Diagnose a large miss
 
 Read the real worst path and its provenance before assigning a cause. Inspect
