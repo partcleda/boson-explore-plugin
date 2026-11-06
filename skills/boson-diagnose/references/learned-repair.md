@@ -47,6 +47,14 @@ Audit the deployed repair code, not only an offline training evaluator.
    branch must not silently erase the evidence about a timed repair.
    Verify the executed round and proposal limits in code or traces; a CLI
    argument alone does not establish the compute budget of a separate model path.
+   Inspect the actual core membership and growth direction. Starting at an
+   overloaded buffer with fanin-only growth can yield a tiny core and leave
+   its downstream tree outside the action space. The same configured node
+   cap can therefore give different context and area allowance. Test growth
+   into the combinational fanout cone without crossing sequential boundaries,
+   recording actual graph sizes and compute rather than claiming equal work
+   from equal caps. Preserve exact exported pin/instance names for replay;
+   names normalized for graph matching may not resolve in the editing API.
 2. **Proposals:** record net rank, sink partition and cell-size proposals.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
@@ -92,6 +100,12 @@ Test a selector using only the candidate design's information before making
 that claim. Likewise compare a proxy correction against retaining several
 candidates under the unchanged full-STA gate: retention alone may recover
 a feasible repair. Count the added full-STA evaluations separately.
+Immediate violating-fanout count can miss a driver feeding many endpoints
+through a few branches. Critical-predecessor endpoint flow can provide a
+candidate-only priority, but it is a heuristic: avoid counting reconvergent
+paths twice, handle cycles explicitly, and validate the resulting repairs
+with full STA and on another design. A better priority alone cannot expose
+actions absent from the selected window.
 
 For a multi-edit tree, replay every primitive prefix with full STA and the
 local simulator. Record WNS, TNS, potential, area and step budget at each
