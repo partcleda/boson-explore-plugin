@@ -129,6 +129,26 @@ do not subtract them as independent causal contributions. A reference final
 pin assignment or buffer removal may regress when transplanted alone, so
 trace the accepted sequence before claiming a missing primitive is decisive.
 
+Distinguish source loading from source-side timing coverage. A boundary source
+can correctly model extra outside capacitance while missing the required times
+of paths that source drives outside the window. Replay an exact bad plan and
+its individual components. If an upsize speeds the window but slows another
+branch through a shared launch flop, compare that source's arrival/slew and the
+outside branch's slack in both timers. A source load model alone is insufficient.
+
+Test immovable outside-path guards using existing required times and receiver
+NLDM response, with zero added load and no duplicated endpoint TNS. Exclude
+paths that return into editable logic: their requirements can improve with an
+edit and must not be frozen. Keep graph shape stable across clock domains,
+including untimed lanes. Virtual guard edges must not silently enable buffer
+insertion by changing a physical fanout count. Compare the exact rejected
+choice and alternative selected plan, then frozen and fresh flow results.
+These guards remain an approximation; check their whole-design error and cost.
+If many unchanged guards resample tables, test dependency-keyed receiver reuse
+against an independent full recomputation and an uncached incremental control.
+A cache with no measured leverage on an earlier window can matter after the
+modeled boundary changes, but the new context needs its own evidence.
+
 Compare candidate scoring and final acceptance independently. A local weighted
 WNS/TNS score and a separate strict TNS veto can reject a WNS tradeoff that the
 reference repair accepts. Replay both policies on the identical frozen input;
