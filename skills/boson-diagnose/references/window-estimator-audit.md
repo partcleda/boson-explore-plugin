@@ -355,6 +355,32 @@ collection type and resolve a net named like a port as that port. Use
 `foreach_in_collection` for this check. Invalidate failed outputs and every derived
 experiment; preserve their logs rather than silently re-ranking the STA-only score.
 
+## Long-run checkpoints and option availability
+
+For long searches, save changed completed rounds as well as phase boundaries.
+Publish the complete netlist before its metadata, using temporary files followed
+by atomic renames. Label snapshots partial, record the timing source and round,
+and independently reload under the same constraints, audit connectivity and library
+restrictions before using a snapshot as a frozen experiment source. Keep raw
+metadata unchanged and store audit outcomes separately. A scheduling offset alone
+is not complete serialized optimizer state. An audit-launch failure before load
+does not invalidate a separately successful optimizer artifact; fix the launcher
+and audit that same artifact instead of rerunning the optimization.
+
+Hash initial mapped checkpoints when comparing changed compile trajectories.
+Identical RTL and constraints do not prove identical mapped starts. Compare phase
+checkpoints to locate divergence, retaining intermediate scores as partial evidence.
+An improved early phase can lead to a worse later topology; do not attribute that
+move to a cache or a specific operator without a controlled intervention.
+
+Trace operator ownership filters as well as candidate generators: a sizing filter
+may also suppress native pin permutations while the replacement search enables
+them only late. Test equal-work frozen availability before changing the default.
+If that subset shows no gain, preserve it and use a native proposal-family ablation
+to test whole-flow leverage. Verify that its unmodified control reproduces the
+original final metrics and netlist bytes. An option's existence or a large count
+of accepted proposals does not establish that it explains the measured gap.
+
 ## Skill feedback
 
 Record: `same_edits`, `matched_slack_basis`, `boundary_response_checked`,
