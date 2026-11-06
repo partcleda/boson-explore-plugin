@@ -127,6 +127,20 @@ compressor topology different from the emitted implementation. Use generic
 paired-width controls before adding a cost dimension, and compare mapped
 netlist hashes and timing to distinguish a pricing correction from a QoR gain.
 
+For a scalar control driving wide muxes, compare the standalone operator with
+several mux widths and optional intervening Boolean logic. Inspect measured
+pin capacitance, fanout and buffer stages on the real path before changing a
+composition constant. A load sweep of one frozen netlist answers a different
+question from a fresh Fmax compile at each load: sizing and remapping can change
+the preferred implementation. Retiming each candidate across the complete load
+grid reveals the fastest measured alternative at each point without an area
+trade. If adding an incremental drive cost, subtract the same operator's
+reference-load delay to avoid counting its intrinsic delay twice. Sum the loads
+of shared consumers, remove redundant mux bits, and verify that incremental
+trial commit and rollback agree with rebuilding timing from scratch. Validate
+on held-out compositions and the full corpus; a more accurate estimate does
+not itself demonstrate faster mapped timing.
+
 For a long chain of word muxes, inspect the corresponding bit in both arms.
 A partial assignment may carry an unchanged bit through different versions of
 the word. Follow routing and recursively prove equal-arm muxes redundant before
