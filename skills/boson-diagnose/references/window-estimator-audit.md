@@ -159,6 +159,17 @@ reference repair's exact sink partition and cell sizes in the window. Check
 whether it was absent from candidates, pruned by a surrogate score, evaluated
 incorrectly, or rejected by the whole-design guard. Change one cause at a time.
 
+Check window coverage before candidate ranking. A large global window count
+can still miss a critical launch region when each path receives only a few
+capture-side cores. Record the target's core membership separately from its
+presence as a boundary or observation node; a core-only diagnostic filter
+does not test all three. Keep the source and round fixed when exposing that
+region, then trace its edit permissions, critical-root rank and candidate
+shortlist. This separates a missing window from a missing primitive or a bad
+price. Test the reference load partition independently with native STA before
+changing window allocation, and retain the same total window budget when
+evaluating a production allocation change.
+
 Check competition between windows separately from choices inside each window.
 Record each plan's starting WNS, local gain, rank, and whole-design replay result.
 A large local gain in a noncritical window can outrank an accurate improvement
