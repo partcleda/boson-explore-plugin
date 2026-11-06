@@ -138,6 +138,15 @@ worst endpoint appears, compare the same output bits and pin arcs on both
 netlists, including fanout, load, input transition and drive strength. A smaller
 estimate alone does not justify keeping a slower implementation.
 
+Check when a proposed word identity becomes visible. Earlier passes can turn an
+equality-guarded mux into an AND/NE expression after its matcher has already run.
+Compare the IR at that pass boundary; where a final-pass override exists, run the
+same matcher late as a diagnostic. If only the late invocation activates, schedule
+the normalization after the pass that reveals it and before lowering. Use a
+known positive activation marker to distinguish no eligible expression from a
+disabled pass or missing logging. Recheck the corpus when moving the pass, and
+avoid rerunning an unrelated pass family merely to reach one helper.
+
 A profiler label is not proof that the similarly named command ran. Generic
 rewrite/refactor routines can emit shared internal labels when called from
 other optimizers. Check callers and distinct command-stage markers before
