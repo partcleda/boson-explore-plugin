@@ -226,6 +226,17 @@ parallel matrices using actual mapped timing; the faster form can use many more
 cells, and a lower word estimate alone does not establish a gain. Prove every
 changed mapped implementation with positive and deliberate negative controls.
 
+Before changing a carry-delay curve, inspect which operand bits are provably
+constant through muxes, parallel selects and inversion. A bit shared by the default
+and every parallel-select arm stays constant even with multiple active selectors;
+do not assume one-hot behavior to infer more. Preserve signed extension and input
+widths. Constant bits must not become transition sources in carry timing. Bound
+the total traversal work across shared branches, test inferred constants against
+selector assignments, and check incremental commit and rollback against a fresh
+timing rebuild. Reprice identical saved graphs first, then check whether the new
+facts change rewrite selection or mapped Fmax. Report any other estimates that
+become less accurate as well as the motivating improvement.
+
 For an adder tree, record both the result width and the widths and signedness of
 its terms. The same result width and term count can describe a population count
 or a sum of full words, with different compressor depths. Do not substitute the
@@ -258,7 +269,9 @@ check real mapped timing. Separate multi-bit decoded values from single-bit
 Boolean predicates: broad expansion may help one operand order and regress
 others. Scope eligibility by structural evidence and validate both compiler
 pipelines across the corpus. A lower estimate after scalar-control expansion can
-hide a newly critical output flag; inspect all consumers before retaining it.
+hide a newly critical output flag; inspect all consumers before retaining it. Restricting replacement to the data
+root can still change shared mapping and buffer loads; verify the same input and
+output pins before concluding that leaving the flag graph intact preserves timing.
 
 For a conditional increment `x + enable`, test early and late enables across
 several widths before expanding it into prefix ANDs and XORs. The identity can
