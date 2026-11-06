@@ -80,6 +80,17 @@ Validate both a load increase (such as an upsize) and side-sink buffering. A
 frozen port can make an actually losing upsize appear beneficial and hide a
 useful buffer even when incremental and full local recomputation agree.
 
+Check explicit SDC loads independently of library pin capacitance. An output
+port can carry `set_load` while its design pin's intrinsic capacitance is zero.
+Include that external load in both rise/fall totals, grouped sinks, source
+responses and replacement gates, using the native electrical resolver where
+available. Starting calibration can hide an omitted load: a newly factored
+gate loses the old calibration offset and is then timed at zero load. Compare
+the new gate's input arrivals, evaluated arc delays, output slew and actual
+load before blaming its Boolean binding. Replay an equivalent loaded-output
+replacement against native STA, and check that buffering the port carries its
+external load onto the new branch exactly once.
+
 If arrivals agree but slack differs, trace the required-time side separately:
 receiver delay depends on changed input slew, downstream constraints or loads
 may change, and grouped boundary sinks may hide different requirements.
