@@ -151,6 +151,24 @@ Check grouped sequential receivers separately: freezing their setup
 requirements can match the baseline yet miss the setup-time improvement
 when buffering sharpens the data transition. Test edits and export/recut,
 then rerun the unchanged policy and compare actual full-design acceptance.
+Replay a harmful move through the training version of the simulator too.
+A positive proxy reward for a negative full-design delta can reinforce a
+bad action; it does not prove that an unrecorded historical teacher chose it.
+
+Distinguish local WNS from global WNS. Trace which original drivers can
+change through window edits, including boundary-driver load changes, and
+propagate that influence through combinational arcs. A proven unaffected
+outside path caps the global WNS any repair in that window can achieve.
+Test projecting the score through that cap while preserving policy inputs,
+sampled actions and the full-STA gate. Handle missing endpoint coverage and
+clock propagation explicitly before treating the projection as exact.
+
+For a learned correction, preserve a zero-update control with identical
+parameters, hold out whole designs, and compare checkpoints at fixed
+inference and full-STA budgets over multiple search seeds. Separate a
+fixed audit window from an autonomous scan, report regressions as well as
+mean gains, and distinguish a partial-head update from a fully retrained
+model. Training accuracy alone does not establish repair improvement.
 A primary input with an external driving cell is not a fixed waveform:
 isolating receivers changes driver delay and transition. Likewise inspect
 clock-to-Q launch loads and outside-window gate sources. Verify these
