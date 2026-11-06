@@ -181,6 +181,21 @@ inference and full-STA budgets over multiple search seeds. Separate a
 fixed audit window from an autonomous scan, report regressions as well as
 mean gains, and distinguish a partial-head update from a fully retrained
 model. Training accuracy alone does not establish repair improvement.
+Before counting ranked roots as distinct training states, canonicalize the
+physical window: original cells and edges, receiver groups, endpoint/setup
+metadata and edit eligibility. Different root labels or tensor orders can
+produce the same state. Report unique physical windows, repeated-search
+variance and independent design coverage; use multiple search seeds when
+outcome noise is large relative to the improvement being learned.
+
+For launch-centered windows, verify actual growth from a sequential source.
+A traversal that stops at every register can return only the launch cell and
+proxy loads despite a large requested core. Permit forward growth from the
+selected launch without crossing its data or clock input, and compare the
+unchanged policy at matched search caps. If compaction blocks a receiver
+partition, compare individual receivers with simpler legal grouped subsets;
+exposing the exact reference split does not itself establish useful gain.
+
 For learned window selection, label the accepted full-design gain of each
 window at a fixed search budget. Keep a zero-update value-head control and
 the existing heuristic order. Hold out whole outcome designs, distinguish
