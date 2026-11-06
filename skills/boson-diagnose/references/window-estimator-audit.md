@@ -229,6 +229,13 @@ Test a vector port, an unselected side branch, a buffer chain and deletion.
 Compare pin-to-pin connectivity after emit/reload independently of net spelling;
 a matching WNS alone can hide the new loop while TNS changes.
 
+When comparing separately compiled results, verify identity before matching
+cell names. Generated factor, buffer and clone counters can assign the same
+name to different functions in different repair trajectories. Compare preserved
+original cells, connectivity and Boolean function, or use provenance to establish
+a correspondence. Retain matched-endpoint reports and maximum rise/fall pin
+measurements separately; a coincident generated name is not a timing comparison.
+
 A newly available choice can change an entire greedy repair trajectory. Use
 controlled option ablations on the same input, then replay complete choices on
 a frozen netlist; transplanting only a size or pin assignment can lose when its
