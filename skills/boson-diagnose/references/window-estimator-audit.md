@@ -163,6 +163,25 @@ choosing; stopping at the first acceptable large batch is a selection policy,
 not evidence that it is the best available result. Check the selected batch
 again with full STA, then compare fresh compiles and runtime overhead.
 
+Individually accurate plans can still interfere when replayed together. If
+several leading plans improve the same worst path but expose a second bottleneck,
+ranked prefixes can include many overlapping alternatives before reaching a plan
+for that next path. Test a representative combination across bottlenecks as well
+as prefixes and singletons. Starting slack levels can shortlist such combinations;
+equal or different slack does not prove either endpoint identity or independence.
+Bound the extra trials and retain native acceptance against the unchanged source.
+A synthetic regression should replay overlapping alternatives on two independent
+critical paths and measure the installed circuit, not only assert chosen indices.
+
+Saved candidate netlists can isolate the missing combination before an optimizer
+change. Merge only verified changes relative to the same source; check changed
+instances, aliases, retired nets and generated-name collisions. Reproduce each
+single candidate with native STA, then check the merged result with emission,
+reload, connectivity and library audits. Such a merge is a selection
+counterfactual, not an actual optimizer result or a full RTL equivalence proof.
+The eventual optimizer must reproduce the gain through its own replay and
+acceptance, then be tested for complete-flow quality and extra timing work.
+
 Distinguish a harness round cap from a genuine search stall. Continue an
 independently reloaded compile-stage artifact to natural stagnation using the
 production ceiling, retaining the same candidate and acceptance settings.
