@@ -231,6 +231,15 @@ trial commit and rollback agree with rebuilding timing from scratch. Validate
 on held-out compositions and the full corpus; a more accurate estimate does
 not itself demonstrate faster mapped timing.
 
+For a conditional increment `x + enable`, test early and late enables across
+several widths before expanding it into prefix ANDs and XORs. The identity can
+shorten an isolated carry path yet deepen surrounding overflow or zero-detection
+logic after mapping. Compare the same startpoint and endpoint as well as the new
+worst path; audit fanout, buffer stages and consumers of the rounded word. Reject
+a real Fmax regression even when the estimate becomes much closer. Preserve
+arithmetic recognizers by scheduling expansion after them, and test that one
+pass invocation reaches a fixed point after accepted timing changes.
+
 For a long chain of word muxes, inspect the corresponding bit in both arms.
 A partial assignment may carry an unchanged bit through different versions of
 the word. Follow routing and recursively prove equal-arm muxes redundant before
