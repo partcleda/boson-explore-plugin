@@ -344,6 +344,23 @@ twice its effect on minimum period; it does not by itself imply a missing clock
 phase relationship. Compare the modeled and measured endpoints because another
 path may dominate the reported model estimate.
 
+Distinguish a bare register pin's clock-to-Q curve from the fastest complete
+register-output implementation. An output inverter or buffer can isolate the
+flip-flop from the external load; its port-delay curve does not describe that
+load applied directly to Q or QN. Verify the nonzero path stages before using a
+curve as a launch-pin model. Preserve the existing intrinsic launch floor and
+avoid introducing a reference-load offset when combining characterization sets.
+
+A correct launch-delay correction may leave the reported minimum period almost
+unchanged if the relevant clock relationship is still opaque. Inspect retained
+child instances and their actual port bindings. A proven scalar buffer or
+inverter output can transmit clock polarity across hierarchy without flattening
+a protected instance. Do not infer this from a module name or extend it to
+arbitrary data-dependent or sequential outputs. Test nested inversion parity,
+separate instances with different roots, unchanged graph bytes, unknown-domain
+fallbacks, and incremental commit/rollback. Compare equivalent hierarchical and
+inline clock expressions before concluding that a half-cycle check is present.
+
 For decode cofactoring, make the forward reader walk and the operand membership
 test use the same edge representation. A reader API that skips wire aliases can
 discover a consumer while omitting the alias node named by its operands, splitting
