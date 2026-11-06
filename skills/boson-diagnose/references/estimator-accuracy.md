@@ -98,6 +98,15 @@ primary clocks, and incremental trial commit/rollback. An estimate correction ca
 change rewrite selection: compare mapped timing across operand-order seeds, and
 trace accepted ties to distinguish worst-slack progress from TNS-only changes.
 
+For gate-vs-gate sequential checks, normalize state names on both netlist sides
+and report the paired register-bit counts. Reading the reference netlist through
+an RTL-only preparation path can leave its state unmatched and produce an
+x-dependent inconclusive result even in a self-comparison. Require the identical
+netlist control to pass before judging the candidate, then confirm a deliberate
+output error is detected. A large topology change can also exhaust a monolithic
+proof: a compositional proof must cover the word identity and both mapped links,
+including payloads, fallback behavior and the one-hot premise of a selection SOP.
+
 For sequential equivalence, inspect the proof method and depth as well as its
 verdict. A bounded same-initial-state result is not an unbounded proof. A
 single-clock AIGER flow cannot establish clock-gated behavior by silently treating
