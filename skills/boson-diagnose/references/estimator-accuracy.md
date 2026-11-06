@@ -89,6 +89,22 @@ period formula for paths spanning opposite clock edges. Recheck the worst path
 after changing the period. A clock-gating enable check is not automatically a
 half-cycle path; inspect its launch/capture edges and setup requirement.
 
+
+An unsupported generated clock or latch in one domain must not erase independently
+known opposite-edge checks in another. Keep the existing fallback for unknown
+launch/capture relationships while checking paths whose shared primary root and
+static inversion are established. Test mixed known/opaque domains, independent
+primary clocks, and incremental trial commit/rollback. An estimate correction can
+change rewrite selection: compare mapped timing across operand-order seeds, and
+trace accepted ties to distinguish worst-slack progress from TNS-only changes.
+
+For sequential equivalence, inspect the proof method and depth as well as its
+verdict. A bounded same-initial-state result is not an unbounded proof. A
+single-clock AIGER flow cannot establish clock-gated behavior by silently treating
+all state as edge-aligned. Use a clock-aware method, check every paired state
+including internal gate latches, and require positive and deliberate negative
+controls under the same clock semantics.
+
 A loose clock lets mapping/repair spend slack; an impossible clock can make
 repair give up. Use the first run to find each design's achieved delay, then
 recompile near that value (for example at 90% of it). Repeat the largest misses
