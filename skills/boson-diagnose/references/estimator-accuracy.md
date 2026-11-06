@@ -74,6 +74,13 @@ capture check: the register node's own arrival may be its clock-to-Q launch,
 so subtracting that value from a data-input arrival gives a misleading negative
 stage. Retain the full results, including cases that agree.
 
+Where an experimental model reports an explicit minimum-period estimate, use
+that field for Fmax comparisons and keep WNS as the actual capture-window slack.
+Match the standalone runner to the compiler's objective as well as its period:
+a target-meeting policy and a maximum-frequency policy can choose different
+word graphs. Compare each estimate with the implementation compiled under that
+same target, rather than another target's faster result.
+
 For Fmax, measure the minimum feasible period of each frozen mapped netlist by
 changing only its clock period and rerunning STA. Bracket a feasible period and
 bisect with a stated tolerance; keep waveform relationships, clock constraints
@@ -116,6 +123,26 @@ worst bit. Read AIG counts/depths at successive stages and inspect mapped cell
 fanins: provenance may retain an adder/subtractor label after its carry structure
 has disappeared. Stage counts locate simplification but do not by themselves
 attribute it to one optimization pass.
+
+A masked nonzero test also has useful word forms. For an unsigned count and a
+same-width shift/subtract mask, `|(x & ((1 << n) - 1))` equals
+`(x != 0) && (ctz(x) < n)`. Keep the zero guard; the index of a zero word is not
+a valid set-bit position. A second form precomputes data prefix ORs and selects
+from `[0, x[0], |x[1:0], ...]` with the count, selecting the full OR for counts
+beyond the table. This moves data reduction ahead of a late count. Preserve
+shift saturation, count-increment wrapping, truncation and extension semantics;
+zero- and sign-extension preserve the lowest set-bit position of a nonzero
+word. Check both forms against actual Fmax: an encoder/comparison can add a
+consumer to shared arithmetic even when the prefix lookup does not. When a new
+worst endpoint appears, compare the same output bits and pin arcs on both
+netlists, including fanout, load, input transition and drive strength. A smaller
+estimate alone does not justify keeping a slower implementation.
+
+A profiler label is not proof that the similarly named command ran. Generic
+rewrite/refactor routines can emit shared internal labels when called from
+other optimizers. Check callers and distinct command-stage markers before
+attributing an error to a disabled pass; retain the shared diagnostics in the
+record rather than silently ignoring every similarly named stage.
 
 For an adder tree, record both the result width and the widths and signedness of
 its terms. The same result width and term count can describe a population count
