@@ -56,6 +56,14 @@ Audit the deployed repair code, not only an offline training evaluator.
    from equal caps. Preserve exact exported pin/instance names for replay;
    names normalized for graph matching may not resolve in the editing API.
 2. **Proposals:** record net rank, sink partition and cell-size proposals.
+   A low probability for the reference strength does not establish a miss.
+   Sweep the same receiver partition across legal strengths with full STA;
+   a smaller, high-prior buffer may give the same benefit. Check which
+   launch or branch becomes critical after the move before blaming the
+   strength head. If the policy already favors a useful legal move when
+   given the window, trace why the scheduler did not present that window.
+   A selector restricted to existing combinational buffers can omit an
+   overloaded sequential launch even when launch buffering is legal.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
    action absent from the proposal set.
