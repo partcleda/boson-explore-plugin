@@ -225,6 +225,28 @@ Count full timing measurements separately from their propagation passes:
 receiver-capacitance refinement can propagate several times within one
 measurement. Verify span meanings against the run's Boson version.
 
+When repair repeatedly claims local progress while global WNS/TNS barely
+move, check scoring identity before interpreting the choices. Hold the
+netlist, pin identities, timing anchor, constraints, corner and wire model
+fixed, then compare the initial local scores with an incremental estimate
+of an unchanged edit. Record global WNS/TNS separately from local slack:
+the number of changed pins, signed deltas, largest absolute delta and the
+scores used by the acceptance tie-break. Check renames separately after
+the unchanged-edit control.
+
+Measured per-edge required-minus-arrival slack and an estimator's backward
+scalar slack can differ even under the same timer. A global WNS/TNS tie
+does not make those local definitions interchangeable. Distinguish
+representation roundoff from phase, domain or endpoint-scope differences;
+do not add an acceptance tolerance to conceal a change of convention.
+Use the same convention for both sides, repeat the identity check, then
+remeasure actual edits and the final saved netlist.
+
+Some optimizer-local values need internal instrumentation. If the installed
+shell cannot expose them, state that coverage gap and prepare a minimal
+reproducer. Ordinary `report_timing` output alone does not reproduce an
+internal candidate score or prove why it won.
+
 Accepted-round summaries omit rejected trials, discarded passes, retries
 and other stages. A rounded `+0.0 ps` WNS does not establish zero benefit:
 compare measured setup TNS, hold WNS/TNS, violating endpoints, area and
