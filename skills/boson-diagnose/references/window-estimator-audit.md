@@ -245,6 +245,23 @@ original cells, connectivity and Boolean function, or use provenance to establis
 a correspondence. Retain matched-endpoint reports and maximum rise/fall pin
 measurements separately; a coincident generated name is not a timing comparison.
 
+For exploratory correspondence, deterministic bit-parallel simulation can shortlist
+candidate matching signals across netlists. It is not an equivalence proof:
+rarely asserted functions can coincide on every sampled vector, and buffers or
+reconvergent logic can create repeated matches on either side. Preserve ambiguous
+matches explicitly. Prove the proposed local rewrite against the actual Liberty
+functions on every assignment of its cut leaves before timing it. Distinguish
+path-conditioned arrivals from maximum rise/fall pin arrivals, and force the same
+branch when a worst path changes input at a shared gate.
+
+When a reference uses one compound cell where the candidate has a network, inspect
+whether the search can absorb that cone or only replace one gate over its current
+inputs. Test the complete cone replacement on a frozen netlist before implementing
+a new action. A local endpoint gain can leave whole-design WNS unchanged because
+another endpoint is tied; report both. For differing sizes and pin assignments,
+test their individual families and their joint choice with Boolean checking.
+These experiments do not establish benefit from untransplanted buffer trees.
+
 A newly available choice can change an entire greedy repair trajectory. Use
 controlled option ablations on the same input, then replay complete choices on
 a frozen netlist; transplanting only a size or pin assignment can lose when its
