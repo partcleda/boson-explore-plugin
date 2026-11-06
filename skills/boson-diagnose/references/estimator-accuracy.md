@@ -241,6 +241,24 @@ different values and any intervening variable write; do not assume enables are
 exclusive. Check the new critical endpoint, because removing one false chain can
 expose another bit's unchanged-data muxes.
 
+Packed constant tables can hide address arithmetic such as `constant - index`
+behind muxes, sign extension and an overshift guard. Inspect the graph after
+width cleanup. For a bounded selector domain, absorb its arithmetic into the
+constant entries and retain word muxes over the original selector; preserve
+wrapping, slices, extension and the chosen out-of-range values. Test arithmetic
+and data consumers separately from predicate consumers: a correct reindexing
+can improve a comparison cone while making a variable-shift implementation
+slower. Retain the measured incumbent when narrowing eligibility.
+
+When a table matcher misses a real case, inspect selector wrappers and internal
+readers before changing its schedule again. Reducing one bit with AND or OR is
+wiring; reducing several bits is not. Earlier bit analysis may also leave
+predicate readers on an internal constant-table subtree. Preserve those
+observations, either by keeping that subtree or by rewriting each observed
+constant function. Bounded copying is valid when area is secondary, but still
+compare actual Fmax and audit the full corpus. An improved implementation can
+offset much of a lower estimate, so report both changes and the remaining error.
+
 Keep constant lookup tables and format selectors visible as word structures.
 Decomposing every mux into per-bit logic can regress mapping even when each
 identity is correct. Verify neighboring timing, area and constraint violations,
