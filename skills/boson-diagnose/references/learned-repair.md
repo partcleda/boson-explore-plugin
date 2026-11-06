@@ -142,6 +142,15 @@ Trace boundary timing and what retiming recomputes after loads change.
 Preserve rise/fall capacitances when compacting receiver groups. Pair each
 arrival with the required time of the same transition and clock domain;
 independently collapsed scalar values cannot be recombined into a valid slack.
+Compare grouped and ungrouped windows for WNS, TNS, violation count and the
+endpoint count used to normalize global features. Taking a group's worst
+slack can preserve WNS while counting many receivers only once in TNS.
+Sum each physical receiver's negative slack, avoiding duplicate timing arcs
+of the same pin. Preserve heterogeneous required times within a group.
+Check grouped sequential receivers separately: freezing their setup
+requirements can match the baseline yet miss the setup-time improvement
+when buffering sharpens the data transition. Test edits and export/recut,
+then rerun the unchanged policy and compare actual full-design acceptance.
 A primary input with an external driving cell is not a fixed waveform:
 isolating receivers changes driver delay and transition. Likewise inspect
 clock-to-Q launch loads and outside-window gate sources. Verify these
