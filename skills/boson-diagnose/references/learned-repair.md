@@ -71,6 +71,14 @@ Audit the deployed repair code, not only an offline training evaluator.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
    action absent from the proposal set.
+   A rare exact partition is not enough to explain a quality gap. Test simpler
+   useful partitions, and measure their full-design impact before changing
+   priors. A branch may benefit from leaving its critical receiver direct
+   while buffering its other receivers. Test insertion-first and deletion-first
+   routes rather than assuming a harmful-prefix barrier. If deterministic
+   proposal seeds replace existing rollout slots, compare the best accepted
+   result under the same rollout and full-STA caps. A useful seeded candidate
+   that loses to the unchanged winner is a negative optimization result.
    For factorized receiver probabilities, compare the greedy partition with
    the probability of an empty sample and the expected number of selected
    receivers. Every probability can be below one half while most sampled
