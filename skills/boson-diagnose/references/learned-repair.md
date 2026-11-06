@@ -68,6 +68,10 @@ Audit the deployed repair code, not only an offline training evaluator.
    whether scheduling advances to the next window or repeatedly selects
    the same root. Test ranked alternatives using candidate timing only;
    separate extra window/search cost from an improvement in the policy.
+   When an unchanged policy finds a stronger alternative in a lower-ranked
+   window, do not keep attributing the gap to the rare reference action.
+   Test a predefined candidate-only scan and preserve its cumulative window
+   and full-STA budgets separately from targeted diagnostic results.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
    action absent from the proposal set.
@@ -177,6 +181,14 @@ inference and full-STA budgets over multiple search seeds. Separate a
 fixed audit window from an autonomous scan, report regressions as well as
 mean gains, and distinguish a partial-head update from a fully retrained
 model. Training accuracy alone does not establish repair improvement.
+For learned window selection, label the accepted full-design gain of each
+window at a fixed search budget. Keep a zero-update value-head control and
+the existing heuristic order. Hold out whole outcome designs, distinguish
+that from the source GNN's training coverage, and verify cached feature
+values against freshly generated windows. An unchanged actor makes replay
+of measured window outcomes useful, but still validate the selected windows
+through the actual ranking and repair path. Report gain at fixed window
+budgets as well as regression loss.
 A primary input with an external driving cell is not a fixed waveform:
 isolating receivers changes driver delay and transition. Likewise inspect
 clock-to-Q launch loads and outside-window gate sources. Verify these
