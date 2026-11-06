@@ -115,6 +115,17 @@ Gather maps, concatenations and extensions; do not replace an unresolved
 cycle with a constant or an unrelated symbolic input. Compare the implicated
 cones first, with measured memory, before expanding to the whole design.
 
+When the native compiler refuses a word cycle, compare its normalization
+stage with the legacy bit-lowering scheduler. The latter can build ready bits
+and carries before the rest of a word is ready. A legacy refusal mentioning a
+whole-only multiply or variable shift does not establish a real bit cycle.
+Build a small independent acyclic reference, enumerate its operator truth table
+to find actual bit dependencies, and check arithmetic prefixes, correlated shift
+amounts, replicated or independent lane guards, and mutually exclusive mux
+feedback. Keep register values unconstrained and include genuine-loop refusal
+cases. Free cycle-cut inputs are useful in a proof, but substitution is valid
+only after proving that no output can depend on any of their values.
+
 Register names can change when aliases are retained differently. Establish
 register identity from its RTL declaration, instance and bit range, checking
 that the match is unique and that reset and enable semantics agree. A name
