@@ -188,6 +188,13 @@ produce the same state. Report unique physical windows, repeated-search
 variance and independent design coverage; use multiple search seeds when
 outcome noise is large relative to the improvement being learned.
 
+Count distinct final buffer topologies, not just distinct edit histories.
+Insert/remove cycles and renamed replacement buffers can consume several
+full-design evaluation slots for one final state. Canonicalize buffer cell
+strengths, rooted connectivity and physical receiver membership; preserve
+parallel versus shared buffers. At fixed rollout and full-STA caps, report
+both the distinct states measured and whether the retained winner changed.
+
 For launch-centered windows, verify actual growth from a sequential source.
 A traversal that stops at every register can return only the launch cell and
 proxy loads despite a large requested core. Permit forward growth from the
