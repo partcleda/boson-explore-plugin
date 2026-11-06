@@ -197,6 +197,37 @@ If enabling the new action early regresses, test a separate late refinement
 from the identical frozen state rather than claiming the action always helps.
 Do not add option-ablation deltas as if they were independent contributions.
 
+## Cloning as a missing window choice
+
+A clone intervention must distinguish combinational copies, register copies,
+and structural private-path sweeps. A per-net Clone filter may leave a separate
+private-path stage active. Verify which proposal families and stages a diagnostic
+flag actually covers in the binary used; a flag absent from that binary is a null
+intervention, not negative evidence about the operator.
+
+Test cloning as a complete connectivity mutation: copy the function, move selected
+sinks, retain the other branch, and account for every new input capacitance at its
+upstream driver. Include upstream paths outside the editable window. A cut source
+with only a launch-response model is not a complete gate and cannot be copied
+faithfully without bringing its fanins into the window. Preserve clock, sequential,
+macro, multi-output and guarded-cell restrictions independently of timing gain.
+
+Offer joint topology choices when a copy alone loses: buffer-tree removal plus
+sink redistribution, independent sizing/buffering of the branches, and a short
+private path copied atomically. Give copied input pins stable replay identities;
+later upstream isolation must reconnect the intended copied input, even when graph
+and library pin order differ. Verify exhaustive Boolean behavior through emission
+and reload, and incremental/full timing agreement in every timing domain. Keep
+virtual outside-path guards out of physical load and endpoint-count totals.
+
+Compare an equal-work frozen control, fresh compile with the operator throughout,
+and identical compile followed by late operator availability. Attribute the matched
+operator delta separately from cumulative improvements made earlier. Preserve the
+early-enabled negative result if a better late result exists. Count surviving
+copies and trace the new critical path; closing one control cone can expose an
+address-decode or another path as the next worst case. STA reload and local Boolean
+checks do not constitute a full RTL-versus-netlist equivalence proof.
+
 ## Skill feedback
 
 Record: `same_edits`, `matched_slack_basis`, `boundary_response_checked`,
