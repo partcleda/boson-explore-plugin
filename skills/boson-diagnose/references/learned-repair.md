@@ -187,6 +187,13 @@ metadata and edit eligibility. Different root labels or tensor orders can
 produce the same state. Report unique physical windows, repeated-search
 variance and independent design coverage; use multiple search seeds when
 outcome noise is large relative to the improvement being learned.
+Keep the window-construction seed separate from the policy-sampling seed,
+and verify ordered graph and boundary arrays as well as physical membership.
+A failed single-seed search is not a reliable zero-gain training label.
+Score duplicate physical windows once and preserve a deterministic canonical
+root: tiny critic differences between tensor orders can otherwise change the
+selected root and random stream. When comparing retention scores, replay one
+shared action and timing stream to isolate retention from proposal changes.
 
 Separate raw logits from the actual masked action distribution. Trace the
 area budget used by each window, every strength mask, and remaining room
@@ -203,6 +210,14 @@ full-design evaluation slots for one final state. Canonicalize buffer cell
 strengths, rooted connectivity and physical receiver membership; preserve
 parallel versus shared buffers. At fixed rollout and full-STA caps, report
 both the distinct states measured and whether the retained winner changed.
+Before learning from successful trajectories, remove only canceling edits
+whose inserted buffers have no intervening dependent edits. Preserve surviving
+child trees and remap generated names consistently. Verify the final topology
+and full-design timing against the original successful candidate, then measure
+the shortened prefixes too. A successful final tree does not imply that each
+intermediate move helps, or that a multistep barrier is necessary: compare
+simpler legal strength alternatives before making that claim. Report action
+likelihood separately from fresh-search quality after self-imitation updates.
 
 For launch-centered windows, verify actual growth from a sequential source.
 A traversal that stops at every register can return only the launch cell and
