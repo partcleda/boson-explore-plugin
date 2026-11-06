@@ -186,6 +186,18 @@ equivalent shift forms can map differently and worsen Fmax elsewhere. If only
 carry-dependent counts need normalization, distinguish them structurally and
 validate both the positive cases and excluded forms.
 
+For validity-guarded min/max trees, inspect the selector's Boolean function and
+all payloads sharing it. A selector equivalent to `valid_b && (!valid_a || beats)`
+can support a parallel winner matrix, but preserve strict/inclusive tie order,
+signedness, and the original fallback payload when every input is invalid.
+Do not infer activation from direct-graph tests alone: packed slices may hide
+child muxes, and elaboration can allocate parents before children. Normalize
+only proven contiguous routes and test both allocation orders. Recognize the
+largest complete tree before claiming its descendants. Compare grouped and
+parallel matrices using actual mapped timing; the faster form can use many more
+cells, and a lower word estimate alone does not establish a gain. Prove every
+changed mapped implementation with positive and deliberate negative controls.
+
 For an adder tree, record both the result width and the widths and signedness of
 its terms. The same result width and term count can describe a population count
 or a sum of full words, with different compressor depths. Do not substitute the
