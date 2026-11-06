@@ -59,6 +59,9 @@ Audit the deployed repair code, not only an offline training evaluator.
 3. **Scoring:** force the legal counterfactual through the local simulator.
    Record before/after WNS, TNS, area and the exact acceptance potential.
    Compare its predicted timing change with full-design replay.
+   Preserve raw timer units for acceptance checks. Rounded ns fields or text
+   that divides a float32 ps value before formatting can lose precision
+   even when many decimal digits are printed.
 4. **Acceptance:** if local scoring predicts a benefit, follow expansion,
    pruning, replay conflicts, global acceptance and rollback. Record each
    root candidate's prior, visit count and state (unexpanded, rejected or
@@ -80,6 +83,15 @@ Audit the deployed repair code, not only an offline training evaluator.
 
 Keep a reference tree outside the model's vocabulary/action space separate
 from a legal simpler move's result.
+
+Audit WNS and TNS separately. Match endpoint identities and reconcile their
+negative-slack sum with the reported TNS before ranking where the gap lives.
+A window selected using a reference endpoint's deficit is an audit with
+extra information; it does not establish a general window-selection fix.
+Test a selector using only the candidate design's information before making
+that claim. Likewise compare a proxy correction against retaining several
+candidates under the unchanged full-STA gate: retention alone may recover
+a feasible repair. Count the added full-STA evaluations separately.
 
 For a multi-edit tree, replay every primitive prefix with full STA and the
 local simulator. Record WNS, TNS, potential, area and step budget at each
