@@ -30,7 +30,9 @@ goes through the journal debug's anonymizer).
    path or endpoint, the journal seq, the counts on both sides.
 2. **Like for like.** Same RTL, Liberty files, SDC, corner, stage and wire
    model on both sides of any comparison, and one timer for both. A version
-   A/B changes one thing.
+   A/B changes one thing. Optimizer-local scores also need the same slack
+   definition and endpoint scope; matching global WNS/TNS does not establish
+   that local scores are comparable.
 3. **Boson's fault, or the design's?** Check logic depth against the period,
    the constraints and the clock model before calling something a boson
    defect.
