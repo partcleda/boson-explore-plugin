@@ -261,6 +261,31 @@ loss with full STA, then rerun the unchanged policy and search. These guards
 still approximate downstream delay and reconvergence; measuring part of a
 loss does not establish exact response or a feasible optimization gain.
 
+When cut timing reverses the sign of a repair's full-STA delta, replay the
+same captured actions in a full-design timing graph while keeping the edit
+window fixed. Validate receiver-group expansion, nested buffers, deletions
+and slot reuse against physical replay. Compare every retained prefix with
+native STA. A better winner from the same proposals diagnoses scoring;
+count the added full-design evaluations separately from the original search
+budget and from learned weight updates.
+
+For self-imitation, check the supervised action loss against the sampler's
+joint log probability. A categorical net choice followed by independent
+receiver Bernoullis and a conditional size choice requires summing receiver
+log probabilities. Averaging them is a different, fanout-dependent objective;
+label it accordingly and evaluate any change at fixed search budgets. Lower
+training loss does not establish better repair probability. Separate data
+diversity, optimizer steps, training seeds and fresh search seeds; success on
+the same input state is adaptation rather than heldout-state generalization.
+
+A dependency-safe normalized tree still needs ordered native application.
+Check whether a batch-edit command resolves all receiver names before
+creating new buffers. Such a command cannot resolve a later insertion that
+names a buffer created earlier in that batch; apply dependent primitives in
+order. Final full-STA equivalence validates the final teacher, not unmeasured
+intermediate prefixes. Label virtual prefix features as predictions, and use
+native prefix measurements when choosing prefixes or assigning native rewards.
+
 Inspect training separately. Training and native inference may use
 different boundary representations despite feature/network-output parity.
 A shared frozen-boundary assumption can bias teacher labels; a native-only
