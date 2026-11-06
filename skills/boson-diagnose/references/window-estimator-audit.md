@@ -293,6 +293,26 @@ that an optimization preserves choices. Use interleaved candidate-search runs
 on one controlled allocation for speed evidence; profiler phase shares and
 shared-machine wall times establish costs, not an end-to-end speedup.
 
+## Reusing exact arc responses
+
+A dirty combinational node can need new arrivals while some or all of its table
+arguments are unchanged. Measure evaluator calls and exact-key reuse separately
+from dirty-node counts. A table-response key must include the immutable library
+arc and every dynamic argument the evaluator reads, including both rise/fall
+input slews and output loads. Using only the largest lane, a gate name, or a
+previous topology's edge position is insufficient. Keep measured calibration
+offsets outside the raw-response cache when that is how the timer applies them.
+
+An immutable baseline snapshot shared by candidate clones can avoid copying a
+large mutable cache for every losing trial. Misses evaluate normally, including
+new edges, changed arcs, resizes, permutations and changed loads. Re-anchoring
+must not reuse a response under mismatched arguments. The independent full path
+must bypass cached responses even when their keys match; poison cached delays
+and slews in a regression to verify that bypass. Compare all-candidate results
+against that reference, then require identical emitted choices and native timing.
+Benchmark interleaved search runs rather than inferring speed from cache hits.
+A wider-window correctness/resource pilot is not a controlled scaling benchmark.
+
 ## Cloning as a missing window choice
 
 A clone intervention must distinguish combinational copies, register copies,
