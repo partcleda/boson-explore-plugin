@@ -180,6 +180,11 @@ overshift check, keeping repeated sign bits when they may be one. Test sliced
 selectors, padding, saturation, widening and truncation. Compare frozen mapped
 netlist bytes and STA: unchanged implementations with better estimates establish
 a representation correction, not a hardware speedup.
+Preserve explicitly selected architectures and the specialized handling of
+indexed single-bit reads. Test the full corpus as well as the motivating pilot:
+equivalent shift forms can map differently and worsen Fmax elsewhere. If only
+carry-dependent counts need normalization, distinguish them structurally and
+validate both the positive cases and excluded forms.
 
 For an adder tree, record both the result width and the widths and signedness of
 its terms. The same result width and term count can describe a population count
