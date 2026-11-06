@@ -143,6 +143,15 @@ Record the graph hash, objective and constraints; reproduce the original runner'
 cost first. This separates model changes from new rewrite decisions, and avoids
 overwriting concurrent source changes to reproduce an older experiment.
 
+Fixed-graph repricing does not replace a fresh whole-flow baseline when pass
+ordering, objective policy or lowering code has changed. Build the complete
+current source, match its own final model cost, and rank its resulting netlists.
+Keep older matched experiments as component evidence rather than treating their
+word graphs as the current optimizer's output. Pin the node for a QoR A/B too:
+if an identical binary produces a different AIG on another node, compare the
+intermediate hashes and environment before attributing the mapped difference to
+the candidate. A fixed word-graph hash alone does not fix downstream lowering.
+
 ## Diagnose a large miss
 
 Read the real worst path and its provenance before assigning a cause. Inspect
@@ -190,6 +199,22 @@ the normalization after the pass that reveals it and before lowering. Use a
 known positive activation marker to distinguish no eligible expression from a
 disabled pass or missing logging. Recheck the corpus when moving the pass, and
 avoid rerunning an unrelated pass family merely to reach one helper.
+
+Width-changing routes can hide an exclusive case chain from an equal-width mux
+matcher. Follow low-bit slices and zero extension while tracking exactly which
+bits survive, then project every recovered arm and default to the root width.
+Reuse the existing pairwise guard proof. Reject observed sign fill, nonzero fill,
+shared interior values or unsupported routes unless their semantics are handled
+explicitly. Check the IR's multi-hot semantics: a priority PMUX cannot become an
+OR of masked arms without an exclusivity proof or priority-qualified masks.
+Require a genuine projection rather than rerunning ordinary case recovery
+through identity aliases late in the pipeline.
+
+A valid normalization can still slow a short chain's mapped implementation.
+Try it as a timed candidate, check local gain and the whole-design objective,
+and exercise rollback. Retain a pilot with previously sensitive controls before
+starting the full sweep. A modeled improvement is only a hypothesis until mapped
+Fmax passes; a tied critical delay with better TNS deserves the same check.
 
 A profiler label is not proof that the similarly named command ran. Generic
 rewrite/refactor routines can emit shared internal labels when called from
