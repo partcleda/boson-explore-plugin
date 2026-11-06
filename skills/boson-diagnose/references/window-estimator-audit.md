@@ -254,6 +254,28 @@ If enabling the new action early regresses, test a separate late refinement
 from the identical frozen state rather than claiming the action always helps.
 Do not add option-ablation deltas as if they were independent contributions.
 
+## Deferring timing work during candidate scoring
+
+If trial scoring uses only physical boundary arrival/slew and endpoint WNS/TNS,
+internal backward required-time propagation may be deferred for losing trials.
+Keep dynamic receiver and setup responses, grouped endpoint terms, timing-domain
+planes and outside-path guards current. Complete internal requirements before
+reusing any selected state for critical-node ranking, sink partitioning or
+private-path extension. A locally selected clone can be reused before the global
+winner is chosen; completing only the global winner leaves this path stale.
+
+Retain an independent uncached full-retime reference. Compare candidate boundary
+slacks and grouped TNS against it before completion, then compare every live
+rise/fall arrival, slew, requirement and active-edge slack after completion,
+including all domain planes. Exercise resize, pin permutation, insert/delete,
+clone and equivalent logic-replacement sequences. Exact selected-edit replay
+alone cannot validate the losing candidates or measure work saved on them.
+Check an entire candidate search against the reference, and require unchanged
+emitted netlist identity and native reload/connectivity results when claiming
+that an optimization preserves choices. Use interleaved candidate-search runs
+on one controlled allocation for speed evidence; profiler phase shares and
+shared-machine wall times establish costs, not an end-to-end speedup.
+
 ## Cloning as a missing window choice
 
 A clone intervention must distinguish combinational copies, register copies,
