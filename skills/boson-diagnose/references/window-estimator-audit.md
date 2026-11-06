@@ -239,6 +239,15 @@ report TNS debt explicitly. When sharing the reference's acceptance policy,
 retain its hold, electrical, area and preservation checks. An acceptance-only
 ablation can be unchanged on one design and decisive on another.
 
+Trace the chosen candidate's value and the final plan threshold together. A
+preferred candidate can fall below that threshold while a discarded alternative
+would pass, leaving no emitted plan despite useful candidates being timed. Test
+whether retaining the best qualified alternative fixes this loss without extra
+timing trials; preserve subthreshold steps when they are needed to accumulate a
+useful plan. Verify the disabled control exactly and measure the full trajectory
+before enabling the change. Widening an earlier shortlist cannot repair a loss
+that occurs after candidate evaluation.
+
 Even correctly aggregated boundary slacks are not whole-design endpoint TNS.
 Replay the exact competing choices, such as a resize and a buffered sink
 partition, and compare their local and global WNS/TNS ordering. Agreement on
