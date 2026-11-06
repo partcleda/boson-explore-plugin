@@ -98,6 +98,20 @@ Read, in this order:
   variables; `report_app_var multibit_banking*` lists them).
 - Messages whose counts differ, and the boson versions.
 
+If maximum Fmax is the objective, distinguish mapping from positive-slack
+area recovery. Record the effective recovery settings and compare checkpoints
+before and after recovery. A timing-met flow may spend positive slack on
+smaller cells. A paired run with `repair_area_recovery false` can test that
+cause where the build exposes it; apply the setting to both sides and retain
+the original results. Disabling this repair setting does not establish that
+mapping's own area optimization is disabled.
+
+Compare matched startpoints and endpoints alongside the global worst paths.
+When the worst endpoint changes, a global WNS delta is not the delay change
+of either individual cone. Account for the gap by stage, then inspect the
+changed cells and their loads; do not add local path gains as though they
+were independent contributions to global WNS.
+
 ## Step 1: the headline
 
 One table, both netlists timed by boson at one corner:

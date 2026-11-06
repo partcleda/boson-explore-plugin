@@ -56,11 +56,11 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
+First establish which optimizer ran. Inspect `report_app_var datapath_compiler`
+and the effort's compile settings: an `auto` default can select different
+optimizers by effort. Set `datapath_compiler false` for the legacy reference
+and `true` for the `datapath/` candidate before `compile -effort medium`.
+Keep the command on that recipe; other compile modes may refuse this setting.
 The `DPC-002` messages name the passes that actually ran.
 
 Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
@@ -80,6 +80,12 @@ operator widths and fanins, live-node counts by kind, and the final tape.
 Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
+
+An operator in the frozen word graph may have been formed by the shared
+selector after the native passes finished. Find its first appearance before
+editing its apparent producer. After a trial, verify the predicted operand,
+width or guard change in the saved graph; an unchanged target is a failed
+intervention even when unrelated final metrics move.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
