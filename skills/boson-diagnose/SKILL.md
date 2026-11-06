@@ -17,6 +17,7 @@ journal seq numbers, cell counts and areas on both sides), never impressions.
 | a few paths far deeper than the clock allows; "is it the RTL or boson"; the full run is too slow to iterate | minimal repro | [references/minimal-repro.md](references/minimal-repro.md) | `scripts/repro/` |
 | a reference netlist of the same RTL and library (another tool's, or an older boson version's); "why is the area / timing worse", "why did the new version regress" | reference compare | [references/compare-reference.md](references/compare-reference.md) | `scripts/compare/` |
 | a Design Compiler netlist, and the question is how much of the gap is inside the datapath operators | DC datapath compare | [references/compare-dc.md](references/compare-dc.md) | `scripts/compare_dc/` |
+| a slow compile or repair; where runtime is spent; inspect every repair pass in a hosted viewer | runtime attribution and snapshots | [references/runtime-profiling.md](references/runtime-profiling.md) | runtime trace and graph snapshot infrastructure |
 | Liberty files boson rejects, warns about or may misread ("invalid constraint table", a 3-D or unusual table, a new library to trust) | Liberty table shapes | [references/liberty-shapes.md](references/liberty-shapes.md) | `scripts/liberty/` |
 
 Read only the reference you need; the methods chain, and each reference
