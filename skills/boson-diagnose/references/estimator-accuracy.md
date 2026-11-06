@@ -162,6 +162,15 @@ if an identical binary produces a different AIG on another node, compare the
 intermediate hashes and environment before attributing the mapped difference to
 the candidate. A fixed word-graph hash alone does not fix downstream lowering.
 
+A routing-aware model can improve aggregate error on fixed graphs while steering
+word passes toward slower mapped results. Keep fixed-graph accuracy and new
+whole-flow Fmax as separate acceptance gates. Even a whole-design modeled gain
+check cannot guarantee that an identity-only cleanup preserves AIG ordering and
+buffering. Test previously sensitive controls before widening the sweep. In
+routing tests, distinguish a proven constant from an untimed source in one clock
+context, preserve the final inverter of an odd inversion chain, and exercise
+shared boundaries plus trial commit and rollback.
+
 ## Diagnose a large miss
 
 Read the real worst path and its provenance before assigning a cause. Inspect
@@ -315,8 +324,13 @@ set of case results and default can become a bounded word lookup. Preserve
 slices, wrapping and overlapping-guard priority; do not assume that two compilers
 share the same multi-hot PMUX contract. Include independent arithmetic siblings
 in discovery, since the comparison's reader cone alone may miss them. Compare
-balanced selectors, parallel guards and bounded Boolean composition using mapped
-timing: any of them can change a different shared control cone's buffering.
+balanced selectors, parallel guards, indexed constant tables and bounded Boolean
+composition using mapped timing: any of them can change a different shared
+control cone's buffering. An indexed table must cover the full bounded domain of
+the original decoded word, including every unmatched value; do not turn an
+explicit-case table into a don't-care assumption. Bound the packed table size
+before multiplication, and reject unsupported domains without silently falling
+back to a previously regressing materialization.
 Retain improvements per pipeline only after validating that pipeline; a successful
 counterpart does not justify shipping a regressing implementation.
 
