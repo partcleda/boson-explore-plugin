@@ -217,7 +217,12 @@ sink redistribution, independent sizing/buffering of the branches, and a short
 private path copied atomically. Give copied input pins stable replay identities;
 later upstream isolation must reconnect the intended copied input, even when graph
 and library pin order differ. Verify exhaustive Boolean behavior through emission
-and reload, and incremental/full timing agreement in every timing domain. Keep
+and reload, and incremental/full timing agreement in every timing domain.
+Replay overlapping windows in both orders as well: a staged cloned input can read
+a buffer net another window retires in the same rewrite batch. Track shared reads
+separately from removed nets. Allow several copies to share an input, while
+rejecting a copy after its input net was retired or a deletion after that net was
+borrowed. An isolated one-window truth test cannot expose this conflict. Keep
 virtual outside-path guards out of physical load and endpoint-count totals.
 
 Compare an equal-work frozen control, fresh compile with the operator throughout,
@@ -226,7 +231,13 @@ operator delta separately from cumulative improvements made earlier. Preserve th
 early-enabled negative result if a better late result exists. Count surviving
 copies and trace the new critical path; closing one control cone can expose an
 address-decode or another path as the next worst case. STA reload and local Boolean
-checks do not constitute a full RTL-versus-netlist equivalence proof.
+checks do not constitute a full RTL-versus-netlist equivalence proof. Independently
+check that every loaded net has a driver: a floating cloned input can leave WNS
+and TNS unchanged when another input controls arrival. Keep typed net collections
+when querying `driver_pins` and `load_pins`; ordinary Tcl `foreach` can discard
+collection type and resolve a net named like a port as that port. Use
+`foreach_in_collection` for this check. Invalidate failed outputs and every derived
+experiment; preserve their logs rather than silently re-ranking the STA-only score.
 
 ## Skill feedback
 
