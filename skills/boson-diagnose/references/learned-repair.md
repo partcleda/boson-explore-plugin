@@ -64,6 +64,10 @@ Audit the deployed repair code, not only an offline training evaluator.
    given the window, trace why the scheduler did not present that window.
    A selector restricted to existing combinational buffers can omit an
    overloaded sequential launch even when launch buffering is legal.
+   When the highest-ranked window yields no legal improving edit, record
+   whether scheduling advances to the next window or repeatedly selects
+   the same root. Test ranked alternatives using candidate timing only;
+   separate extra window/search cost from an improvement in the policy.
    Check whether search samples alternative partitions/strengths or merely
    different nets with one greedy move each. More playouts do not add an
    action absent from the proposal set.
