@@ -179,6 +179,17 @@ hardware are an accuracy gain, not a physical timing gain. For clock-phase
 controls, include a falling-edge launch so primary inputs excluded from that
 context cannot accidentally mask a disappearing-gate error.
 
+For zero-padded negation, factor a proven low-zero tail before determining the
+arithmetic width. An unsigned active field generally needs an additional sign
+bit when its negation is sign-extended back to the original result width; a
+single active bit negates to its sign extension without arithmetic. Preserve
+consumer extension and truncation, and test the minimum signed value before
+narrowing signed operands. A correct materialized rewrite can change shared
+mapping and slow another path. A virtual pricing correction can avoid that
+structural change, but can still alter earlier candidate choices. Compare every
+compiled target as well as each design's best result: identical settled graphs
+at the best target do not establish identical graphs or netlists at other targets.
+
 ## Diagnose a large miss
 
 Read the real worst path and its provenance before assigning a cause. Inspect
@@ -312,6 +323,26 @@ of shared consumers, remove redundant mux bits, and verify that incremental
 trial commit and rollback agree with rebuilding timing from scratch. Validate
 on held-out compositions and the full corpus; a more accurate estimate does
 not itself demonstrate faster mapped timing.
+
+A load profile that improves one case can also bias selection toward a different
+word representation. Test source-operation families separately to establish
+which fees produce the gain and which reproduce regressions. Account for loads
+through equivalent mux, parallel-select, indexed-select and replicated-data
+forms before treating an unpriced form as a cheaper implementation. Keep a
+family ablation distinct from a validated general profile; do not promote it
+solely because its motivating estimate becomes closer.
+
+For register-launched misses, inspect clock-to-Q separately from downstream
+logic and setup. A heavily loaded state bit can launch much later than the
+register table's reference-load value. Count consumers of that bit through
+slices and replication, rather than charging a vector's total fanout equally to
+every bit. Record output polarity, clock transition, Q/QN capacitance and any
+buffering when characterizing the launch curve. Check the entire load grid
+against Liberty delay-table ranges and maximum capacitance, and discard
+extrapolated points. On an opposite-edge path, a launch-delay error has roughly
+twice its effect on minimum period; it does not by itself imply a missing clock
+phase relationship. Compare the modeled and measured endpoints because another
+path may dominate the reported model estimate.
 
 For decode cofactoring, make the forward reader walk and the operand membership
 test use the same edge representation. A reader API that skips wire aliases can
