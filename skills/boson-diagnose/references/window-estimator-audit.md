@@ -73,6 +73,17 @@ If arrivals agree but slack differs, trace the required-time side separately:
 receiver delay depends on changed input slew, downstream constraints or loads
 may change, and grouped boundary sinks may hide different requirements.
 
+Check setup/recovery requirements at sequential boundaries even when both
+arrival lanes are accurate. Changing data slew changes the library check, so
+freezing endpoint required time can reverse the predicted value of a resize or
+sink split. Compare each lane's required-time delta against full STA; retain
+clock slew, check derates/annotations and competing capture checks. Reuse the
+native check model where available. Apply the response per physical sink before
+grouping and before summing negative slacks, including zero-load outside guards
+without charging their TNS twice. Filter checks by the same launch/capture key
+as each timing plane. Cache an immutable check response only while its data
+slew and plane key match, and compare with uncached recomputation.
+
 Check objective invariance under sink grouping. Replacing several sinks by
 their minimum requirement preserves WNS, but not their slack sum. Retain each
 physical sink's rise/fall requirements, take its worst matched transition,
@@ -120,6 +131,14 @@ acceptance checks for every alternative. Compare measured WNS and TNS before
 choosing; stopping at the first acceptable large batch is a selection policy,
 not evidence that it is the best available result. Check the selected batch
 again with full STA, then compare fresh compiles and runtime overhead.
+
+Distinguish a harness round cap from a genuine search stall. Continue an
+independently reloaded compile-stage artifact to natural stagnation using the
+production ceiling, retaining the same candidate and acceptance settings.
+Record rounds and final artifact checks. Label this a late-only continuation;
+it does not establish a fresh full-flow improvement when earlier choices also
+change. Preserve short-run or early-stage regressions even if longer repair
+later beats the reference.
 
 Audit action availability by stage as well as by name. Ownership flags can
 suppress a reference action while the replacement enables it only in late
