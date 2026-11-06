@@ -188,6 +188,15 @@ produce the same state. Report unique physical windows, repeated-search
 variance and independent design coverage; use multiple search seeds when
 outcome noise is large relative to the improvement being learned.
 
+Separate raw logits from the actual masked action distribution. Trace the
+area budget used by each window, every strength mask, and remaining room
+after the first insertion. A tiny window's percentage cap can forbid the
+first stage or the depth of a tree that easily fits the full-design budget.
+Forced local sweeps may bypass those masks: label them, and distinguish
+receiver expressiveness, local action legality and global feasibility.
+If search forces another edit when no insertion fits, insert/remove cycles
+can be a harness consequence rather than evidence of a learned preference.
+
 Count distinct final buffer topologies, not just distinct edit histories.
 Insert/remove cycles and renamed replacement buffers can consume several
 full-design evaluation slots for one final state. Canonicalize buffer cell
