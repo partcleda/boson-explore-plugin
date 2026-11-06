@@ -127,11 +127,21 @@ JSON, keep ports and netnames consistent and audit serialization round trips
 for disconnected or merged bit identities before crediting the proof. An
 inconclusive checker or an exhausted resource budget is not an inequivalence.
 
+State correspondence can sometimes normalize different drive strengths or Q/QN
+variants, but verify their actual sequential models first. Derive an explicit
+state relation and preserve every clock and data obligation; a matching cell-name
+prefix is insufficient. If a physical register copy disappears, verify its repair
+provenance and identical transition inputs before identifying it with its source.
+Record the required initial equality and its inductive preservation. Do not
+silently merge arbitrary registers or claim independent initial-state equivalence.
+
 A loose clock lets mapping/repair spend slack; an impossible clock can make
 repair give up. Use the first run to find each design's achieved delay, then
 recompile near that value (for example at 90% of it). Repeat the largest misses
 under several logic-neutral operand-order seeds, where the build supports them,
-and report medians and ranges. When comparing compile targets, retain the
+and report medians and ranges. Verify that each compiler pipeline actually reads
+the perturbation knob: repeated identical maps from an unsupported setting are
+repeatability checks, not independent operand orders. When comparing compile targets, retain the
 candidate with the best measured timing and its own estimate; a tighter target
 does not guarantee a faster result. Ensure a standalone diagnostic applies the
 same operand-order transformation as the compiler. Do not infer a speed change from runtime on an
@@ -297,6 +307,18 @@ pipelines across the corpus. A lower estimate after scalar-control expansion can
 hide a newly critical output flag; inspect all consumers before retaining it. Restricting replacement to the data
 root can still change shared mapping and buffer loads; verify the same input and
 output pins before concluding that leaving the flag graph intact preserves timing.
+
+When a decoded word is also arithmetic data, specializing only its comparisons
+misses the correlation. Substitute the tested value into every exact data read
+for each explicit case, while leaving unmatched data symbolic. A fully constant
+set of case results and default can become a bounded word lookup. Preserve
+slices, wrapping and overlapping-guard priority; do not assume that two compilers
+share the same multi-hot PMUX contract. Include independent arithmetic siblings
+in discovery, since the comparison's reader cone alone may miss them. Compare
+balanced selectors, parallel guards and bounded Boolean composition using mapped
+timing: any of them can change a different shared control cone's buffering.
+Retain improvements per pipeline only after validating that pipeline; a successful
+counterpart does not justify shipping a regressing implementation.
 
 For a conditional increment `x + enable`, test early and late enables across
 several widths before expanding it into prefix ANDs and XORs. The identity can
