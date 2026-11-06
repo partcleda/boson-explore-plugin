@@ -114,6 +114,19 @@ all state as edge-aligned. Use a clock-aware method, check every paired state
 including internal gate latches, and require positive and deliberate negative
 controls under the same clock semantics.
 
+When both mapped netlists have identical sequential primitive instances, types,
+parameters and pin shapes, a sufficient unbounded check can cut each matched
+state output into a shared free input. Compare every original output and every
+state-cell input, including clocks, enables, scan and asynchronous controls.
+Equal input functions preserve identical primitive state trajectories from the
+same per-instance initial state, including latches and clock gates. Refuse
+changed state footprints or unhandled explicit initialization. This does not
+establish an independent RTL initial-state contract. Require self-comparison,
+an output-error control and a clock/enable-error control. If generating Yosys
+JSON, keep ports and netnames consistent and audit serialization round trips
+for disconnected or merged bit identities before crediting the proof. An
+inconclusive checker or an exhausted resource budget is not an inequivalence.
+
 A loose clock lets mapping/repair spend slack; an impossible clock can make
 repair give up. Use the first run to find each design's achieved delay, then
 recompile near that value (for example at 90% of it). Repeat the largest misses
@@ -123,6 +136,12 @@ candidate with the best measured timing and its own estimate; a tighter target
 does not guarantee a faster result. Ensure a standalone diagnostic applies the
 same operand-order transformation as the compiler. Do not infer a speed change from runtime on an
 uncontrolled host.
+
+When model code changes alongside optimizer code, serialize the settled word graph
+and price those exact bytes with both models, without rerunning optimization.
+Record the graph hash, objective and constraints; reproduce the original runner's
+cost first. This separates model changes from new rewrite decisions, and avoids
+overwriting concurrent source changes to reproduce an older experiment.
 
 ## Diagnose a large miss
 
@@ -230,6 +249,16 @@ of shared consumers, remove redundant mux bits, and verify that incremental
 trial commit and rollback agree with rebuilding timing from scratch. Validate
 on held-out compositions and the full corpus; a more accurate estimate does
 not itself demonstrate faster mapped timing.
+
+For decode cofactoring, make the forward reader walk and the operand membership
+test use the same edge representation. A reader API that skips wire aliases can
+discover a consumer while omitting the alias node named by its operands, splitting
+an otherwise valid region. Test the identity with named intermediate wires, then
+check real mapped timing. Separate multi-bit decoded values from single-bit
+Boolean predicates: broad expansion may help one operand order and regress
+others. Scope eligibility by structural evidence and validate both compiler
+pipelines across the corpus. A lower estimate after scalar-control expansion can
+hide a newly critical output flag; inspect all consumers before retaining it.
 
 For a conditional increment `x + enable`, test early and late enables across
 several widths before expanding it into prefix ANDs and XORs. The identity can
