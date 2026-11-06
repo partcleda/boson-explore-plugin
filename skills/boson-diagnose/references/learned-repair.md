@@ -278,6 +278,16 @@ training loss does not establish better repair probability. Separate data
 diversity, optimizer steps, training seeds and fresh search seeds; success on
 the same input state is adaptation rather than heldout-state generalization.
 
+When self-imitation improves, compare the strongest single own-success
+episode with the larger pool before crediting diversity. Teacher quality,
+allocation across input states and optimization dose can change together.
+Check action probabilities at the actual pre-action state: an important
+useful edit can already be likely, while improvement comes from suppressing
+other harmful choices. A likelihood decomposition attributes fitting loss,
+not native outcome gain; use controlled replays for the latter. Confirm
+fresh-search results across training seeds and test a new input state,
+keeping its paired edit window exactly frozen.
+
 A dependency-safe normalized tree still needs ordered native application.
 Check whether a batch-edit command resolves all receiver names before
 creating new buffers. Such a command cannot resolve a later insertion that
