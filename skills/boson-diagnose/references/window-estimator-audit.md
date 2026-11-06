@@ -222,6 +222,19 @@ do not subtract them as independent causal contributions. A reference final
 pin assignment or buffer removal may regress when transplanted alone, so
 trace the accepted sequence before claiming a missing primitive is decisive.
 
+Record the palette for each actual turn, not only process-wide enable flags.
+A separate refinement command may call its own first turn: carrying a compile's
+late-only filter into that command can disable its intended choices. Test the
+unchanged default, masked early turn, enabled final turn and ordinary buffering
+control on one frozen source with equal window/step budgets. This validates
+availability; moving an existing post-flow search inside compile does not alone
+establish an end-to-end quality gain.
+
+A tie in printed WNS is only a tie at that report's precision. Retain full
+precision candidate scores before attributing a decision to a secondary TNS
+tie-break. A locally better secondary score can lead to a worse later trajectory;
+one truncated horizon does not establish that its selection rule is defective.
+
 Distinguish source loading from source-side timing coverage. A boundary source
 can correctly model extra outside capacitance while missing the required times
 of paths that source drives outside the window. Replay an exact bad plan and
@@ -296,6 +309,13 @@ name to different functions in different repair trajectories. Compare preserved
 original cells, connectivity and Boolean function, or use provenance to establish
 a correspondence. Retain matched-endpoint reports and maximum rise/fall pin
 measurements separately; a coincident generated name is not a timing comparison.
+
+Different generated names can also describe the same physical buffer graph.
+For verified unary buffers, compare rooted forests anchored at named original
+cells/pins and ports, retaining masters, fanout, sharing and multiplicity. Reject
+non-buffer generated cells, cycles, unknown sources and incomplete coverage.
+Boolean equivalence alone would lose the physical sharing being compared.
+Graph identity does not compare parasitic or constraint annotations.
 
 When a path comes from a reloaded emitted design, its labels may retain a
 Verilog escape marker that a netlist parser already removed. Normalize only the
@@ -424,6 +444,13 @@ metadata unchanged and store audit outcomes separately. A scheduling offset alon
 is not complete serialized optimizer state. An audit-launch failure before load
 does not invalidate a separately successful optimizer artifact; fix the launcher
 and audit that same artifact instead of rerunning the optimization.
+
+Index checkpoints by producing process/run as well as stage and round, asserting
+uniqueness. A later reload or validation process may emit the same phase labels
+into the same directory; choosing the last matching filename can fake divergence.
+If refinement completed but its validator was interrupted, preserve the original
+failed controller result and logs, verify input/binary/netlist identity, and finish
+all validation in a separate recorded job. Do not call the original job successful.
 
 Hash initial mapped checkpoints when comparing changed compile trajectories.
 Identical RTL and constraints do not prove identical mapped starts. Compare phase
