@@ -169,6 +169,18 @@ other optimizers. Check callers and distinct command-stage markers before
 attributing an error to a disabled pass; retain the shared diagnostics in the
 record rather than silently ignoring every similarly named stage.
 
+For a variable shift, inspect each count bit's arrival and the high-bit overshift
+predicate. Charging the count's latest bit followed by an entire barrel can hide
+which mux stages actually follow that bit. Expose constant-routing shifts and
+count-bit muxes late, after identities needing the original word shift have run.
+For right shifts, retain the larger of the input and result widths before final
+truncation; preserve signed extension and the operator's exact fill semantics.
+Reduce the count to its proven unsigned significant width before building the
+overshift check, keeping repeated sign bits when they may be one. Test sliced
+selectors, padding, saturation, widening and truncation. Compare frozen mapped
+netlist bytes and STA: unchanged implementations with better estimates establish
+a representation correction, not a hardware speedup.
+
 For an adder tree, record both the result width and the widths and signedness of
 its terms. The same result width and term count can describe a population count
 or a sum of full words, with different compressor depths. Do not substitute the
