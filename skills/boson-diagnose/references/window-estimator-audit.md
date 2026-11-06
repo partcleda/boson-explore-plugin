@@ -204,6 +204,16 @@ it does not establish a fresh full-flow improvement when earlier choices also
 change. Preserve short-run or early-stage regressions even if longer repair
 later beats the reference.
 
+Compare stage invocation counts before attributing an early-flow gap to choice
+quality. A native-stagnation gate can skip an enabled window-search turn even
+when that search can still improve the same state. Verify the boundary netlist
+bytes and independently audit the productive turn. Test native continuation,
+window-search invocation and the no-model path separately, then verify a fresh
+flow; the scheduling defect alone does not attribute the whole quality gap.
+For a partial checkpoint, also audit the next existing rounds before adding a
+primitive: an admitted candidate can lose to other useful choices while repair
+is still progressing.
+
 Audit action availability by stage as well as by name. Ownership flags can
 suppress a reference action while the replacement enables it only in late
 refinement. Test disabling the reference action and enabling the replacement
@@ -435,3 +445,10 @@ Record: `same_edits`, `matched_slack_basis`, `boundary_response_checked`,
 `incremental_full_checked`, and `whole_design_checked` as yes/no. Explain any
 missing candidate-replay or internal timing-column access instead of claiming
 that an unavailable check passed.
+
+For a batch of native counterfactuals, measure a small session-reuse pilot before
+assuming library reuse saves time. Reset all design state, reread constraints,
+and compare unchanged controls at both ends plus an independently measured
+variant. Enforce an explicit process wall bound as well as the allocation
+request. A cancelled batch without its final control is incomplete; independently
+audit selected completed frames before relying on their scores.
