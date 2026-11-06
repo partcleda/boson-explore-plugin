@@ -466,6 +466,28 @@ to test whole-flow leverage. Verify that its unmodified control reproduces the
 original final metrics and netlist bytes. An option's existence or a large count
 of accepted proposals does not establish that it explains the measured gap.
 
+Several unsuccessful sampled rounds are a stopping heuristic, not proof that
+all useful choices are exhausted. If round seeds change the core, test more
+patience within the same overall budget from the same compiled source. Verify
+the shared prefix of emitted graphs and timing, not only the final scores. An
+external restart can change the search context even with a numerical seed
+offset; compare a matched restart control before blaming patience. Count every
+completed round trace, including unchanged rounds and empty candidate sets:
+changed-only snapshots and insertion/removal statistics omit some attempts.
+
+Check numerical representation before rejecting a timing control. An internal
+sum may be float64 while a public metric converts to float32 and formats it.
+Apply the actual conversion/formatting explicitly; do not invent a tolerance
+that conceals a real difference. Different file hashes still require a scoped
+graph-identity check before calling the difference generated-name renaming.
+
+For register-copy correspondence, verify the loaded master and every input
+binding, including clock, reset and other controls, after resolving aliases.
+A generated suffix alone is not proof. State the equal-initial-state assumption
+and retain nonidentical copies as distinct; this is not sequential equivalence.
+Align reports to the same endpoint before matching cones, retaining a changed
+critical startpoint and the path-conditioned versus maximum-RF distinction.
+
 ## Skill feedback
 
 Record: `same_edits`, `matched_slack_basis`, `boundary_response_checked`,
