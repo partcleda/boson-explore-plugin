@@ -154,6 +154,14 @@ list of candidate operators. Confirm the observed output bit, its live input
 bits and the matching functional boundaries before comparing operator costs
 with a mapped gate path or fitting corrections.
 
+When a priced rewrite helps locally but the final estimate regresses, compare
+the same cone immediately after that rewrite and after each later pass.
+An unconditional fusion can replace an overlapping arithmetic structure with
+a slower tree. Recompute the final estimate with a fresh timing reporter to
+distinguish a later structural change from stale timing state. Price the
+responsible transformation with the existing objective before adding delay
+corrections, and verify the resulting choice with post-repair timing.
+
 Before using a late-bit synthetic to test arithmetic causality, inspect the
 estimator's input-bit arrivals. An indexed port delay may have been widened
 to the whole bus at its constraint boundary. Keep that failure visible; split
