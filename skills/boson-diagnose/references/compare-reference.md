@@ -72,6 +72,14 @@ python3 $S/run_ab.py old=old.log new=new.log --journal old=old.jsonl --journal n
 
 When journals are supplied for multiple runs, `run_ab.py` also reports the first different non-probe decision against the first journal, including its original sequence number and line. It ignores timestamps and sequence numbers when comparing decisions. Use that first difference to locate the producing stage before comparing later edits; probe decisions may be interleaved differently.
 
+If startup stalls, inspect a stack or profile before attributing the wait to an
+optimization pass. Boson preloads its STA kernels; without a matching
+`cuda-kernels` directory beside the executable, it can spend minutes in NVRTC
+and ptxas. An existing directory does not establish a cache hit: compare the
+requested cubin's full hashed name and toolchain metadata with the shipped
+files. Preserve the matching cache when moving a binary, and compare runtime
+with equally warm caches.
+
 Read, in this order:
 
 - **Wire model.** PAR-252 means boson recalibrated the wire model from its
@@ -90,6 +98,20 @@ Read, in this order:
   variables; `report_app_var multibit_banking*` lists them).
 - Messages whose counts differ, and the boson versions.
 
+If maximum Fmax is the objective, distinguish mapping from positive-slack
+area recovery. Record the effective recovery settings and compare checkpoints
+before and after recovery. A timing-met flow may spend positive slack on
+smaller cells. A paired run with `repair_area_recovery false` can test that
+cause where the build exposes it; apply the setting to both sides and retain
+the original results. Disabling this repair setting does not establish that
+mapping's own area optimization is disabled.
+
+Compare matched startpoints and endpoints alongside the global worst paths.
+When the worst endpoint changes, a global WNS delta is not the delay change
+of either individual cone. Account for the gap by stage, then inspect the
+changed cells and their loads; do not add local path gains as though they
+were independent contributions to global WNS.
+
 ## Step 1: the headline
 
 One table, both netlists timed by boson at one corner:
@@ -101,6 +123,17 @@ One table, both netlists timed by boson at one corner:
 
 Std-cell area excludes macros (`cell_mix.py` reports both). When several
 boson runs are compared, one row each, with what differs in the row label.
+
+For a residual of a few ps after repair, a small paired clock-target perturbation
+can test whether the ranking is stable. Keep each binary fixed; vary only the
+clock period by the same small offsets for both arms, holding absolute I/O
+delays fixed. Re-run synthesis and repair: retiming an unchanged netlist does
+not exercise target-dependent choices. Report every target's paired WNS, TNS
+and violating-endpoint count, together with pre-repair WNS. Rank reversals show
+target sensitivity; use the pre/post evidence to determine whether repair
+introduced the reversal, since lowering and mapping can also respond to the
+clock. This check does not explain an unresolved pre-repair gap or replace a
+gate/graph diagnosis.
 
 ## Step 2: area by mapping pattern
 
