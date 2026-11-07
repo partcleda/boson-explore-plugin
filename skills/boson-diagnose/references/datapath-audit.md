@@ -199,6 +199,24 @@ over twenty cells usually is the compressor tree and final adder it feeds.
 
 ## Reading it
 
+- **The estimated path is much faster, but arithmetic depth looks right**:
+  separate structure from electrical delay before changing word-level costs.
+  For the same repaired path, collect each cell's input/output pins, both
+  transition edges, arc delay, input slew, output load, fanout and wire delay.
+  Re-evaluate the exact Liberty arcs at the measured coordinates first;
+  resolve any discrepancy before using the replay as evidence. Match timing
+  sense, clock edge and conditional arcs, rather than taking the fastest arc
+  of the cell. An ideal launch clock uses its constrained clock transition;
+  a transition propagated as data on the physical clock net can differ.
+  Then evaluate those same arcs at the estimator's reference slew and load.
+  Report nominal path delay, electrical excess and estimator error separately.
+  Changing load first and slew second is an order-dependent decomposition,
+  not two independent effects. This reference-point replay does not show what
+  repair could achieve, establish an operator boundary, or justify fitting an
+  endpoint-specific correction. Use the matched endpoint, transition and
+  setup check throughout: the worst-slack path may differ from the path with
+  the latest data arrival. If the remaining gap is electrical, report it as
+  downstream sensitivity and continue looking for structural discrepancies.
 - **Retiming predicts a large gain but mapped timing barely improves**: report
   input-to-register and register-to-register paths separately. Compare the
   actual stage arrivals, register count and endpoint identities, not just the
