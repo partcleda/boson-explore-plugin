@@ -217,6 +217,25 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   setup check throughout: the worst-slack path may differ from the path with
   the latest data arrival. If the remaining gap is electrical, report it as
   downstream sensitivity and continue looking for structural discrepancies.
+- **Shared provenance suggests a serial arithmetic dependency**: first inspect
+  the selected word graph's actual edges. A mapped cell can inherit an adder
+  label while computing part of a comparator or leading-zero counter. Locate
+  candidate boundaries by simulating the extracted gate cone with the Liberty
+  Boolean functions, including the register's `next_state` and output
+  function; register pin names do not establish polarity. Random signatures
+  only suggest matches: rare carry boundaries can make different functions
+  appear equal. Prove candidate matches against the word expressions with
+  SAT, stating any nonzero, reachable-state or mode assumptions. Compare
+  cumulative mapped and estimated arrivals only at confirmed boundaries.
+  Snapshot numeric identifiers require their epoch; use names and origins to
+  follow an operator across snapshots that renumber the graph.
+- **Nominal replay is still slower after removing slew/load excess**: identify
+  identity buffers by Liberty function, then find their first appearance in
+  mapping and repair snapshots. Report their measured and reference-coordinate
+  delays separately. Removing those stages from a diagnostic reference is not
+  a measured improvement, a new post-repair accuracy result, or proof that the
+  estimator has not already charged some buffering cost. Keep the original
+  post-repair error visible and avoid counting buffer electrical excess twice.
 - **Retiming predicts a large gain but mapped timing barely improves**: report
   input-to-register and register-to-register paths separately. Compare the
   actual stage arrivals, register count and endpoint identities, not just the
