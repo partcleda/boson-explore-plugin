@@ -147,6 +147,13 @@ separate observer or verify its final graph and estimates against a run
 without observation. Flag disagreements for model calibration instead of
 treating estimated improvements as measured timing gains.
 
+Validate how an estimator trace chooses its path before attributing a delay.
+A walk through whole-word maxima can switch bits or launch points between
+nodes and can show negative increments through slices. Treat that walk as a
+list of candidate operators. Confirm the observed output bit, its live input
+bits and the matching functional boundaries before comparing operator costs
+with a mapped gate path or fitting corrections.
+
 Before using a late-bit synthetic to test arithmetic causality, inspect the
 estimator's input-bit arrivals. An indexed port delay may have been widened
 to the whole bus at its constraint boundary. Keep that failure visible; split
