@@ -134,6 +134,12 @@ separate observer or verify its final graph and estimates against a run
 without observation. Flag disagreements for model calibration instead of
 treating estimated improvements as measured timing gains.
 
+Before using a late-bit synthetic to test arithmetic causality, inspect the
+estimator's input-bit arrivals. An indexed port delay may have been widened
+to the whole bus at its constraint boundary. Keep that failure visible; split
+early and late inputs into separate ports to isolate the arithmetic model,
+then test the boundary limitation separately. Check output-bit constraints too.
+
 ## Comparing word-level graphs
 
 A word-level graph can contain a cycle even when its bit-level circuit is
@@ -167,6 +173,12 @@ Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
+
+Check whether snapshot UIDs are stable identities or dense row numbers before
+aligning stages. Repeated register aliases can share a name; compare their
+descriptors and multiplicities rather than selecting the first match. Clipped
+operator details cannot support an exact bit trace: collect the complete tape
+when the needed routing map is missing.
 
 For an addition with a late one-bit operand, measure that operand's own path
 through the carry network. Compare it with the equivalent carry-in form of
