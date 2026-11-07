@@ -168,6 +168,12 @@ to the whole bus at its constraint boundary. Keep that failure visible; split
 early and late inputs into separate ports to isolate the arithmetic model,
 then test the boundary limitation separately. Check output-bit constraints too.
 
+For per-bit arithmetic estimates, collect the worst setup check for every
+output bit under the same input arrivals. Report maximum and mean absolute
+per-bit error separately from global WNS error: a changing predicted critical
+bit can hide a larger error elsewhere. When only the estimator changed,
+verify mapped-netlist and constraint identity before reusing physical timing.
+
 ## Comparing word-level graphs
 
 A word-level graph can contain a cycle even when its bit-level circuit is
