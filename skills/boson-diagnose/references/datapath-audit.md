@@ -144,7 +144,11 @@ only after proving that no output can depend on any of their values.
 Register names can change when aliases are retained differently. Establish
 register identity from its RTL declaration, instance and bit range, checking
 that the match is unique and that reset and enable semantics agree. A name
-mismatch alone is not a different register. Exact structural signatures also
+mismatch alone is not a different register. Recheck coverage of every implicated
+endpoint after cleanup: a smaller maximum error is not an improvement if the
+target lost its alias and disappeared from the comparison. Retain the old
+endpoint set and fail the diagnostic when a required match is missing.
+Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
