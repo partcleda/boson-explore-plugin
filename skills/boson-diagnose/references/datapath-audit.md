@@ -81,6 +81,20 @@ Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
 
+When a transform changes operator widths, check the eligibility rules of
+later proofs on the resulting representation. A word proof can silently stop
+applying after a packed field becomes a scalar. Reduce the case to both
+representations, preserve a live-dependency negative case and shared outputs,
+and check equivalence as well as whether the false dependency disappeared.
+
+Before moving a pass, inspect the representation available at its current
+position and the first stage that exposes the missing fields or operators.
+Compare register widths, field counts and operand shapes at those stages.
+A diagnostic rerun at the end can establish an opportunity; a single later
+placement can lose useful earlier simplifications. Test the placement against
+the same real endpoint, record work spent inside the pass, and require fresh
+post-repair timing before promoting it.
+
 An operator in the frozen word graph may have been formed by the shared
 selector after the native passes finished. Find its first appearance before
 editing its apparent producer. After a trial, verify the predicted operand,
