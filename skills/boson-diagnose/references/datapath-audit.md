@@ -117,6 +117,19 @@ reproducer and simplify only the guarded use; test both its removed dependency
 and the other consumers' retained dependencies. Verify that the real target
 changes before launching a full quality comparison.
 
+Preserve function-call boundaries, static state, operand widths and literal
+comparison operators in a minimal reproducer. Equivalent behavioral RTL can
+enter a matcher differently and hide the missing pattern. Check the exact
+real target after a local test passes; a reduced depth on another branch does
+not show that the intervention reached it.
+
+Earlier sharing and Boolean factoring can hide useful word structure. Check
+existing guard-sensitive and selector-recognition tests before moving them:
+sharing guarded and unguarded uses can erase care facts, and factoring a mux
+can obscure a constant-table selector. Keep failed optimization assertions
+intact. Reusing a recognized guard for its matching data stores can avoid
+changing unrelated consumers; require equivalence and fresh timing evidence.
+
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
 above. Include negative controls for width extension, signed operands,
