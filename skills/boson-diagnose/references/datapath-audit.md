@@ -102,6 +102,21 @@ editing its apparent producer. After a trial, verify the predicted operand,
 width or guard change in the saved graph; an unchanged target is a failed
 intervention even when unrelated final metrics move.
 
+For a dependency that disappears under a guard, prove the local identity
+with independent register values before adding a rewrite. Check that the
+eliminated term can still be live outside the guard; reset or reachability
+assumptions need separate justification. An equality being true may constrain
+operand bits even when a Boolean implication helper records only the equality
+literal. Preserve unknown bits of a masked equality and clear scoped facts
+between queries.
+
+Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
+shared predicate appear private. A private-cone rewrite can pass a small test
+and miss the real shared case. Preserve an observable shared output in the
+reproducer and simplify only the guarded use; test both its removed dependency
+and the other consumers' retained dependencies. Verify that the real target
+changes before launching a full quality comparison.
+
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
 above. Include negative controls for width extension, signed operands,
