@@ -90,10 +90,11 @@ and check equivalence as well as whether the false dependency disappeared.
 Before moving a pass, inspect the representation available at its current
 position and the first stage that exposes the missing fields or operators.
 Compare register widths, field counts and operand shapes at those stages.
-A diagnostic rerun at the end can establish an opportunity; a single later
-placement can lose useful earlier simplifications. Test the placement against
-the same real endpoint, record work spent inside the pass, and require fresh
-post-repair timing before promoting it.
+A diagnostic rerun at the end does not establish that a second invocation
+is needed. Compare that exact final placement with and without the earlier
+invocation, keeping sharing and cleanup at the same positions in the control.
+Test the placement against the same real endpoint, record work spent inside
+the pass, and require fresh post-repair timing before promoting it.
 
 An operator in the frozen word graph may have been formed by the shared
 selector after the native passes finished. Find its first appearance before
