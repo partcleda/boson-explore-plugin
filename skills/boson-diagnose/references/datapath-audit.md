@@ -127,6 +127,15 @@ stored on a concatenation can be bypassed when a slice query projects directly
 to its register inputs. Test both the routed field and its underlying word;
 normalize facts with the same routing helper used by queries.
 
+When a bounded rewrite refuses, distinguish proof work from structural
+planning. Record the active context's visit count and cached result, the
+plan's steps and routed work, and the node and depth where it stopped. An
+independent proof under a fresh context does not show what the active planner
+knew. Verify that probes reached the intended parent and edge before treating
+an empty log as evidence. If one subtree reaches a bound, check whether keeping
+its original function can preserve simplifications proved elsewhere; test
+equivalence, shared consumers and idempotence without widening the bound.
+
 Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
 shared predicate appear private. A private-cone rewrite can pass a small test
 and miss the real shared case. Preserve an observable shared output in the
