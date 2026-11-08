@@ -87,6 +87,11 @@ applying after a packed field becomes a scalar. Reduce the case to both
 representations, preserve a live-dependency negative case and shared outputs,
 and check equivalence as well as whether the false dependency disappeared.
 
+For a missed range proof, compare equivalent bit-field and word-comparison
+guards. Inspect the resolved arithmetic operand's bound; an output alias can
+retain a looser bound. Keep unconditional combinational bounds separate from
+bounds that assume reset, reachable state or a mode.
+
 Before moving a pass, inspect the representation available at its current
 position and the first stage that exposes the missing fields or operators.
 Compare register widths, field counts and operand shapes at those stages.
