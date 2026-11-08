@@ -305,7 +305,11 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   function; register pin names do not establish polarity. Random signatures
   only suggest matches: rare carry boundaries can make different functions
   appear equal. Prove candidate matches against the word expressions with
-  SAT, stating any nonzero, reachable-state or mode assumptions. Compare
+  SAT, keeping unconditional results separate from results under nonzero,
+  reachable-state or mode assumptions. Before assigning physical register
+  replicas one logical input, verify their data, clock and asynchronous-control
+  connections and their library state/output functions; names alone do not
+  establish shared state. Compare
   cumulative mapped and estimated arrivals only at confirmed boundaries.
   Snapshot numeric identifiers require their epoch; use names and origins to
   follow an operator across snapshots that renumber the graph.
