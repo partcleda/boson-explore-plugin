@@ -87,6 +87,14 @@ applying after a packed field becomes a scalar. Reduce the case to both
 representations, preserve a live-dependency negative case and shared outputs,
 and check equivalence as well as whether the false dependency disappeared.
 
+For parallel selections, inspect each routed field. If every case holds the
+same value and the default updates it only under a control disjoint from all
+case controls, those selections may be redundant for that field. Test overlapping
+addresses, independent controls and a field that changes; preserve shared outputs.
+A proof of copied bits still needs a materializer for the remaining partial word.
+Check that it supports the operator being simplified, then inspect the rebuilt
+field widths and live dependencies before attributing a timing benefit.
+
 For a missed range proof, compare equivalent bit-field and word-comparison
 guards. Inspect the resolved arithmetic operand's bound; an output alias can
 retain a looser bound. Keep unconditional combinational bounds separate from
