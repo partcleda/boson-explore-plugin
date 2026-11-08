@@ -162,6 +162,15 @@ distinguish a later structural change from stale timing state. Price the
 responsible transformation with the existing objective before adding delay
 corrections, and verify the resulting choice with post-repair timing.
 
+When a valid alternative never reaches timing evaluation, trace recognition,
+proof, depth-profitability and work-budget filters separately. Specializing a
+candidate can introduce constants whose simpler function remains hidden from
+its price. Reuse existing semantic simplification before pricing, preserving
+overflow rules and speculative rollback. Check each candidate's absolute
+progress as well as its difference from the control: the control can improve
+later without the candidate becoming slower. Verify the final graph and fresh
+mapped timing before claiming a gain.
+
 Before using a late-bit synthetic to test arithmetic causality, inspect the
 estimator's input-bit arrivals. An indexed port delay may have been widened
 to the whole bus at its constraint boundary. Keep that failure visible; split
