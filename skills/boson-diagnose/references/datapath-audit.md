@@ -100,6 +100,14 @@ guards. Inspect the resolved arithmetic operand's bound; an output alias can
 retain a looser bound. Keep unconditional combinational bounds separate from
 bounds that assume reset, reachable state or a mode.
 
+When a state bit becomes constant, retain every previous timed capture check.
+Prove the original bit identity through the production API and the native
+compiler snapshot, including reconstruction offsets and surviving register
+widths. Check the repaired netlist against those original bit labels. A name
+may move to a narrowed register while an unnamed gather rebuilds the word;
+absence of a named capture alone proves nothing. Record certified constant
+state separately, without assigning synthetic slack or weakening the matcher.
+
 Before moving a pass, inspect the representation available at its current
 position and the first stage that exposes the missing fields or operators.
 Compare register widths, field counts and operand shapes at those stages.
