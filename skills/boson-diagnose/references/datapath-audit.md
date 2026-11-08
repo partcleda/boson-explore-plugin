@@ -115,6 +115,14 @@ operand bits even when a Boolean implication helper records only the equality
 literal. Preserve unknown bits of a masked equality and clear scoped facts
 between queries.
 
+Check how a bounded fact representation stores word equalities. The equality
+predicate can consume a slot before its operand bits are expanded, losing
+the highest bits of an otherwise complete equality. Test addresses that differ
+only in the last bit that fits, alongside a masked equality that must leave
+that bit unknown. Preserve complete word facts without increasing the cone
+visit budget. Distinguish this loss from joining care across shared uses:
+only an individual guarded edge may carry the address constraint.
+
 Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
 shared predicate appear private. A private-cone rewrite can pass a small test
 and miss the real shared case. Preserve an observable shared output in the
