@@ -204,6 +204,14 @@ the affected cone. Distinguish that source from an explicitly replaced source:
 the latter still needs its consumers updated. Reproduce both cases, compare
 incremental results with a fresh reporter, and retain the original work limit.
 
+Count queued, visited and numerically changed rows separately. An unchanged
+arrival can stop numerical load propagation, but a structural replacement can
+change downstream constant knowledge or Boolean factoring through intermediate
+rows with identical arrivals. Keep structural propagation and single-reader
+boundary changes explicit. Test both a large unchanged frontier and a structural
+change hidden behind unchanged intermediate arrivals against the existing fresh
+reporter, including per-bit arrivals, area, commit and rollback.
+
 Before using a late-bit synthetic to test arithmetic causality, inspect the
 estimator's input-bit arrivals. An indexed port delay may have been widened
 to the whole bus at its constraint boundary. Keep that failure visible; split
