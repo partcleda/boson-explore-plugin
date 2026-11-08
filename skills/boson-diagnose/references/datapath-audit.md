@@ -143,6 +143,14 @@ reproducer and simplify only the guarded use; test both its removed dependency
 and the other consumers' retained dependencies. Verify that the real target
 changes before launching a full quality comparison.
 
+For a register with several update causes, combine its enable with the selected
+data-arm condition. With enable `p | q` and data mux `q ? a : b`, the sampled
+false arm implies `p`. An individual guard need not constrain the address.
+Preserve shared observers when specializing only the registered edge, and test
+an unrelated-enable counterexample. Compare clocked outputs across reset,
+enabled and held cycles: equality of every flip-flop input also constrains
+unobservable D-pin values while the enable is inactive.
+
 Preserve function-call boundaries, static state, operand widths and literal
 comparison operators in a minimal reproducer. Equivalent behavioral RTL can
 enter a matcher differently and hide the missing pattern. Check the exact
