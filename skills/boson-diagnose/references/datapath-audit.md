@@ -292,6 +292,14 @@ need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
 
+When a slow mapped control depends on register bits absent from its word-level
+guard, compare their Boolean functions at the sequential boundary. Treat every
+physical leaf bit as independent, derive its stored-value polarity from Liberty,
+and check both implications without reachability assumptions. A large mapped
+cone can implement a small guard while adding logically canceled timing paths.
+An exact equality proof classifies that added structure as downstream; a slew
+and load replay alone does not explain its nominal logic depth.
+
 Check whether snapshot UIDs are stable identities or dense row numbers before
 aligning stages. Repeated register aliases can share a name; compare their
 descriptors and multiplicities rather than selecting the first match. Clipped
