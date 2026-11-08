@@ -171,6 +171,13 @@ progress as well as its difference from the control: the control can improve
 later without the candidate becoming slower. Verify the final graph and fresh
 mapped timing before claiming a gain.
 
+When a valid trial reaches its visit cap, trace the queued dependency frontier
+before increasing the budget. Removing a consumer can enqueue every reader of
+an unchanged shared source, such as a constant, and spend the budget outside
+the affected cone. Distinguish that source from an explicitly replaced source:
+the latter still needs its consumers updated. Reproduce both cases, compare
+incremental results with a fresh reporter, and retain the original work limit.
+
 Before using a late-bit synthetic to test arithmetic causality, inspect the
 estimator's input-bit arrivals. An indexed port delay may have been widened
 to the whole bus at its constraint boundary. Keep that failure visible; split
