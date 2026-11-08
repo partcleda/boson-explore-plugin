@@ -277,6 +277,16 @@ mismatch alone is not a different register. Recheck coverage of every implicated
 endpoint after cleanup: a smaller maximum error is not an improvement if the
 target lost its alias and disappeared from the comparison. Retain the old
 endpoint set and fail the diagnostic when a required match is missing.
+For a physical register name with several indices, read the original tape's
+declared dimensions, range direction and chunk flags. A surviving narrow chunk
+can retain the dimensions of its wider declaration; dividing its width into
+assumed elements changes bit identity. Use the native declared-index formatter
+and check the resulting alias's exact source bit. Keep each requested logical
+capture separate from its physical witness, require a unique current source,
+and compare the worst measured capture check among that source's aliases.
+Missing or ambiguous identities still fail; do not manufacture timing for an
+old name or remove it from the required set.
+
 Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
