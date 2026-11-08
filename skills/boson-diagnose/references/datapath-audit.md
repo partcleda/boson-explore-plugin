@@ -95,6 +95,12 @@ A proof of copied bits still needs a materializer for the remaining partial word
 Check that it supports the operator being simplified, then inspect the rebuilt
 field widths and live dependencies before attributing a timing benefit.
 
+Measure temporary expression growth before later common-expression and unreachable
+logic passes. A small final graph can hide repeated construction that exhausts
+memory earlier. If construction reuses the existing equivalence keys, test operand
+order, slice offsets, constant widths, forwarding and rolled-back node identifiers.
+Check the full design's peak memory as well as the resulting capture estimates.
+
 For a missed range proof, compare equivalent bit-field and word-comparison
 guards. Inspect the resolved arithmetic operand's bound; an output alias can
 retain a looser bound. Keep unconditional combinational bounds separate from
