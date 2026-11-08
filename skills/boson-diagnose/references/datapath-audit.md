@@ -122,6 +122,10 @@ only in the last bit that fits, alongside a masked equality that must leave
 that bit unknown. Preserve complete word facts without increasing the cone
 visit budget. Distinguish this loss from joining care across shared uses:
 only an individual guarded edge may carry the address constraint.
+Check that assumed bits and queried bits use the same routed identity. Facts
+stored on a concatenation can be bypassed when a slice query projects directly
+to its register inputs. Test both the routed field and its underlying word;
+normalize facts with the same routing helper used by queries.
 
 Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
 shared predicate appear private. A private-cone rewrite can pass a small test
