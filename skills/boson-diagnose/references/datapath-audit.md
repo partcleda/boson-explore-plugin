@@ -313,6 +313,14 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   cumulative mapped and estimated arrivals only at confirmed boundaries.
   Snapshot numeric identifiers require their epoch; use names and origins to
   follow an operator across snapshots that renumber the graph.
+- **A composition discount crosses a register boundary**: inspect the exact
+  characterized register macro before removing the discount. Its reported
+  clock-to-output delay can include a combinational inverter after the physical
+  state pin. A consumer can absorb that inverter or use the opposite state
+  polarity directly. Compare the isolated macro and a connected consumer using
+  their Liberty functions and gate connectivity; distinguish intrinsic
+  clock-to-state delay from the macro's output tail. An unconstrained probe
+  establishes connectivity only, not a measured timing correction.
 - **Nominal replay is still slower after removing slew/load excess**: identify
   identity buffers by Liberty function, then find their first appearance in
   mapping and repair snapshots. Report their measured and reference-coordinate
