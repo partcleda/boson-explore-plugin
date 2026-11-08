@@ -101,6 +101,12 @@ memory earlier. If construction reuses the existing equivalence keys, test opera
 order, slice offsets, constant widths, forwarding and rolled-back node identifiers.
 Check the full design's peak memory as well as the resulting capture estimates.
 
+After a decoder merge, inspect both comparison widths and slice offsets: narrower
+comparisons may still describe the same underlying word. Count the whole OR
+region and its sharing when binary merging stops. Check the guard facts before
+and after the relevant passes rather than increasing a proof budget. Preserve
+local simplifications beneath unrelated branches and test independent packed bits.
+
 For a missed range proof, compare equivalent bit-field and word-comparison
 guards. Inspect the resolved arithmetic operand's bound; an output alias can
 retain a looser bound. Keep unconditional combinational bounds separate from
