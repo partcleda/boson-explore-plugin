@@ -489,6 +489,12 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   prices can affect both retiming cuts and arithmetic preservation. Use
   separate fresh caches or identical cache snapshots: exact-width probes can
   persist extra tables and change subsequent control runs.
+- **An existing word rewrite leaves a redundant chain intact**: distinguish
+  a missing candidate from a timing rejection or an evaluation that reached
+  its work limit. Record the implicated operands, verdict, visited rows and
+  limit. Preserve the limit; test whether evaluating the same rewrite within
+  its module before flattening avoids traversing unrelated consumers. An
+  isolated or partial trial does not establish full-design timing benefit.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
