@@ -81,6 +81,13 @@ Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
 
+When storage or run policy forbids snapshots, keep graph dumping disabled.
+Use bounded read-only queries for the implicated nodes and original bit aliases,
+with the same source, settings and compiler-prefix checks. A diagnostic that
+intentionally stops after the compiler can establish those queried facts, but
+its refusal remains a failed compile and cannot become a quality result.
+Record the expected refusal and the successful fact verification separately.
+
 When a transform changes operator widths, check the eligibility rules of
 later proofs on the resulting representation. A word proof can silently stop
 applying after a packed field becomes a scalar. Reduce the case to both
@@ -452,6 +459,11 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   arrival and required time, including the capture cell's setup check. A
   changed capture cell can move slack even when the data path does not move;
   do not infer a new arrival by holding the previous required time constant.
+  A screen against a fixed reference netlist measures model changes only;
+  repeat it against the candidate's fresh repaired netlist before claiming
+  improved accuracy. If the worst launch changes, measure both launch points
+  on both netlists. Decompose each same-launch arrival difference into nominal
+  and electrical contributions before classifying the regression.
   If the remaining gap is electrical, report it as
   downstream sensitivity and continue looking for structural discrepancies.
   Input-port paths also have an initial arrival before the cell arcs. If that
