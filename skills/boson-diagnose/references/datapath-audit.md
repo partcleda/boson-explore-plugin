@@ -56,11 +56,11 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
+First establish which optimizer ran. Inspect `report_app_var datapath_compiler`
+and the effort's compile settings: an `auto` default can select different
+optimizers by effort. Set `datapath_compiler false` for the legacy reference
+and `true` for the `datapath/` candidate before `compile -effort medium`.
+Keep the command on that recipe; other compile modes may refuse this setting.
 The `DPC-002` messages name the passes that actually ran.
 
 Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
@@ -81,6 +81,155 @@ Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
 
+When storage or run policy forbids snapshots, keep graph dumping disabled.
+Use bounded read-only queries for the implicated nodes and original bit aliases,
+with the same source, settings and compiler-prefix checks. A diagnostic that
+intentionally stops after the compiler can establish those queried facts, but
+its refusal remains a failed compile and cannot become a quality result.
+Record the expected refusal and the successful fact verification separately.
+
+When a transform changes operator widths, check the eligibility rules of
+later proofs on the resulting representation. A word proof can silently stop
+applying after a packed field becomes a scalar. Reduce the case to both
+representations, preserve a live-dependency negative case and shared outputs,
+and check equivalence as well as whether the false dependency disappeared.
+
+For guarded arithmetic, distinguish a mux selecting operands from a mux selecting
+an arithmetic result. Walking the former can duplicate a shared operator; the
+latter can hide output bits that are constant only in one arm. Record the guard,
+exact known bit positions and unchanged shared uses. Check whether the graph
+selects a whole word before slicing it: a query restricted to slices inside a
+guarded arm will miss that representation. Compare both arithmetic counts at the
+changed pass and the retained physical captures. Also run later timed rewrites:
+exposing known bits early can hide an operator pattern they need.
+
+For parallel selections, inspect each routed field. If every case holds the
+same value and the default updates it only under a control disjoint from all
+case controls, those selections may be redundant for that field. Test overlapping
+addresses, independent controls and a field that changes; preserve shared outputs.
+A proof of copied bits still needs a materializer for the remaining partial word.
+Check that it supports the operator being simplified, then inspect the rebuilt
+field widths and live dependencies before attributing a timing benefit.
+
+Measure temporary expression growth before later common-expression and unreachable
+logic passes. A small final graph can hide repeated construction that exhausts
+memory earlier. If construction reuses the existing equivalence keys, test operand
+order, slice offsets, constant widths, forwarding and rolled-back node identifiers.
+Check the full design's peak memory as well as the resulting capture estimates.
+
+After a decoder merge, inspect both comparison widths and slice offsets: narrower
+comparisons may still describe the same underlying word. Count the whole OR
+region and its sharing when binary merging stops. Check the guard facts before
+and after the relevant passes rather than increasing a proof budget. Preserve
+local simplifications beneath unrelated branches and test independent packed bits.
+
+For a missed range proof, compare equivalent bit-field and word-comparison
+guards. Inspect the resolved arithmetic operand's bound; an output alias can
+retain a looser bound. Keep unconditional combinational bounds separate from
+bounds that assume reset, reachable state or a mode.
+Trace the guard and selected value through slices and casts. A fact attached
+to a widened view must reach the original word only when the extension preserves
+its unsigned value; keep truncation and signed-extension controls. Check both
+the analysis result and its materializer: narrowing state alone can leave false
+combinational dependencies. Reproduce the production pass boundary before
+increasing any proof budget.
+
+When a state bit becomes constant, retain every previous timed capture check.
+Prove the original bit identity through the production API and the native
+compiler snapshot, including reconstruction offsets and surviving register
+widths. Check the repaired netlist against those original bit labels. A name
+may move to a narrowed register while an unnamed gather rebuilds the word;
+absence of a named capture alone proves nothing. Record certified constant
+state separately, without assigning synthetic slack or weakening the matcher.
+
+Before moving a pass, inspect the representation available at its current
+position and the first stage that exposes the missing fields or operators.
+Compare register widths, field counts and operand shapes at those stages.
+A diagnostic rerun at the end does not establish that a second invocation
+is needed. Compare that exact final placement with and without the earlier
+invocation, keeping sharing and cleanup at the same positions in the control.
+Test the placement against the same real endpoint, record work spent inside
+the pass, and require fresh post-repair timing before promoting it.
+
+An operator in the frozen word graph may have been formed by the shared
+selector after the native passes finished. Find its first appearance before
+editing its apparent producer. After a trial, verify the predicted operand,
+width or guard change in the saved graph; an unchanged target is a failed
+intervention even when unrelated final metrics move.
+
+For a dependency that disappears under a guard, prove the local identity
+with independent register values before adding a rewrite. Check that the
+eliminated term can still be live outside the guard; reset or reachability
+assumptions need separate justification. An equality being true may constrain
+operand bits even when a Boolean implication helper records only the equality
+literal. Preserve unknown bits of a masked equality and clear scoped facts
+between queries.
+
+Check how a bounded fact representation stores word equalities. The equality
+predicate can consume a slot before its operand bits are expanded, losing
+the highest bits of an otherwise complete equality. Test addresses that differ
+only in the last bit that fits, alongside a masked equality that must leave
+that bit unknown. Preserve complete word facts without increasing the cone
+visit budget. Distinguish this loss from joining care across shared uses:
+only an individual guarded edge may carry the address constraint.
+Check that assumed bits and queried bits use the same routed identity. Facts
+stored on a concatenation can be bypassed when a slice query projects directly
+to its register inputs. Test both the routed field and its underlying word;
+normalize facts with the same routing helper used by queries.
+
+When a bounded rewrite refuses, distinguish proof work from structural
+planning. Record the active context's visit count and cached result, the
+plan's steps and routed work, and the node and depth where it stopped. An
+independent proof under a fresh context does not show what the active planner
+knew. Verify that probes reached the intended parent and edge before treating
+an empty log as evidence. If one subtree reaches a bound, check whether keeping
+its original function can preserve simplifications proved elsewhere; test
+equivalence, shared consumers and idempotence without widening the bound.
+
+Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
+shared predicate appear private. A private-cone rewrite can pass a small test
+and miss the real shared case. Preserve an observable shared output in the
+reproducer and simplify only the guarded use; test both its removed dependency
+and the other consumers' retained dependencies. Verify that the real target
+changes before launching a full quality comparison.
+
+For a register with several update causes, combine its enable with the selected
+data-arm condition. With enable `p | q` and data mux `q ? a : b`, the sampled
+false arm implies `p`. An individual guard need not constrain the address.
+Preserve shared observers when specializing only the registered edge, and test
+an unrelated-enable counterexample. Compare clocked outputs across reset,
+enabled and held cycles: equality of every flip-flop input also constrains
+unobservable D-pin values while the enable is inactive.
+
+Preserve function-call boundaries, static state, operand widths and literal
+comparison operators in a minimal reproducer. Equivalent behavioral RTL can
+enter a matcher differently and hide the missing pattern. Check the exact
+real target after a local test passes; a reduced depth on another branch does
+not show that the intervention reached it.
+
+Earlier sharing and Boolean factoring can hide useful word structure. Check
+existing guard-sensitive and selector-recognition tests before moving them:
+sharing guarded and unguarded uses can erase care facts, and factoring a mux
+can obscure a constant-table selector. Keep failed optimization assertions
+intact. Reusing a recognized guard for its matching data stores can avoid
+changing unrelated consumers; require equivalence and fresh timing evidence.
+
+Later sharing can expose identities that earlier bit folding could not prove.
+Compare normalized selector bits rather than vector node ids, but do not equate
+specialized arithmetic copies merely because they have the same origin.
+Inspect the graph after expression sharing: if complementary case values now
+share producers, check whether existing bit folding runs after that stage.
+Exercise the production cleanup sequence with duplicated expressions and an
+observable shared result, retaining independent and overlapping selectors as
+negative controls before adding another proof mechanism or timing correction.
+
+When nested selections are separated by a slice, follow the exact output bit
+through the default and every packed case. Record the contiguous source span;
+a width change alone does not establish another logic stage. Keep the wider
+shared result observable in the reproducer, with noncontiguous slices and
+overlapping or independent guards as negative controls. Combining groups still
+requires proof that their selectors cannot act together.
+
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
 above. Include negative controls for width extension, signed operands,
@@ -98,6 +247,57 @@ separate observer or verify its final graph and estimates against a run
 without observation. Flag disagreements for model calibration instead of
 treating estimated improvements as measured timing gains.
 
+Validate how an estimator trace chooses its path before attributing a delay.
+A walk through whole-word maxima can switch bits or launch points between
+nodes and can show negative increments through slices. Treat that walk as a
+list of candidate operators. Confirm the observed output bit, its live input
+bits and the matching functional boundaries before comparing operator costs
+with a mapped gate path or fitting corrections.
+
+When a priced rewrite helps locally but the final estimate regresses, compare
+the same cone immediately after that rewrite and after each later pass.
+An unconditional fusion can replace an overlapping arithmetic structure with
+a slower tree. Recompute the final estimate with a fresh timing reporter to
+distinguish a later structural change from stale timing state. Price the
+responsible transformation with the existing objective before adding delay
+corrections, and verify the resulting choice with post-repair timing.
+
+When a valid alternative never reaches timing evaluation, trace recognition,
+proof, depth-profitability and work-budget filters separately. Specializing a
+candidate can introduce constants whose simpler function remains hidden from
+its price. Reuse existing semantic simplification before pricing, preserving
+overflow rules and speculative rollback. Check each candidate's absolute
+progress as well as its difference from the control: the control can improve
+later without the candidate becoming slower. Verify the final graph and fresh
+mapped timing before claiming a gain.
+
+When a valid trial reaches its visit cap, trace the queued dependency frontier
+before increasing the budget. Removing a consumer can enqueue every reader of
+an unchanged shared source, such as a constant, and spend the budget outside
+the affected cone. Distinguish that source from an explicitly replaced source:
+the latter still needs its consumers updated. Reproduce both cases, compare
+incremental results with a fresh reporter, and retain the original work limit.
+
+Count queued, visited and numerically changed rows separately. An unchanged
+arrival can stop numerical load propagation, but a structural replacement can
+change downstream constant knowledge or Boolean factoring through intermediate
+rows with identical arrivals. Keep structural propagation and single-reader
+boundary changes explicit. Test both a large unchanged frontier and a structural
+change hidden behind unchanged intermediate arrivals against the existing fresh
+reporter, including per-bit arrivals, area, commit and rollback.
+
+Before using a late-bit synthetic to test arithmetic causality, inspect the
+estimator's input-bit arrivals. An indexed port delay may have been widened
+to the whole bus at its constraint boundary. Keep that failure visible; split
+early and late inputs into separate ports to isolate the arithmetic model,
+then test the boundary limitation separately. Check output-bit constraints too.
+
+For per-bit arithmetic estimates, collect the worst setup check for every
+output bit under the same input arrivals. Report maximum and mean absolute
+per-bit error separately from global WNS error: a changing predicted critical
+bit can hide a larger error elsewhere. When only the estimator changed,
+verify mapped-netlist and constraint identity before reusing physical timing.
+
 ## Comparing word-level graphs
 
 A word-level graph can contain a cycle even when its bit-level circuit is
@@ -109,19 +309,76 @@ Gather maps, concatenations and extensions; do not replace an unresolved
 cycle with a constant or an unrelated symbolic input. Compare the implicated
 cones first, with measured memory, before expanding to the whole design.
 
+When the native compiler refuses a word cycle, compare its normalization
+stage with the legacy bit-lowering scheduler. The latter can build ready bits
+and carries before the rest of a word is ready. A legacy refusal mentioning a
+whole-only multiply or variable shift does not establish a real bit cycle.
+Build a small independent acyclic reference, enumerate its operator truth table
+to find actual bit dependencies, and check arithmetic prefixes, correlated shift
+amounts, replicated or independent lane guards, and mutually exclusive mux
+feedback. Keep register values unconstrained and include genuine-loop refusal
+cases. Free cycle-cut inputs are useful in a proof, but substitution is valid
+only after proving that no output can depend on any of their values.
+
 Register names can change when aliases are retained differently. Establish
 register identity from its RTL declaration, instance and bit range, checking
 that the match is unique and that reset and enable semantics agree. A name
-mismatch alone is not a different register. Exact structural signatures also
+mismatch alone is not a different register. Recheck coverage of every implicated
+endpoint after cleanup: a smaller maximum error is not an improvement if the
+target lost its alias and disappeared from the comparison. Retain the old
+endpoint set and fail the diagnostic when a required match is missing.
+For a physical register name with several indices, read the original tape's
+declared dimensions, range direction and chunk flags. A surviving narrow chunk
+can retain the dimensions of its wider declaration; dividing its width into
+assumed elements changes bit identity. Use the native declared-index formatter
+and check the resulting alias's exact source bit. Keep each requested logical
+capture separate from its physical witness, require a unique current source,
+and compare the worst measured capture check among that source's aliases.
+Missing or ambiguous identities still fail; do not manufacture timing for an
+old name or remove it from the required set.
+
+A valid optimization can eliminate a capture as a constant. Retain that
+logical request and prove the current literal through an exact original alias,
+the native word graph and the absence of an active mapped capture. Account for
+it separately from timed matches; an absent path has no measured slack or
+error. Constant data on an enabled update does not make the physical D pin
+unconditionally constant: include the idle feedback value in the proof.
+Native register packing can remove middle bits and shift surviving offsets.
+Bind each request to the original per-bit names and follow the complete
+reassembly map to its literal; the packed register name and width alone do not
+establish the original bit identity. If snapshot display clipping hides that
+map, capture full read-only details and require every graph field and the
+pre-repair mapped netlist to match before using the extra metadata as proof.
+
+Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
+
+When a slow mapped control depends on register bits absent from its word-level
+guard, compare their Boolean functions at the sequential boundary. Treat every
+physical leaf bit as independent, derive its stored-value polarity from Liberty,
+and check both implications without reachability assumptions. A large mapped
+cone can implement a small guard while adding logically canceled timing paths.
+An exact equality proof classifies that added structure as downstream; a slew
+and load replay alone does not explain its nominal logic depth.
+
+Check whether snapshot UIDs are stable identities or dense row numbers before
+aligning stages. Repeated register aliases can share a name; compare their
+descriptors and multiplicities rather than selecting the first match. Clipped
+operator details cannot support an exact bit trace: collect the complete tape
+when the needed routing map is missing.
 
 For an addition with a late one-bit operand, measure that operand's own path
 through the carry network. Compare it with the equivalent carry-in form of
 the same addition, including overflow and truncation checks. A shorter path
 in lowering can be serialized again by AIG optimization or mapping: compare
 the stage snapshots and final mapped timing before claiming an improvement.
+
+When a multioperand sum hides a copied field, inspect correlated prefix bits
+before applying its transfer rule. Column compression may preserve a relation
+that serial accumulation loses. Prove and rebuild the incoming carry at the
+retained field boundary; copied low bits alone do not justify dropping it.
 
 ## Audit
 
@@ -182,6 +439,68 @@ over twenty cells usually is the compressor tree and final adder it feeds.
 
 ## Reading it
 
+- **The estimated path is much faster, but arithmetic depth looks right**:
+  separate structure from electrical delay before changing word-level costs.
+  For the same repaired path, collect each cell's input/output pins, both
+  transition edges, arc delay, input slew, output load, fanout and wire delay.
+  Re-evaluate the exact Liberty arcs at the measured coordinates first;
+  resolve any discrepancy before using the replay as evidence. Match timing
+  sense, clock edge and conditional arcs, rather than taking the fastest arc
+  of the cell. An ideal launch clock uses its constrained clock transition;
+  a transition propagated as data on the physical clock net can differ.
+  Then evaluate those same arcs at the estimator's reference slew and load.
+  Report nominal path delay, electrical excess and estimator error separately.
+  Changing load first and slew second is an order-dependent decomposition,
+  not two independent effects. This reference-point replay does not show what
+  repair could achieve, establish an operator boundary, or justify fitting an
+  endpoint-specific correction. Use the matched endpoint, transition and
+  setup check throughout: the worst-slack path may differ from the path with
+  the latest data arrival. Between candidates, retain both measured data
+  arrival and required time, including the capture cell's setup check. A
+  changed capture cell can move slack even when the data path does not move;
+  do not infer a new arrival by holding the previous required time constant.
+  A screen against a fixed reference netlist measures model changes only;
+  repeat it against the candidate's fresh repaired netlist before claiming
+  improved accuracy. If the worst launch changes, measure both launch points
+  on both netlists. Decompose each same-launch arrival difference into nominal
+  and electrical contributions before classifying the regression.
+  If the remaining gap is electrical, report it as
+  downstream sensitivity and continue looking for structural discrepancies.
+  Input-port paths also have an initial arrival before the cell arcs. If that
+  measured arrival is preserved in the reference, state that the external
+  input-driver and constraint prefix was not decomposed, and verify that it
+  hides no omitted cell stages.
+- **Shared provenance suggests a serial arithmetic dependency**: first inspect
+  the selected word graph's actual edges. A mapped cell can inherit an adder
+  label while computing part of a comparator or leading-zero counter. Locate
+  candidate boundaries by simulating the extracted gate cone with the Liberty
+  Boolean functions, including the register's `next_state` and output
+  function; register pin names do not establish polarity. Random signatures
+  only suggest matches: rare carry boundaries can make different functions
+  appear equal. Prove candidate matches against the word expressions with
+  SAT, keeping unconditional results separate from results under nonzero,
+  reachable-state or mode assumptions. Before assigning physical register
+  replicas one logical input, verify their data, clock and asynchronous-control
+  connections and their library state/output functions; names alone do not
+  establish shared state. Compare
+  cumulative mapped and estimated arrivals only at confirmed boundaries.
+  Snapshot numeric identifiers require their epoch; use names and origins to
+  follow an operator across snapshots that renumber the graph.
+- **A composition discount crosses a register boundary**: inspect the exact
+  characterized register macro before removing the discount. Its reported
+  clock-to-output delay can include a combinational inverter after the physical
+  state pin. A consumer can absorb that inverter or use the opposite state
+  polarity directly. Compare the isolated macro and a connected consumer using
+  their Liberty functions and gate connectivity; distinguish intrinsic
+  clock-to-state delay from the macro's output tail. An unconstrained probe
+  establishes connectivity only, not a measured timing correction.
+- **Nominal replay is still slower after removing slew/load excess**: identify
+  identity buffers by Liberty function, then find their first appearance in
+  mapping and repair snapshots. Report their measured and reference-coordinate
+  delays separately. Removing those stages from a diagnostic reference is not
+  a measured improvement, a new post-repair accuracy result, or proof that the
+  estimator has not already charged some buffering cost. Keep the original
+  post-repair error visible and avoid counting buffer electrical excess twice.
 - **Retiming predicts a large gain but mapped timing barely improves**: report
   input-to-register and register-to-register paths separately. Compare the
   actual stage arrivals, register count and endpoint identities, not just the
@@ -201,6 +520,25 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   prices can affect both retiming cuts and arithmetic preservation. Use
   separate fresh caches or identical cache snapshots: exact-width probes can
   persist extra tables and change subsequent control runs.
+- **An existing word rewrite leaves a redundant chain intact**: distinguish
+  a missing candidate from a timing rejection or an evaluation that reached
+  its work limit. Record the implicated operands, verdict, visited rows and
+  limit. Preserve the limit; test whether evaluating the same rewrite within
+  its module before flattening avoids traversing unrelated consumers. An
+  isolated or partial trial does not establish full-design timing benefit.
+- **A selected bit crosses a shift and overflow comparison**: check whether
+  selector equality already proves that bit equal to the other mux arm. A
+  saturated result's sign can bypass the shift while its remaining bits
+  still require it. Trace the exact compared bit pairs, signed extension,
+  selector polarity and both arms; retain unrelated bits and shared outputs.
+  Measure the changed endpoint before claiming a timing accuracy gain.
+- **An arithmetic flag rewrites only in a late diagnostic**: compare an
+  explicit predicate with the corresponding one-bit extraction. Trace word
+  selections and nonzero slice offsets at the original recognition stage;
+  later simplification may expose a pattern that was already reachable.
+  Reuse existing selection push-through before scheduling another pass.
+  Check pass convergence: rewriting unused helper slices left after a
+  comparison replacement can keep adding unreachable logic.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
