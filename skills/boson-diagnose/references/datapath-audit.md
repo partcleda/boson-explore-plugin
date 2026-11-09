@@ -201,6 +201,15 @@ can obscure a constant-table selector. Keep failed optimization assertions
 intact. Reusing a recognized guard for its matching data stores can avoid
 changing unrelated consumers; require equivalence and fresh timing evidence.
 
+Later sharing can expose identities that earlier bit folding could not prove.
+Compare normalized selector bits rather than vector node ids, but do not equate
+specialized arithmetic copies merely because they have the same origin.
+Inspect the graph after expression sharing: if complementary case values now
+share producers, check whether existing bit folding runs after that stage.
+Exercise the production cleanup sequence with duplicated expressions and an
+observable shared result, retaining independent and overlapping selectors as
+negative controls before adding another proof mechanism or timing correction.
+
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
 above. Include negative controls for width extension, signed operands,
