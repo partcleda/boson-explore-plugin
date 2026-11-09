@@ -508,6 +508,13 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   still require it. Trace the exact compared bit pairs, signed extension,
   selector polarity and both arms; retain unrelated bits and shared outputs.
   Measure the changed endpoint before claiming a timing accuracy gain.
+- **An arithmetic flag rewrites only in a late diagnostic**: compare an
+  explicit predicate with the corresponding one-bit extraction. Trace word
+  selections and nonzero slice offsets at the original recognition stage;
+  later simplification may expose a pattern that was already reachable.
+  Reuse existing selection push-through before scheduling another pass.
+  Check pass convergence: rewriting unused helper slices left after a
+  comparison replacement can keep adding unreachable logic.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
