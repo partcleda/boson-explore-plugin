@@ -404,7 +404,11 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   repair could achieve, establish an operator boundary, or justify fitting an
   endpoint-specific correction. Use the matched endpoint, transition and
   setup check throughout: the worst-slack path may differ from the path with
-  the latest data arrival. If the remaining gap is electrical, report it as
+  the latest data arrival. Between candidates, retain both measured data
+  arrival and required time, including the capture cell's setup check. A
+  changed capture cell can move slack even when the data path does not move;
+  do not infer a new arrival by holding the previous required time constant.
+  If the remaining gap is electrical, report it as
   downstream sensitivity and continue looking for structural discrepancies.
   Input-port paths also have an initial arrival before the cell arcs. If that
   measured arrival is preserved in the reference, state that the external
