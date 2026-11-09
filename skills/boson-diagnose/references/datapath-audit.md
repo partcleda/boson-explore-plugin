@@ -120,6 +120,12 @@ For a missed range proof, compare equivalent bit-field and word-comparison
 guards. Inspect the resolved arithmetic operand's bound; an output alias can
 retain a looser bound. Keep unconditional combinational bounds separate from
 bounds that assume reset, reachable state or a mode.
+Trace the guard and selected value through slices and casts. A fact attached
+to a widened view must reach the original word only when the extension preserves
+its unsigned value; keep truncation and signed-extension controls. Check both
+the analysis result and its materializer: narrowing state alone can leave false
+combinational dependencies. Reproduce the production pass boundary before
+increasing any proof budget.
 
 When a state bit becomes constant, retain every previous timed capture check.
 Prove the original bit identity through the production API and the native
