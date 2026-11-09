@@ -324,6 +324,11 @@ the same addition, including overflow and truncation checks. A shorter path
 in lowering can be serialized again by AIG optimization or mapping: compare
 the stage snapshots and final mapped timing before claiming an improvement.
 
+When a multioperand sum hides a copied field, inspect correlated prefix bits
+before applying its transfer rule. Column compression may preserve a relation
+that serial accumulation loses. Prove and rebuild the incoming carry at the
+retained field boundary; copied low bits alone do not justify dropping it.
+
 ## Audit
 
 ```sh
