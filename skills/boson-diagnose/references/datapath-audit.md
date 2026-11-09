@@ -87,6 +87,15 @@ applying after a packed field becomes a scalar. Reduce the case to both
 representations, preserve a live-dependency negative case and shared outputs,
 and check equivalence as well as whether the false dependency disappeared.
 
+For guarded arithmetic, distinguish a mux selecting operands from a mux selecting
+an arithmetic result. Walking the former can duplicate a shared operator; the
+latter can hide output bits that are constant only in one arm. Record the guard,
+exact known bit positions and unchanged shared uses. Check whether the graph
+selects a whole word before slicing it: a query restricted to slices inside a
+guarded arm will miss that representation. Compare both arithmetic counts at the
+changed pass and the retained physical captures. Also run later timed rewrites:
+exposing known bits early can hide an operator pattern they need.
+
 For parallel selections, inspect each routed field. If every case holds the
 same value and the default updates it only under a control disjoint from all
 case controls, those selections may be redundant for that field. Test overlapping
