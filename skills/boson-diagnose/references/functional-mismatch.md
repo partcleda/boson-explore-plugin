@@ -65,6 +65,30 @@ next-state function fails. Test undefined values separately where the engine's
 refinement contract allows them. Never convert a timeout into a proof, enlarge
 a gate tolerance, or assume a state invariant to close the report.
 
+## Finish a finite-state proof within its budget
+
+When arbitrary dropped RTL state makes the strong cut fail, the existing finite
+proof can instead enumerate the complete RTL state. Keep dropped bits in reset
+and transition closure, pair every mapped register uniquely, and check every
+original output and retained next-state bit at every reachable RTL state. A
+dropped bit is not a constant. Do not compare an artificial placeholder for its
+mapped next state with the real RTL transition. Reject an unpaired mapped
+register. Test dropped-state transitions as well as retained-state transitions,
+reset, and outputs; an incomplete proposed state set must fail closure.
+
+Measure which obligations consume the deadline before changing a proof budget.
+Mapping the two circuits once and specializing their Boolean graphs per state
+can avoid repeated lowering. Undefined RTL values need a separate definedness
+obligation at each reachable state before a two-valued equality proof is valid.
+An unknown reachable output must fail even if zero-filled exports match.
+
+Reuse a solved obligation only when both circuits are exactly the same under
+one shared input renaming, with output order, complements, aliases, and constants
+preserved. Renaming each side independently is unsound. Record the donor, cover
+every output group and state, and exercise negative controls at group boundaries.
+These are proof-engine changes: validate the entire harness and the complete
+caller pipeline at its normal worker count and unchanged deadlines.
+
 ## Close the diagnosis
 
 Name the first incorrect stage or unresolved proof obligation, exact affected

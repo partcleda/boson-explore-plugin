@@ -102,6 +102,14 @@ One table, both netlists timed by boson at one corner:
 Std-cell area excludes macros (`cell_mix.py` reports both). When several
 boson runs are compared, one row each, with what differs in the row label.
 
+When a gate reports unchanged timing, inspect the metric it compares. A gate
+using violation `max(0, -WNS)` treats two timing-met designs equally even when
+their critical delays differ. Report critical delay, WNS, and violation separately.
+Then inspect the optimizer's actual selection rule: a timing-first recovery may
+intentionally buy positive slack with area. Cite the rejected and selected
+covers' measured area and timing. Do not change that policy or waive the gate
+merely to make the two objectives agree; a trade requires the user's decision.
+
 ## Step 2: area by mapping pattern
 
 ```sh
