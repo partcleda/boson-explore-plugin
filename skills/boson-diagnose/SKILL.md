@@ -12,6 +12,7 @@ journal seq numbers, cell counts and areas on both sides), never impressions.
 
 | you have / the question is | method | read | scripts |
 |---|---|---|---|
+| an equivalence counterexample, an unverified proof, or a graph mutation after a refused rewrite | functional mismatch | [references/functional-mismatch.md](references/functional-mismatch.md) | existing compiler regression and proof harnesses |
 | a boson run of the user's design; "what did boson decide wrong on the failing paths"; a bundle for partcl | journal debug | [references/journal-debug.md](references/journal-debug.md) (+ [journal-schema.md](references/journal-schema.md), [privacy.md](references/privacy.md)) | `scripts/debug/` |
 | "what did boson build for this adder / multiplier", "did a rewrite undo the architecture" | datapath audit | [references/datapath-audit.md](references/datapath-audit.md) | `scripts/datapath/` |
 | a few paths far deeper than the clock allows; "is it the RTL or boson"; the full run is too slow to iterate | minimal repro | [references/minimal-repro.md](references/minimal-repro.md) | `scripts/repro/` |
