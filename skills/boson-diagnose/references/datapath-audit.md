@@ -406,6 +406,10 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   setup check throughout: the worst-slack path may differ from the path with
   the latest data arrival. If the remaining gap is electrical, report it as
   downstream sensitivity and continue looking for structural discrepancies.
+  Input-port paths also have an initial arrival before the cell arcs. If that
+  measured arrival is preserved in the reference, state that the external
+  input-driver and constraint prefix was not decomposed, and verify that it
+  hides no omitted cell stages.
 - **Shared provenance suggests a serial arithmetic dependency**: first inspect
   the selected word graph's actual edges. A mapped cell can inherit an adder
   label while computing part of a comparator or leading-zero counter. Locate
