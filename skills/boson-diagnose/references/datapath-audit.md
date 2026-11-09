@@ -299,6 +299,13 @@ and compare the worst measured capture check among that source's aliases.
 Missing or ambiguous identities still fail; do not manufacture timing for an
 old name or remove it from the required set.
 
+A valid optimization can eliminate a capture as a constant. Retain that
+logical request and prove the current literal through an exact original alias,
+the native word graph and the absence of an active mapped capture. Account for
+it separately from timed matches; an absent path has no measured slack or
+error. Constant data on an enabled update does not make the physical D pin
+unconditionally constant: include the idle feedback value in the proof.
+
 Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
