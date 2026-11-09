@@ -81,6 +81,15 @@ Mapping the two circuits once and specializing their Boolean graphs per state
 can avoid repeated lowering. Undefined RTL values need a separate definedness
 obligation at each reachable state before a two-valued equality proof is valid.
 An unknown reachable output must fail even if zero-filled exports match.
+Preserve the original undefined-aware circuit before zero filling or Boolean
+simplification. A definedness check on an already simplified two-valued export
+cannot establish that the original circuit was defined. Once that obligation is
+proved, simplifying the defined Boolean network can reduce equivalence cost.
+
+Profile a representative state and record time by output group, solver,
+serialization, and mapping. Smaller output groups can increase solver startup
+and repeated work; compare total proof cost before changing their size. A fast
+targeted proof still needs a successful run through the full caller pipeline.
 
 Reuse a solved obligation only when both circuits are exactly the same under
 one shared input renaming, with output order, complements, aliases, and constants
