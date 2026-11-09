@@ -502,6 +502,12 @@ over twenty cells usually is the compressor tree and final adder it feeds.
   limit. Preserve the limit; test whether evaluating the same rewrite within
   its module before flattening avoids traversing unrelated consumers. An
   isolated or partial trial does not establish full-design timing benefit.
+- **A selected bit crosses a shift and overflow comparison**: check whether
+  selector equality already proves that bit equal to the other mux arm. A
+  saturated result's sign can bypass the shift while its remaining bits
+  still require it. Trace the exact compared bit pairs, signed extension,
+  selector polarity and both arms; retain unrelated bits and shared outputs.
+  Measure the changed endpoint before claiming a timing accuracy gain.
 - **Architecture is ripple** and the block is critical: this is a selector
   decision. Check `adder_topology` / `adder_arrival_aware` in `report_app_var`
   before blaming a rewrite.
