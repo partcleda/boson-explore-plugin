@@ -210,6 +210,13 @@ Exercise the production cleanup sequence with duplicated expressions and an
 observable shared result, retaining independent and overlapping selectors as
 negative controls before adding another proof mechanism or timing correction.
 
+When nested selections are separated by a slice, follow the exact output bit
+through the default and every packed case. Record the contiguous source span;
+a width change alone does not establish another logic stage. Keep the wider
+shared result observable in the reproducer, with noncontiguous slices and
+overlapping or independent guards as negative controls. Combining groups still
+requires proof that their selectors cannot act together.
+
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
 above. Include negative controls for width extension, signed operands,
