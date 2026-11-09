@@ -336,6 +336,12 @@ the native word graph and the absence of an active mapped capture. Account for
 it separately from timed matches; an absent path has no measured slack or
 error. Constant data on an enabled update does not make the physical D pin
 unconditionally constant: include the idle feedback value in the proof.
+Native register packing can remove middle bits and shift surviving offsets.
+Bind each request to the original per-bit names and follow the complete
+reassembly map to its literal; the packed register name and width alone do not
+establish the original bit identity. If snapshot display clipping hides that
+map, capture full read-only details and require every graph field and the
+pre-repair mapped netlist to match before using the extra metadata as proof.
 
 Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
