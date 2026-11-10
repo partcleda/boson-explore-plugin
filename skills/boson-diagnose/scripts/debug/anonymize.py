@@ -897,7 +897,13 @@ def _sdc_strip_comment(line: str) -> str:
     return re.sub(r";\s*#.*$", "", line)
 
 
+# Account and host names that identify no one: system defaults, and words every bundle contains (the tool's
+# own name, the bundle's directory names), as when the boson release container runs as user `boson`.
+ANONYMOUS_ACCOUNT_NAMES = {"localhost", "root", "boson", "digests", "reports", "constraints", "logs", "journal", "netlist"}
+
+
 def _env_literals() -> list[str]:
+    """The user name, host names and home directory name of this run: they could identify someone."""
     out = []
     try:
         out.append(getpass.getuser())
@@ -913,7 +919,7 @@ def _env_literals() -> list[str]:
     home = os.path.expanduser("~")
     if home not in ("/", "~"):
         out.append(Path(home).name)
-    return [o for o in out if o and len(o) >= 3 and o.lower() not in VOCAB and o not in ("localhost", "root")]
+    return [o for o in out if o and len(o) >= 3 and o.lower() not in VOCAB and o.lower() not in ANONYMOUS_ACCOUNT_NAMES]
 
 
 # ---------------------------------------------------------------- discovery

@@ -7,6 +7,7 @@ Everything in fixtures/ is fake ("acme", "jdoe", "secret_sauce_sum" are the
 names that must never reach a bundle).
 """
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -14,6 +15,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 S = HERE.parents[1] / "scripts" / "debug"
@@ -293,6 +295,53 @@ class EndToEnd(unittest.TestCase):
                        and (self.tmp / "h.json").read_text())
         self.assertEqual(n["nets"]["undriven"], 0)
         self.assertEqual({r["instantiations"] for r in n["modules_tree"]}, {1, 2})
+
+
+def run_as(user, *args, ok=True):
+    """`run` as the account `user` with HOME=/home/<user>: what getpass.getuser() and ~ report."""
+    env = {**os.environ, "LOGNAME": user, "USER": user, "HOME": f"/home/{user}"}
+    p = subprocess.run([sys.executable, *map(str, args)], capture_output=True, text=True, env=env)
+    if ok and p.returncode != 0:
+        raise AssertionError(f"{args[0]} as {user} exited {p.returncode}\n{p.stdout}\n{p.stderr}")
+    return p
+
+
+class AccountName(unittest.TestCase):
+    """The running account's name is scrubbed, unless it is the tool's own name (the release container's `boson`)."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="bnd_account_"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def env_literals(self, user):
+        sys.path.insert(0, str(S))
+        self.addCleanup(sys.path.remove, str(S))
+        import anonymize
+        with mock.patch("getpass.getuser", return_value=user), mock.patch.dict(os.environ, {"HOME": f"/home/{user}"}):
+            return anonymize._env_literals()
+
+    def make_bundle_as(self, user, report, ok=True):
+        """Prepare a bundle as `user`, then write it with `report` as REPORT.md."""
+        args = ["--map", self.tmp / "name_map.json", "--netlist", F / "netlist.v", "--sdc", F / "constraints.sdc",
+                "--timing", F / "timing.rpt", "--log", F / "boson.log", "--journal", F / "decisions.jsonl",
+                "--literal", "acme", "--work", self.tmp / "work", "--bundle-dir", self.tmp / "boson-debug-bundle"]
+        run_as(user, S / "make_bundle.py", *args)
+        (self.tmp / "REPORT.md").write_text(report)
+        return run_as(user, S / "make_bundle.py", *args, "--report", self.tmp / "REPORT.md", ok=ok)
+
+    def test_tool_named_account_is_not_a_literal(self):
+        self.assertNotIn("boson", [lit.lower() for lit in self.env_literals("boson")])
+        self.assertNotIn("boson", [lit.lower() for lit in self.env_literals("Boson")])
+        self.make_bundle_as("boson", "# Summary\nThe worst path fails by 0.084 ns.\n")
+        self.assertTrue((self.tmp / "boson-debug-bundle.tar.gz").exists())
+        self.assertTrue((self.tmp / "boson-debug-bundle" / "logs" / "boson_1.log").exists())
+
+    def test_other_account_is_still_scrubbed(self):
+        self.assertIn("alice", self.env_literals("alice"))
+        self.make_bundle_as("alice", "# Summary\nBundled by alice in /home/alice.\n")
+        report = (self.tmp / "boson-debug-bundle" / "REPORT.md").read_text()
+        self.assertNotIn("alice", report)
+        self.assertIn("<redacted", report)
 
 
 if __name__ == "__main__":
