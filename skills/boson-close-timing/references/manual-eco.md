@@ -45,3 +45,11 @@ brace-quoted `format` strings when generating edit commands and receipts.
 Before relying on `write_changes` for replay, inspect its output: not every
 internal repair is necessarily present in the ECO journal. Keep the actual
 repair command and the resulting checkpoint when the journal is empty.
+
+Before a large gate-level simulation, exercise the library's flop, latch and
+clock-gate models in a small test with reset and data transitions. A simulator
+can accept a sequential UDP model yet simulate its edges incorrectly. Isolate
+such a failure and check it in an independent simulator before attributing it
+to synthesis. Four-state checks must also account for state the RTL does not
+reset: compare defined outputs against the RTL oracle and preserve a separate
+check of the original and candidate unknown states.
