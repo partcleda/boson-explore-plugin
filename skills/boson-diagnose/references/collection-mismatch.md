@@ -65,6 +65,29 @@ Include individual bus bits and feedthrough boundaries when those occur in
 the original case. A successful query alone does not prove the constraint
 bound; a binding fix alone does not explain a collection-count mismatch.
 
+## Unresolved clocks and timing-model differences
+
+For unresolved register clocks, preserve the clock declarations and trace the
+affected clock pins to input ports or internal clock-source nets. Group by the
+actual root and count affected clock pins; separate forwarded ports, divided
+clocks and disconnected nets. A concise root summary in STA-301 can identify
+missing declarations without copying every register name into a report. Keep
+the full attachment private. An unresolved clock is not proof of an engine
+defect, and adding an invented clock only hides missing constraints.
+
+Reduce a reported root-count problem to several distinct roots, including a
+forwarded port and an internal source behind separate buffers. Verify the
+counts before adding the intended clock declarations, then verify that those
+declarations resolve the corresponding pins. Include a high-fanout root to
+catch a diagnostic that repeatedly walks every sibling register.
+
+When compile and a fresh session report different slack on the same written
+netlist, capture `report_analysis_settings` in both sessions before attributing
+the difference to stale timing. Compare the executed cell and net delay models,
+SPEF coverage and explicit `timing_mode` settings. Written Verilog does not
+carry session settings. A model difference is separate from an optimizer's
+acceptance policy; changing the latter requires its own design-quality evidence.
+
 ## Report and coverage
 
 Record exact missing/extra membership, the reproducer's before/after result,
