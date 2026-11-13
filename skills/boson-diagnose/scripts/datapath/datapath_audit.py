@@ -40,6 +40,10 @@ def path_cells(path: dict) -> list[str]:
                              if "/" in pt["point"] and pt.get("increment_ns") is not None))
 
 
+def usable_slack(path: dict) -> bool:
+    return path.get("slack_ns") is not None and not path.get("unconstrained")
+
+
 def audit(provenance, timing, min_paths=1, all_blocks=False):
     if not isinstance(provenance, list) or not provenance:
         raise ValueError("prov_paths.json must be a nonempty cell-story array; a summary or restored session is insufficient")
@@ -72,7 +76,7 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
             "other_stages": dict(collections.Counter(c.get("mapped_in") or "unknown"
                                 for c in matched if c.get("mapped_in") != "technology mapping")),
         })
-        if path.get("slack_ns") is None or path.get("unconstrained"):
+        if not usable_slack(path):
             continue
         cells = collections.defaultdict(dict)
         exact_cells = collections.defaultdict(set)
@@ -94,7 +98,7 @@ def audit(provenance, timing, min_paths=1, all_blocks=False):
             per_path[key].append((len(by_name), passes, path["slack_ns"], own, len(exact_cells[key])))
     if not any(p["matched_cells"] for p in coverage["paths"]):
         raise ValueError("no path cells match provenance; check session identity and collection")
-    if not any(p.get("slack_ns") is not None and not p.get("unconstrained") for p in timing["paths"]):
+    if not any(usable_slack(p) for p in timing["paths"]):
         raise ValueError("no constrained paths with usable slack")
     rows = []
     for (block, dp_node, origins, op, width, lowering), samples in per_path.items():
@@ -151,7 +155,9 @@ def stages(provenance, timing, count=1):
     consecutive cells with that block, so the delay each RTL structure costs reads off directly."""
     prov = {c["cell"]: c for c in provenance}
     out = []
-    for path in timing["paths"][:count]:
+    ranked_paths = sorted((p for p in timing["paths"] if usable_slack(p)),
+                          key=lambda p: p["slack_ns"])
+    for path in ranked_paths[:count]:
         rows = []
         for pt in path["points"]:
             if "/" not in pt["point"] or pt.get("increment_ns") is None:

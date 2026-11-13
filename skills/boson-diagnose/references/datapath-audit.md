@@ -34,6 +34,14 @@ paths), `timing.json` (native `report_timing -format json`), and
 and RTL origins). The text trace ranks delay by source; a `~` origin is
 propagated attribution, not an exact match. Inspect it before ranking arithmetic.
 
+Path limits can apply separately to each clock group. Rank the complete
+reported sample by constrained slack before choosing a global worst path;
+the first path in the file need not be the worst. The audit's `--stages N`
+does this ranking and excludes unconstrained paths. Preserve report order
+when slacks tie, and retain the endpoint, transition, arrival and setup
+requirement: a WNS difference can come from the endpoint check even when
+the data arrival barely changes.
+
 The collector requires timing-point attributes and path provenance support.
 It writes timing first so an unsupported provenance API leaves diagnostic
 evidence. A zero-cell collection or a failed command means the audit failed;
@@ -70,7 +78,7 @@ compiler finishes. Likewise, `report_elaborated -full` may read the original
 elaboration tape even after `dp_<pass>` commands changed the working design.
 An unchanged report is then missing observation, not evidence of a no-op.
 
-When the shell lacks intermediate snapshots, use the matching checkout's
+When snapshots are allowed but the shell lacks intermediate snapshots, use the matching checkout's
 Rust API. `compile_datapath` with `DatapathOptSettings.take_snapshots = true`
 returns a tape after each enabled pass. Alternatively, run the enabled pass
 list over `Design` and dump `design.to_tape()` after each pass with
@@ -80,6 +88,19 @@ operator widths and fanins, live-node counts by kind, and the final tape.
 Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
+
+When snapshots must remain off, keep that constraint in diagnostic runs too.
+Use timing, provenance, pass counters and a matching source checkout for
+targeted read-only model inspection. For a register's modeled capture path,
+rank the arrivals at its data inputs, not at its Q output. Trace routed bit
+identities through slices, concatenations and extensions, and distinguish
+ordinary tree rebalancing from duplication across a shared producer. A
+local delay improvement need not improve a timed endpoint. Confirm both the
+retained graph and repaired STA before keeping a rewrite.
+
+Use the model's critical-path reporter for the global estimate. A manual
+global ranking needs each capture clock relationship and setup term, not
+just the largest data arrival.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
