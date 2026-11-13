@@ -75,6 +75,27 @@ it does not validate the macro implementation or replace sequential proof.
 For large flattened designs, reuse prepared JSON rather than repeatedly
 parsing and lowering an expanded behavioral Verilog export.
 
+For a large prepared JSON design, Yosys can replay a stimulus VCD and write
+a reference FST without compiling a behavioral simulation executable. After
+loading and flattening the modeled cells, hide internal names so the FST
+contains the public ports, then use:
+
+```tcl
+sim -q -clock clk -r stimulus.vcd -scope top -sim -fst-noinit -fst gold.fst
+```
+
+Load the candidate separately and compare against the same FST:
+
+```tcl
+sim -q -clock clk -r gold.fst -scope top -sim-gate -fst-noinit
+```
+
+`-sim-gate` permits unknown reference bits; `-fst-noinit` keeps the candidate
+from importing reference internal state. Require successful process status,
+the complete expected time window, and known-bit coverage for every observed
+port. Check the method on a deliberate output flip before trusting a pass.
+This remains bounded co-simulation.
+
 Test the checker on the original and on deliberate mutants: an output flip,
 a changed reset value, and a one-cycle latency change. Require these mutants
 to fail. A simulator can return zero after `$finish` while its log contains
