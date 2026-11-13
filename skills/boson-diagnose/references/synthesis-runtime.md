@@ -61,5 +61,39 @@ rounds when the decision depends on that ratio.
 Keep failed and incomplete runs distinct from completed results. State which
 timeout was reproduced and which host or runner differences remain untested.
 
+## Account for the cleanup being removed
+
+An app var that skips a scheduled pass may leave calls in characterization or
+mapping recovery. Check its production callers and logs before calling an
+experiment a complete removal. Setup repair's area recovery and synthesis's
+mapping recovery can be separate stages.
+
+Record graph snapshots and provenance around the exact changed pass, then
+compare equivalent cones at a common input boundary. Match input and register
+names, treat register outputs as independent inputs, and prove the whole
+combinational frame before interpreting internal changes. Simulation signatures
+can suggest corresponding internal nodes; prove their equivalence over the
+common boundary before naming a Boolean identity. Do not count every replaced
+node as an independently saved gate: cones overlap and share logic.
+
+Trace the rewritten cone to its word operator and RTL. A mux or adder may hide
+bit-level factoring that appears only during lowering. Distinguish a word-level
+identity, a better operator implementation, and a change to mapping polarity or
+sharing. An existing pass with a similar name is insufficient: inspect which
+operators it accepts and which profitability checks admit the observed case.
+
+Measure both the mapped result and the production repair recipe. Report slack
+and constraints along with delay: for a register endpoint the setup requirement
+also contributes to the limiting clock period. A repair that stops once timing
+is met does not establish maximum Fmax; repeat a promising comparison at a
+matched tighter target and attribute any changed operator selection.
+
+When testing existing Boolean repair moves, use an effort that enables their
+proposal generation. Check generated proposals, accepted moves and final
+netlist hashes; an enabled app var alone does not demonstrate replacement of
+the removed pass. Keep a critical path's complete cell, fanout, load and slew
+accounting alongside AIG node counts. Fewer AIG nodes can map to slower cells or
+higher fanout.
+
 Coverage: `runtime_stage_identified`, `completed_arms`,
 `matching_input_aig`, `cold_calibration_accounted`, `matched_cell_comparison`.
