@@ -54,6 +54,20 @@ run many repair rounds. Record cold/warm characterization caches and thread
 counts; do not attribute a cache speedup to a netlist setting or sum nested
 profile spans as independent work.
 
+For a plain or gzipped `timing_profile` log, summarize the recorded phases:
+
+```sh
+python3 skills/boson-diagnose/scripts/repro/timing_profile.py run.log > phases.json
+```
+
+The helper counts delimited phase records once, including `profile_report_write`;
+it ignores the rendered Markdown table at exit. Its totals overlap, and a partial
+log has no inferred compile wall or success. Check profiling overhead before
+attributing a timeout to optimization: report rewrites can dominate frequent
+internal timing runs. Compare the same profiling settings in both arms, and
+verify the netlist digest when testing a reporting-only change. Stage labels
+may identify the design; keep this output local or anonymize it before sharing.
+
 ## Auditing the datapath compiler pass by pass
 
 First establish which optimizer ran. On builds that expose
