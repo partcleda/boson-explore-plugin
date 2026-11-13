@@ -34,6 +34,14 @@ paths), `timing.json` (native `report_timing -format json`), and
 and RTL origins). The text trace ranks delay by source; a `~` origin is
 propagated attribution, not an exact match. Inspect it before ranking arithmetic.
 
+Path limits can apply separately to each clock group. Rank the complete
+reported sample by constrained slack before choosing a global worst path;
+the first path in the file need not be the worst. The audit's `--stages N`
+does this ranking and excludes unconstrained paths. Preserve report order
+when slacks tie, and retain the endpoint, transition, arrival and setup
+requirement: a WNS difference can come from the endpoint check even when
+the data arrival barely changes.
+
 The collector requires timing-point attributes and path provenance support.
 It writes timing first so an unsupported provenance API leaves diagnostic
 evidence. A zero-cell collection or a failed command means the audit failed;
@@ -70,7 +78,7 @@ compiler finishes. Likewise, `report_elaborated -full` may read the original
 elaboration tape even after `dp_<pass>` commands changed the working design.
 An unchanged report is then missing observation, not evidence of a no-op.
 
-When the shell lacks intermediate snapshots, use the matching checkout's
+When snapshots are allowed but the shell lacks intermediate snapshots, use the matching checkout's
 Rust API. `compile_datapath` with `DatapathOptSettings.take_snapshots = true`
 returns a tape after each enabled pass. Alternatively, run the enabled pass
 list over `Design` and dump `design.to_tape()` after each pass with
@@ -80,6 +88,36 @@ operator widths and fanins, live-node counts by kind, and the final tape.
 Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
+
+When snapshots must remain off, keep that constraint in diagnostic runs too.
+Use timing, provenance, pass counters and a matching source checkout for
+targeted read-only model inspection. For a register's modeled capture path,
+rank arrivals at its capture inputs, including an enable or other control,
+rather than at its Q output. Preserve clock-gating enable endpoints and
+their setup checks in mapped comparisons: data-pin paths alone can miss the
+worst path. Trace routed bit identities through slices, concatenations and
+extensions, and distinguish
+ordinary tree rebalancing from duplication across a shared producer. A
+local delay improvement need not improve a timed endpoint. Confirm both the
+retained graph and repaired STA before keeping a rewrite.
+
+A source-level harness must reproduce raw elaboration, production pass settings
+and order, the run's characterization library, and every clock and port
+constraint. A unit-test fixture library is not evidence of the production
+model's decision. Compare the ordered `DPC-002` pass names and before/after
+node counts through the stage under inspection, including repeated passes.
+An earlier mismatch means the harness has not reproduced that decision;
+resolve it before attributing the production result to the inspected graph.
+
+When a candidate moves the worst path to another block, compare both the
+original and new launch/capture pairs in both repaired designs with one timer.
+Also compare the worst path over the original output group. A different worst
+endpoint alone does not establish that the intended path improved. Keep an
+absent or unconstrained pair explicit instead of assigning it a zero delay.
+
+Use the model's critical-path reporter for the global estimate. A manual
+global ranking needs each capture clock relationship and setup term, not
+just the largest data arrival.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
@@ -100,6 +138,14 @@ treating estimated improvements as measured timing gains.
 
 ## Comparing word-level graphs
 
+For archived `synth_graph_snapshot_dir` output, trace recorded node properties
+across word-level stages with
+`python3 scripts/datapath/snapshot_trace.py <snapshot-dir> --origin 'file.sv:123'`.
+Repeat `--origin` for additional locations. The JSON retains stage sequence,
+node IDs, kinds, widths, details and origin labels, and emits a row when the
+matching properties change or disappear. These are recorded properties, not
+an equivalence check; verify connectivity and timing before attributing a gain.
+
 A word-level graph can contain a cycle even when its bit-level circuit is
 acyclic: a wide routing or select node can read a disjoint slice of its own
 result. A whole-node topological walk can therefore loop or exhaust memory
@@ -116,6 +162,10 @@ mismatch alone is not a different register. Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
+A provenance block's width alone does not establish word-level register
+grouping. Resolve the named state bits to register nodes and inspect their
+widths, data operands, clocks, enables and resets before attributing a split
+to a pass.
 
 For an addition with a late one-bit operand, measure that operand's own path
 through the carry network. Compare it with the equivalent carry-in form of
