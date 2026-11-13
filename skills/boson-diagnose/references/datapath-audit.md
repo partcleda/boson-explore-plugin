@@ -98,6 +98,20 @@ ordinary tree rebalancing from duplication across a shared producer. A
 local delay improvement need not improve a timed endpoint. Confirm both the
 retained graph and repaired STA before keeping a rewrite.
 
+A source-level harness must reproduce raw elaboration, production pass settings
+and order, the run's characterization library, and every clock and port
+constraint. A unit-test fixture library is not evidence of the production
+model's decision. Compare the ordered `DPC-002` pass names and before/after
+node counts through the stage under inspection, including repeated passes.
+An earlier mismatch means the harness has not reproduced that decision;
+resolve it before attributing the production result to the inspected graph.
+
+When a candidate moves the worst path to another block, compare both the
+original and new launch/capture pairs in both repaired designs with one timer.
+Also compare the worst path over the original output group. A different worst
+endpoint alone does not establish that the intended path improved. Keep an
+absent or unconstrained pair explicit instead of assigning it a zero delay.
+
 Use the model's critical-path reporter for the global estimate. A manual
 global ranking needs each capture clock relationship and setup term, not
 just the largest data arrival.
