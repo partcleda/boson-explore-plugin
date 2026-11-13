@@ -56,6 +56,9 @@ class SnapshotComparison(unittest.TestCase):
             path.write_text("boson_index([)\n")
             with self.assertRaisesRegex(ValueError, r"index.js: .*offset 13"):
                 COMPARE.read_call(path, "boson_index")
+            path.write_text("boson_index([], []);")
+            with self.assertRaisesRegex(ValueError, r"index.js: wrong argument count at offset 12"):
+                COMPARE.read_call(path, "boson_index")
             path.write_text("boson_index([]); extra")
             with self.assertRaisesRegex(ValueError, r"offset 14"):
                 COMPARE.read_call(path, "boson_index")

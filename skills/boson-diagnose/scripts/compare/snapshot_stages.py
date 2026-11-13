@@ -72,6 +72,8 @@ def read_call(path, function):
             continue
         if text[position:].strip() != ");":
             raise ValueError(f"{path}: expected end of call at offset {position}")
+        if len(arguments) != {"boson_index": 1, "boson_snapshot": 2}[function]:
+            raise ValueError(f"{path}: wrong argument count at offset {len(prefix)}")
         return arguments
 
 
