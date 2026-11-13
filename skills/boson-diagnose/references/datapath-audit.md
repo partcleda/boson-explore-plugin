@@ -92,8 +92,11 @@ and enabled pass order beside its output.
 When snapshots must remain off, keep that constraint in diagnostic runs too.
 Use timing, provenance, pass counters and a matching source checkout for
 targeted read-only model inspection. For a register's modeled capture path,
-rank the arrivals at its data inputs, not at its Q output. Trace routed bit
-identities through slices, concatenations and extensions, and distinguish
+rank arrivals at its capture inputs, including an enable or other control,
+rather than at its Q output. Preserve clock-gating enable endpoints and
+their setup checks in mapped comparisons: data-pin paths alone can miss the
+worst path. Trace routed bit identities through slices, concatenations and
+extensions, and distinguish
 ordinary tree rebalancing from duplication across a shared producer. A
 local delay improvement need not improve a timed endpoint. Confirm both the
 retained graph and repaired STA before keeping a rewrite.
@@ -159,6 +162,10 @@ mismatch alone is not a different register. Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
+A provenance block's width alone does not establish word-level register
+grouping. Resolve the named state bits to register nodes and inspect their
+widths, data operands, clocks, enables and resets before attributing a split
+to a pass.
 
 For an addition with a late one-bit operand, measure that operand's own path
 through the carry network. Compare it with the equivalent carry-in form of
