@@ -56,6 +56,25 @@ vacuous. Generate cell models from the union of both netlists: retiming or
 repair may remove a clock gate from only one side. Require both designs to
 elaborate completely. An unsupported clock, latch or cell is unavailable coverage.
 
+For memory macros without a simulation model, use a compositional boundary
+check. Flatten the modeled cells in both Yosys designs, retain declared
+blackbox module port directions, and export JSON. The helper below turns
+each macro output into a common independent stimulus port and each macro
+input into an observed output. It requires matching instance, type and
+connected-port signatures and publishes both JSON files together:
+
+```sh
+python3 skills/boson-diagnose/scripts/repro/abstract_macros.py \
+  original.json candidate.json macro-cut --top top
+```
+
+Drive corresponding new input ports identically and compare all new output
+ports as well as the original outputs. Keep clock/reset assumptions explicit.
+This checks sampled behavior at macro boundaries under the chosen stimuli;
+it does not validate the macro implementation or replace sequential proof.
+For large flattened designs, reuse prepared JSON rather than repeatedly
+parsing and lowering an expanded behavioral Verilog export.
+
 Test the checker on the original and on deliberate mutants: an output flip,
 a changed reset value, and a one-cycle latency change. Require these mutants
 to fail. A simulator can return zero after `$finish` while its log contains
