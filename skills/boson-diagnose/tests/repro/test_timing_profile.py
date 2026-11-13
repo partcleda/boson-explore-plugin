@@ -35,11 +35,13 @@ class TimingProfileTest(unittest.TestCase):
         result = profile.summarize([
             "2026-11-13T20:00:01.000Z partcl_timing_profile +1.0s repair\\t12.5 ms\n",
             "partcl_timing_profile +1.1s counter_add runs+=1 total=2\n",
+            "partcl_timing_profile +1.1s prima_max_transient_steps\\t0\n",
             "partcl_timing_profile +1.2s report_paths_select\\tcandidates=1 scanned=1 group_ms=0.0\n",
         ], "partial.log")
         self.assertEqual(result["compile_completions"], 0)
         self.assertIsNone(result["reported_compile_ms"])
         self.assertEqual(result["stages"][0]["total_ms"], 12.5)
+        self.assertEqual(len(result["stages"]), 1)
 
     def test_invalid_durations_name_the_input_line(self):
         for duration in ["NaN", "inf", "-1", "broken"]:

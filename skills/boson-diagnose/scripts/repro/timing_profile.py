@@ -36,7 +36,7 @@ def summarize(lines, source):
             continue
         elapsed = nonnegative(match[1], source, line_number)
         label, duration = payload.rsplit("\t", 1)
-        if re.match(r"[A-Za-z_][A-Za-z0-9_]*=", duration):
+        if re.fullmatch(r"[0-9]+", duration) or re.match(r"[A-Za-z_][A-Za-z0-9_]*=", duration):
             continue
         measured = re.fullmatch(r"(\S+) ms(?:\s+.*)?", duration)
         if not label or not measured:
