@@ -90,6 +90,15 @@ Read, in this order:
   variables; `report_app_var multibit_banking*` lists them).
 - Messages whose counts differ, and the boson versions.
 
+Compare graph snapshots before attributing a mapping change to word-level architecture:
+
+```sh
+python3 $S/snapshot_stages.py old/graphs new/graphs --level datapath
+python3 $S/snapshot_stages.py old/graphs new/graphs --level aig
+```
+
+The JSON result reports stage counts, the identical prefix and the first changed graph. It compares connectivity and node contents, not only counts, and excludes probe snapshots whose scheduling can differ. Repeated stage names retain their execution order. An empty comparison is an error.
+
 ## Step 1: the headline
 
 One table, both netlists timed by boson at one corner:
