@@ -16,6 +16,10 @@ For regressions after buffer insertion, resizing, or repeated placement, use the
 escalating synthesis effort. Compare timing and area on matched netlists; cell
 movement alone does not establish a QoR regression.
 
+When the user requests individual drive-strength, cell-variant or buffering
+edits, use the [manual ECO workflow](manual-eco.md). Preserve the baseline
+constraints and verify cell functions before measuring a replacement.
+
 `scripts/ppa_optimize.py` runs an escalation ladder against a target clock and
 reports every rung. Each rung runs `compile` followed by `report_qor` /
 `report_area` / random-activity `report_power`. Check the installed command

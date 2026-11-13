@@ -87,6 +87,12 @@ names are heuristics; it may not recover a source signal after synthesis.
 
 ### Reading a path
 
+- For an operation that already takes multiple cycles, check when each input
+  becomes available and which work must depend on the preceding cycle. Partial
+  products, operand comparisons or sign corrections may be computed in parallel
+  and redistributed across the existing cycles. Preserve the result-valid cycle,
+  input sampling, enable stalls, output backpressure and reset behavior; compare
+  the original and candidate cycle by cycle before accepting the new schedule.
 - Start with the native launch/capture matches and source snippets. Use
   `kind` to distinguish a signal match from a nearby region or module
   hint. If a point is unmapped, search the reported net/cell names in the
