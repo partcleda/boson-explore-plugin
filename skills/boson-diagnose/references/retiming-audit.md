@@ -42,14 +42,19 @@ Make a small fixture with an untimed control load when diagnosing this case.
 
 ## Validate the sequential result and the checker
 
-Use formal sequential equivalence when available. Otherwise describe the
-result as bounded simulation and record the actual compared cycles, seeds,
+Use formal sequential equivalence when available. State any initial clock
+or reset assumptions. If induction needs internal state correspondences,
+prove their initialization and preservation as part of the property. An
+induction timeout is inconclusive even when its bounded base cases pass.
+Otherwise describe the result as bounded simulation and record the actual compared cycles, seeds,
 reset sequence, clock waveforms, input assumptions and output coverage.
 Keep the original and candidate in lockstep and check outputs during reset
 and after release. Exercise reset again during operation, gated-clock
 enable changes, stalls and supported mode corners. If unknown reference
 bits are masked, report the mask and check that output comparisons are not
-vacuous. An unsupported clock, latch or cell is unavailable coverage.
+vacuous. Generate cell models from the union of both netlists: retiming or
+repair may remove a clock gate from only one side. Require both designs to
+elaborate completely. An unsupported clock, latch or cell is unavailable coverage.
 
 Test the checker on the original and on deliberate mutants: an output flip,
 a changed reset value, and a one-cycle latency change. Require these mutants
