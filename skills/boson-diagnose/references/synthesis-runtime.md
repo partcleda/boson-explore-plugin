@@ -23,6 +23,13 @@ The library's fill receipt reports the tables, real-flow measurements and
 timing runs it performed. Concurrent compiles can wait on the same cache lock;
 attribute that wait once instead of calling it a second expensive algorithm.
 
+Record CUDA kernel-cache and operator-table states separately. Changing
+`XDG_CACHE_HOME` can cold-start both, so an isolated operator cache does not
+alone isolate characterization cost. When that is the comparison, hold a
+verified compatible CUDA kernel cache fixed in both arms and keep their
+operator caches independent. A first-timing stall needs a stage diagnosis;
+elapsed time alone does not establish that characterization is running.
+
 Check warnings before interpreting profiles. A licensing failure can leave
 default arithmetic architectures and skip timing repair. Such a run locates
 costs in that incomplete flow; it cannot establish the original flow's total
