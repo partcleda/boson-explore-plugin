@@ -52,6 +52,16 @@ most of their time maintaining reverse levels and fanouts, even when finding
 replacement candidates is cheap. Use a short CPU profile or stack sample to
 connect the dominant time to the production function.
 
+For native SAT, inspect the actual query cone as well as its decision budget.
+A reused solver can retain clauses from earlier cones; restricting decisions
+alone still lets shared inputs propagate through unrelated gates. Compare
+propagations on a small shared-input reproducer, then measure the full design.
+Clause-membership checks can cost more than they save on a large closed cone.
+Validate returned witnesses against the cone's Boolean equations before using
+them to refine simulation classes. Sparse, dense and directed input patterns
+can reject false simulation matches without spending a SAT conflict budget;
+check which unresolved queries they actually remove.
+
 ## Confirm a proposed cause
 
 When an ablation is warranted, change only the suspected stage and retain the
@@ -88,6 +98,13 @@ bit-level factoring that appears only during lowering. Distinguish a word-level
 identity, a better operator implementation, and a change to mapping polarity or
 sharing. An existing pass with a similar name is insufficient: inspect which
 operators it accepts and which profitability checks admit the observed case.
+
+Recognizing a carry chain does not establish that its readers use the selected
+adder. Follow every externally read intermediate carry and every reader of the
+carry cone's interior terms. Replacing only the last carry can leave an old
+ripple path alive through the next arithmetic row. Any forwarding change must
+also reject operands that depend on any replaced carry, not just the last one,
+and must retain the original array-admission rule in its matched reference.
 
 Measure both the mapped result and the production repair recipe. Report slack
 and constraints along with delay: for a register endpoint the setup requirement
