@@ -38,6 +38,7 @@ from timing_digest import parse_qor  # noqa: E402
 
 VERSION = re.compile(r"\bboson\s+v?(\d+\.\d+\.\d+)")
 CALIBRATED = re.compile(r"PAR-252.*?([\d.]+) to ([\d.]+) ohm/um and ([\d.]+) to ([\d.]+) fF/um")
+COMPILE_RECIPE = re.compile(r"compile: synthesized .* at effort (\w+) \[([^\]]+)\]")
 MESSAGE = re.compile(r"\b(Error|Warning)\b:?\s*\(?([A-Z]+-\d+)")
 
 
@@ -79,8 +80,13 @@ def main(argv=None) -> int:
 
 def read_log(path: Path) -> dict:
     version, calibrations, refused, messages = None, [], 0, Counter()
+    recipes, synthesis_phases, mapped_retime_messages = [], 0, 0
     with open_text(path) as f:
         for line in f:
+            synthesis_phases += "(SYN-103)" in line
+            mapped_retime_messages += "netlist retime:" in line
+            if m := COMPILE_RECIPE.search(line):
+                recipes.append({"effort": m.group(1).lower(), "mode": m.group(2)})
             if version is None and (m := VERSION.search(line)):
                 version = m.group(1)
             if m := CALIBRATED.search(line):
@@ -93,7 +99,8 @@ def read_log(path: Path) -> dict:
             for m in MESSAGE.finditer(line):
                 messages[f"{m.group(1)} {m.group(2)}"] += 1
     return {"version": version, "calibrations": calibrations, "calibration_refused": refused,
-            "messages": dict(messages)}
+            "messages": dict(messages), "compile_recipes": recipes, "synthesis_phases": synthesis_phases,
+            "mapped_retime_messages": mapped_retime_messages}
 
 
 def read_journal(path: Path) -> dict:
@@ -152,6 +159,10 @@ def to_md(report: dict) -> str:
                                   + (" (at the 2x/0.5x hold)" if c["at_hold"] else "")
                                   for c in r["calibrations"]) or "none",
                         r["calibration_refused"]] for lb, r in report.items()]))
+    o.append(md_table(["run", "effective compilation", "synthesis phases (SYN-103)", "mapped retiming reported"],
+                      [[f"`{lb}`", "; ".join(f"{p['effort']} [{p['mode']}]" for p in r.get("compile_recipes", [])) or "not reported",
+                        r.get("synthesis_phases", 0), "yes" if r.get("mapped_retime_messages", 0) else "not observed"]
+                       for lb, r in report.items()]))
     moved = [lb for lb, r in report.items() if r["calibrations"]]
     if moved and len(moved) < len(labels):
         o.append(f"**The wire model differs between runs**: {', '.join(f'`{x}`' for x in moved)} recalibrated it from "
