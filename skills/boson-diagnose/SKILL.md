@@ -26,19 +26,24 @@ goes through the journal debug's anonymizer).
 
 ## Rules for every method
 
-1. **Fact before inference.** Each finding names its evidence: the file, the
+1. **Ask boson first.** Before calling anything a boson defect or a missing
+   feature — and before anything is filed with partcl — search boson's own
+   help: `help search <words>`, then `help <command>`, and `help
+   <MESSAGE-ID>` for any error's ID (in batch, `echo 'help search tie
+   cells' | boson --no-color`). The full ladder is the `boson-help` skill.
+2. **Fact before inference.** Each finding names its evidence: the file, the
    path or endpoint, the journal seq, the counts on both sides.
-2. **Like for like.** Same RTL, Liberty files, SDC, corner, stage and wire
+3. **Like for like.** Same RTL, Liberty files, SDC, corner, stage and wire
    model on both sides of any comparison, and one timer for both. A version
    A/B changes one thing.
-3. **Boson's fault, or the design's?** Check logic depth against the period,
+4. **Boson's fault, or the design's?** Check logic depth against the period,
    the constraints and the clock model before calling something a boson
    defect.
-4. **Nothing identifying leaves the user's machine.** Anything for partcl
+5. **Nothing identifying leaves the user's machine.** Anything for partcl
    goes through `scripts/debug/anonymize.py` and its leak check; the name
    map stays local. Never upload, email or attach anything yourself; the
    user sends it.
-5. **Third-party results stay under their license.** Design Compiler or any
+6. **Third-party results stay under their license.** Design Compiler or any
    other reference tool's results are the user's to share or not; call it
    "the reference tool" in anything shared, and keep its numbers out of
    skill feedback.

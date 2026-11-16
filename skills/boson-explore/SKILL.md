@@ -29,6 +29,10 @@ Read only the reference for the chosen mode.
   `boson-close-timing` job.
 - To close timing at one target, use `boson-close-timing`; to change the RTL,
   `boson-rtl-optimize`.
+- Ask boson first. For any command, flag or error along the way, search
+  boson's own help before assuming a gap: `help search <words>`, then
+  `help <command>`, and `help <MESSAGE-ID>` for any error's ID. The full
+  ladder is the `boson-help` skill.
 
 ## Skill feedback (last step, every run)
 

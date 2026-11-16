@@ -12,10 +12,11 @@ nor a testbench — see below.
 
 ## What's in here
 
-Four skills. Each `SKILL.md` is a short router: what the skill is for, the
+Five skills. Each `SKILL.md` is a short router: what the skill is for, the
 rules every mode shares, and a table that sends Claude to the one reference
 file the task needs. The detailed workflow loads only when that mode is
-chosen.
+chosen. (`boson-help` is the exception — small enough to be
+self-contained.)
 
 - **`skills/boson-explore`** — explore a block's area/power/timing design
   space with real boson runs.
@@ -155,6 +156,17 @@ chosen.
     stays local; an anonymized per-shape summary can be sent to partcl with
     `report_feedback`. Triggers on "boson can't parse my lib", "invalid
     constraint table", "does boson read every table correctly".
+- **`skills/boson-help`** — find the boson command before assuming a gap.
+  boson documents itself: `help search <words>` (real keyword search over
+  command names, descriptions, user procs and app variables),
+  `help <command>` and `help <MESSAGE-ID>` for any error's ID,
+  `describe_command` (JSON command descriptions for scripts and agents),
+  and the full Markdown reference shipped at `/opt/boson/docs/reference`.
+  Every other skill's rules point here: exhaust this ladder before
+  concluding boson lacks a capability or reporting an issue to partcl —
+  only then does `wish <verb> -why "..."` record the gap. Triggers on
+  "how do I X in boson", "what boson command does X", "boson errored
+  with ...", "boson can't / doesn't support X".
 - **`feedback/`** — the standard "Skill feedback" section that every
   customer-facing skill ends its report with: off-script actions, missing
   framework, wrong guidance, missing inputs/coverage, and outcome. It is
@@ -166,7 +178,8 @@ chosen.
   `/boson-rtl-fix`, `/boson-rtl-evolve` (RTL optimize); `/boson-diagnose`,
   `/boson-netlist-debug`, `/boson-datapath-audit`, `/boson-minimal-repro`,
   `/boson-reference-compare`, `/boson-dc-datapath-compare`,
-  `/boson-liberty-shapes` (diagnose).
+  `/boson-liberty-shapes` (diagnose); `/boson-help` (find the command,
+  read the error).
 - **`designs/picorv32/`** — a vendored copy of
   [picorv32](https://github.com/YosysHQ/picorv32) (ISC license), a small
   RISC-V core with ~19 real synthesis-affecting parameters

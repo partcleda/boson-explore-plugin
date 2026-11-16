@@ -1,11 +1,11 @@
 {
   "name": "boson-explore",
-  "description": "Skills for the boson EDA toolchain: explore a block's area/power/timing design space (tables or an animated sweep video), close timing without touching the RTL, change the RTL with boson as the judge, and diagnose a bad boson result — decisions on failing paths, datapath architecture, a deep construct, or the gap to a reference netlist — with an anonymized, leak-checked bundle for partcl.",
-  "version": "0.1.0",
+  "description": "Skills for the boson EDA toolchain: explore a block's area/power/timing design space (tables or an animated sweep video), close timing without touching the RTL, change the RTL with boson as the judge, diagnose a bad boson result — decisions on failing paths, datapath architecture, a deep construct, or the gap to a reference netlist — with an anonymized, leak-checked bundle for partcl, and find any boson command, flag or error explanation through boson's own help before assuming a gap.",
+  "version": "0.2.0",
   "author": {
     "name": "partcl",
     "url": "https://partcl.com"
   },
   "license": "Apache-2.0",
-  "keywords": ["eda", "chip-design", "rtl", "synthesis", "power", "design-space-exploration", "boson", "debug", "timing"]
+  "keywords": ["eda", "chip-design", "rtl", "synthesis", "power", "design-space-exploration", "boson", "debug", "timing", "help"]
 }
