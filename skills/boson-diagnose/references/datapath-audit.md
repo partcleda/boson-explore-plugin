@@ -64,33 +64,53 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
-The `DPC-002` messages name the passes that actually ran.
+Use the build's actual app-variable catalogue and `DPC-002` messages to
+establish which compiler and passes ran. Older builds may expose
+`datapath_compiler`; newer builds have one compiler and remove this variable.
+Do not assume its availability or default, or set a removed variable.
 
-Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
-snapshot index against the compiler's enabled pass list, including repeated
-passes. Some builds record only the graph stamped after the datapath
-compiler finishes. Likewise, `report_elaborated -full` may read the original
-elaboration tape even after `dp_<pass>` commands changed the working design.
-An unchanged report is then missing observation, not evidence of a no-op.
+Set `synth_graph_snapshot_dir <directory>` before compiling. Inspect `index.js`
+for the stages actually recorded. Native word-level stages use the
+`datapath_compiler` level; the stamped backend graph uses `datapath`. Pass names
+can repeat, and probe snapshots are separate from the main compile.
 
-When snapshots are allowed but the shell lacks intermediate snapshots, use the matching checkout's
-Rust API. Inspect `compile_datapath` and `compile_datapath_with_timing` first:
-builds that call `ir::snapshot::record` already record every pass when the
-graph recorder is armed. For a separate observer, run the enabled pass list
-over `Design` and serialize
-`datapath_ir::snapshot::graph(&design).finish(Level::DatapathCompiler, stage, design.top_module())`.
-The matching tape dump is `boson_elab_tape::dump_tape_text(&design.to_tape().view())`.
-Do not assume a `take_snapshots` settings field exists. Add a sequence number to every filename:
-pass names can repeat. Retain the initial tape, complete intermediate tapes,
-operator widths and fanins, live-node counts by kind, and the final tape.
-Validate every tape. The runner must match the checkout and API under test;
-record the commit, dirty diff, binary identity, seed, constraints, library
-and enabled pass order beside its output.
+Trace a literal origin across native stages with the archive reader:
+
+```sh
+python3 <plugin>/skills/boson-diagnose/scripts/datapath/snapshot_trace.py snapshots \
+  --level datapath_compiler --origin 'unit.sv:12'
+```
+
+Inspect a signal's combinational fanin cone at one stage:
+
+```sh
+python3 <plugin>/skills/boson-diagnose/scripts/datapath/snapshot_trace.py snapshots \
+  --node-name result --kind PORT_OUT --stage sum_equal > cone.json
+```
+
+A repeated stage name requires `--seq` from the index. Cone names are literal,
+not patterns; `--kind` disambiguates a port and wire with the same name. The
+report follows aliases, counts reachable kinds and bits, and stops at nodes classified as input,
+register, memory or blackbox. Native memories use the register class; native
+BBOX nodes have no incoming operands. Node ids belong to that snapshot only;
+compaction can renumber them between stages. Reachability and kind counts do
+not establish mapped delay or area, and a register cut does not report its D
+cone.
+
+Check the index against the enabled pass list, including repeated passes. An
+unchanged `report_elaborated -full` may describe the original elaboration tape
+rather than a working design modified by `dp_<pass>` commands.
+
+If the matching build lacks intermediate snapshots, run its enabled passes
+through the Rust API. Use `passes::enabled(&settings)` and
+`Pass::run_timed_with_settings` with the production library and constraints
+for a characterized run; `Pass::run_with_settings` runs without that model.
+Serialize `datapath_ir::snapshot::graph(&design).finish(Level::DatapathCompiler, stage, design.top_module())`
+after each pass, or dump and validate each `to_tape()` result with
+`boson_elab_tape::dump_tape_text`. Retain sequence numbers, operator widths,
+fanins and live counts by kind. Do not assume a `take_snapshots` settings
+field exists. Record the commit, dirty diff, binary, seed, constraints,
+library and enabled pass order beside the output.
 
 If only an archived cone is available, retain operator kinds, widths,
 operand roles and constant bit order when importing it. A Verilog export
@@ -106,36 +126,6 @@ from a large downstream cone. Check the same rewrite at the original
 module boundary before flattening, using the existing policy and budget.
 An accepted module-local trial is a candidate explanation, not proof of
 better full-chip timing; validate the surviving graph and repaired STA.
-
-When snapshots must remain off, keep that constraint in diagnostic runs too.
-Use timing, provenance, pass counters and a matching source checkout for
-targeted read-only model inspection. For a register's modeled capture path,
-rank arrivals at its capture inputs, including an enable or other control,
-rather than at its Q output. Preserve clock-gating enable endpoints and
-their setup checks in mapped comparisons: data-pin paths alone can miss the
-worst path. Trace routed bit identities through slices, concatenations and
-extensions, and distinguish
-ordinary tree rebalancing from duplication across a shared producer. A
-local delay improvement need not improve a timed endpoint. Confirm both the
-retained graph and repaired STA before keeping a rewrite.
-
-A source-level harness must reproduce raw elaboration, production pass settings
-and order, the run's characterization library, and every clock and port
-constraint. A unit-test fixture library is not evidence of the production
-model's decision. Compare the ordered `DPC-002` pass names and before/after
-node counts through the stage under inspection, including repeated passes.
-An earlier mismatch means the harness has not reproduced that decision;
-resolve it before attributing the production result to the inspected graph.
-
-When a candidate moves the worst path to another block, compare both the
-original and new launch/capture pairs in both repaired designs with one timer.
-Also compare the worst path over the original output group. A different worst
-endpoint alone does not establish that the intended path improved. Keep an
-absent or unconstrained pair explicit instead of assigning it a zero delay.
-
-Use the model's critical-path reporter for the global estimate. A manual
-global ranking needs each capture clock relationship and setup term, not
-just the largest data arrival.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
