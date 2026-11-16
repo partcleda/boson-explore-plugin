@@ -79,15 +79,33 @@ elaboration tape even after `dp_<pass>` commands changed the working design.
 An unchanged report is then missing observation, not evidence of a no-op.
 
 When snapshots are allowed but the shell lacks intermediate snapshots, use the matching checkout's
-Rust API. `compile_datapath` with `DatapathOptSettings.take_snapshots = true`
-returns a tape after each enabled pass. Alternatively, run the enabled pass
-list over `Design` and dump `design.to_tape()` after each pass with
-`boson_elab_tape::dump_tape_text`. Add a sequence number to every filename:
+Rust API. Inspect `compile_datapath` and `compile_datapath_with_timing` first:
+builds that call `ir::snapshot::record` already record every pass when the
+graph recorder is armed. For a separate observer, run the enabled pass list
+over `Design` and serialize
+`datapath_ir::snapshot::graph(&design).finish(Level::DatapathCompiler, stage, design.top_module())`.
+The matching tape dump is `boson_elab_tape::dump_tape_text(&design.to_tape().view())`.
+Do not assume a `take_snapshots` settings field exists. Add a sequence number to every filename:
 pass names can repeat. Retain the initial tape, complete intermediate tapes,
 operator widths and fanins, live-node counts by kind, and the final tape.
 Validate every tape. The runner must match the checkout and API under test;
 record the commit, dirty diff, binary identity, seed, constraints, library
 and enabled pass order beside its output.
+
+If only an archived cone is available, retain operator kinds, widths,
+operand roles and constant bit order when importing it. A Verilog export
+can change signed extension, shift or priority-select semantics during
+elaboration. Check the imported cone against an independent evaluation of
+the archive before using it to diagnose a pass. Cut registers and unrelated
+inputs at explicit boundaries; a cone replay with a fixture library does
+not reproduce the full design's timing or the production model's verdict.
+
+For a capped timing trial, record total visits, distinct nodes, pending
+work and operator counts at the limit. This distinguishes repeated visits
+from a large downstream cone. Check the same rewrite at the original
+module boundary before flattening, using the existing policy and budget.
+An accepted module-local trial is a candidate explanation, not proof of
+better full-chip timing; validate the surviving graph and repaired STA.
 
 When snapshots must remain off, keep that constraint in diagnostic runs too.
 Use timing, provenance, pass counters and a matching source checkout for
