@@ -164,6 +164,16 @@ Repeat `--origin` for additional locations. The JSON retains stage sequence,
 node IDs, kinds, widths, details and origin labels, and emits a row when the
 matching properties change or disappear. These are recorded properties, not
 an equivalence check; verify connectivity and timing before attributing a gain.
+Add `--summary` to report only changes in operator counts and widths. This
+omits detail and label changes, so use the full trace when the counts stay
+equal but the connectivity or selected implementation may differ.
+
+Match the complete compile recipe before attributing different gates to a
+pass: compiler selection, ABC script, clock gating (including
+`-no_gate_clock`), recovery and VT sizing, libraries, SDC, and source revision.
+Set recovery and VT sizing explicitly in both comparison arms rather than
+relying on defaults that may differ between revisions. A diagnostic snapshot
+run supplies structural evidence; measure the final timing with snapshots off.
 
 A word-level graph can contain a cycle even when its bit-level circuit is
 acyclic: a wide routing or select node can read a disjoint slice of its own

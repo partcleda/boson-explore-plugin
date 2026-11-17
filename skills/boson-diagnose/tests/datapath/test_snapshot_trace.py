@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "datapath"))
-from snapshot_trace import trace
+from snapshot_trace import summarize, trace
 
 
 def graph(kind="Add", origin="unit.sv:12 u0", width=8):
@@ -15,6 +15,20 @@ def graph(kind="Add", origin="unit.sv:12 u0", width=8):
 
 
 class SnapshotTraceTests(unittest.TestCase):
+    def test_summary_tracks_width_count_and_disappearance_without_detail_noise(self):
+        def row(sequence, nodes):
+            return {"seq": sequence, "stage": f"pass{sequence}", "file": f"{sequence}.js", "nodes": nodes}
+
+        add = {"kind": "Add", "width": 8, "detail": "first"}
+        rows = [row(0, [add, add]), row(1, [dict(add, detail="second"), add]),
+                row(2, [add]), row(3, [dict(add, width=16)]), row(4, [])]
+        summaries = summarize(rows)
+        self.assertEqual([entry["seq"] for entry in summaries], [0, 2, 3, 4])
+        self.assertEqual(summaries[0]["operators"], [{"kind": "Add", "width": 8, "count": 2}])
+        self.assertEqual(summaries[1]["operators"], [{"kind": "Add", "width": 8, "count": 1}])
+        self.assertEqual(summaries[2]["operators"], [{"kind": "Add", "width": 16, "count": 1}])
+        self.assertEqual(summaries[3]["operators"], [])
+
     def archive(self, directory, graphs):
         entries = []
         for sequence, snapshot in enumerate(graphs):

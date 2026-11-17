@@ -71,6 +71,19 @@ def load_snapshot(directory, entry):
     return path, sequence, graph
 
 
+def summarize(rows):
+    summaries = []
+    previous = None
+    for row in rows:
+        counts = Counter((node["kind"], node["width"]) for node in row["nodes"])
+        if counts != previous:
+            summaries.append({"seq": row["seq"], "stage": row["stage"], "file": row["file"],
+                              "operators": [{"kind": kind, "width": width, "count": count}
+                                            for (kind, width), count in sorted(counts.items())]})
+        previous = counts
+    return summaries
+
+
 @dataclass(frozen=True)
 class ConeQuery:
     name: str
@@ -172,17 +185,22 @@ def main():
     parser.add_argument("--stage", help="pass name for a cone; repeated passes require --seq")
     parser.add_argument("--seq", type=int, help="exact snapshot sequence for a cone")
     parser.add_argument("--kind", help="disambiguate identical node names by operator kind")
+    parser.add_argument("--summary", action="store_true", help="report changes in origin-matched operator counts and widths")
     args = parser.parse_args()
     if args.node_name is not None and args.stage is None and args.seq is None:
         parser.error("--node-name needs --stage or --seq")
     if args.origin is not None and any(value is not None for value in (args.stage, args.seq, args.kind)):
         parser.error("--stage, --seq and --kind require --node-name")
+    if args.summary and args.origin is None:
+        parser.error("--summary requires --origin")
     try:
         if args.node_name is not None:
             rows = fanin(args.directory, ConeQuery(args.node_name, args.stage, args.seq,
                          args.level or "datapath_compiler", args.kind))
         else:
             rows = trace(args.directory, args.origin, args.level or "datapath")
+            if args.summary:
+                rows = summarize(rows)
     except (OSError, ValueError, KeyError, TypeError) as error:
         parser.exit(2, f"{error}\n")
     json.dump(rows, sys.stdout, indent=2)
