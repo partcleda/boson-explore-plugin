@@ -101,6 +101,15 @@ Check the index against the enabled pass list, including repeated passes. An
 unchanged `report_elaborated -full` may describe the original elaboration tape
 rather than a working design modified by `dp_<pass>` commands.
 
+A `dp_<pass>` command after `read_sdc` is not necessarily a replay of compile's
+priced decisions. Check the matching adapter: versions that call
+`datapath_timing(None)` build a fresh timing model without the loaded compile
+constraints. Prefer the full compile's recorded stages for that comparison.
+A pass-disable app var can also make the native compiler refuse the recipe
+with `SYN-453`; keep that refusal and build a source variant with only the
+implicated scheduled pass removed. Do not switch compilers to obtain an
+ablation of a native pass.
+
 If the matching build lacks intermediate snapshots, run its enabled passes
 through the Rust API. Use `passes::enabled(&settings)` and
 `Pass::run_timed_with_settings` with the production library and constraints
@@ -120,12 +129,14 @@ the archive before using it to diagnose a pass. Cut registers and unrelated
 inputs at explicit boundaries; a cone replay with a fixture library does
 not reproduce the full design's timing or the production model's verdict.
 
-For a capped timing trial, record total visits, distinct nodes, pending
-work and operator counts at the limit. This distinguishes repeated visits
-from a large downstream cone. Check the same rewrite at the original
-module boundary before flattening, using the existing policy and budget.
-An accepted module-local trial is a candidate explanation, not proof of
-better full-chip timing; validate the surviving graph and repaired STA.
+A capped timing trial is an incomplete evaluation. Record total visits,
+distinct nodes, pending work and operator counts at the limit. Complete the
+affected timing and removed-area cones before ranking the alternatives.
+Removing the limit can admit harmful transformations: compare the actual
+before/after stages and trace newly retained operators back to the pass
+that copied them. Neither acceptance by the estimator nor a module-local
+trial proves better full-chip timing; validate the surviving graph and
+repaired STA with the production boundaries, loads and constraints.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
