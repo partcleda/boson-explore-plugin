@@ -23,6 +23,10 @@ and boson's own engine are what may change. Changing the RTL is
   a multi-clock or mode-specific flow, iterate their Tcl directly.
 - Say whether every number is placed or unplaced, and which rung or setting
   produced it.
+- Ask boson first. Before calling a failure, a rejected constraint or a
+  missing flag a boson problem, search boson's own help: `help search
+  <words>`, then `help <command>`, and `help <MESSAGE-ID>` for any error's
+  ID. The full ladder is the `boson-help` skill.
 - When no setting closes timing, the path is usually architectural: hand
   over to `boson-rtl-optimize`. When the question becomes "why is boson's
   result bad", hand over to `boson-diagnose`.

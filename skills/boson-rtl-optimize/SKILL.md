@@ -29,6 +29,10 @@ Both read paths back to source with boson's native RTL traceback:
    mode), and report unplaced numbers as unplaced.
 6. When the question is whether a deep path is the RTL's fault or boson's,
    run `boson-diagnose` (minimal repro) before editing.
+7. **Ask boson first.** For any command, flag or error, search boson's own
+   help — `help search <words>`, then `help <command>`, and `help
+   <MESSAGE-ID>` for any error's ID — before concluding boson lacks it.
+   The full ladder is the `boson-help` skill.
 
 ## Skill feedback (last step, every run)
 
