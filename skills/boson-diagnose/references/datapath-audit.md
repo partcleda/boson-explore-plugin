@@ -56,12 +56,14 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
-The `DPC-002` messages name the passes that actually ran.
+First establish which optimizer ran from `report_app_var datapath_compiler`
+and the compile log. Defaults depend on the revision: `auto` can select the
+datapath compiler for medium effort, while `false` selects the legacy
+word-level passes. Keep the failing run's setting when reproducing it;
+changing the setting creates a different experiment. To explicitly investigate
+the `datapath/` crate, set `datapath_compiler true` before plain
+`compile -effort medium`; other compile recipes may refuse this setting.
+The `DPC-002` messages identify the passes that actually ran.
 
 Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
 snapshot index against the compiler's enabled pass list, including repeated
