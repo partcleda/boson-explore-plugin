@@ -56,10 +56,20 @@ class SnapshotTraceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "different lengths"):
                 trace(directory, ["unit.sv"])
             snapshot = graph()
-            snapshot["provenance"]["node"] = [-1]
+            snapshot["provenance"]["node"] = [-2]
             self.archive(directory, [snapshot])
             with self.assertRaisesRegex(ValueError, "invalid column index"):
                 trace(directory, ["unit.sv"])
+
+    def test_native_missing_provenance_does_not_hide_other_origins(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            snapshot = graph()
+            snapshot["nodes"] = {"kind": [0, 0], "width": [8, 8], "detail": ["missing", "choice"]}
+            snapshot["provenance"]["node"] = [-1, 0]
+            self.archive(directory, [snapshot])
+            rows = trace(directory, ["unit.sv"])
+            self.assertEqual([node["id"] for node in rows[0]["nodes"]], [1])
 
     def test_rejects_paths_outside_archive(self):
         with tempfile.TemporaryDirectory() as name:

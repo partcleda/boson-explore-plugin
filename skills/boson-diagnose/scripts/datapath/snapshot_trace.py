@@ -143,7 +143,7 @@ def matching_nodes(graph, origins):
             raise ValueError("node and provenance columns have different lengths")
     selected = []
     for node, record in enumerate(provenance["node"]):
-        if record is None:
+        if record is None or (type(record) is int and record == -1):
             continue
         labels = [lookup(provenance["strings"], index)
                   for index in lookup(provenance["records"], record)["origins"]]
