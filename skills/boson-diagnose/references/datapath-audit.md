@@ -174,6 +174,10 @@ pass: compiler selection, ABC script, clock gating (including
 Set recovery and VT sizing explicitly in both comparison arms rather than
 relying on defaults that may differ between revisions. A diagnostic snapshot
 run supplies structural evidence; measure the final timing with snapshots off.
+Verify the executed ABC schedule in each run's profiling records, including
+full-graph and cover-remap trials. A source merge can restore a default script
+without changing an older experiment label; a label saying DC2 is disabled
+does not establish that DC2 never ran.
 
 A word-level graph can contain a cycle even when its bit-level circuit is
 acyclic: a wide routing or select node can read a disjoint slice of its own
