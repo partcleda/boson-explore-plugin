@@ -47,14 +47,14 @@ self-contained.)
     |---|---|---|---|---|---|---|---|---|
     | medium | compile | 2.6 | VIOLATED | -0.103 | -2.321 | 370 | 13,327 | 120,030 |
     | medium | +repair_timing -setup | 2.6 | VIOLATED | -0.069 | -0.971 | 375 | 13,494 | 121,101 |
-    | medium+retime | compile | 2.6 | MET | +0.000 | +0.000 | 385 | 12,403 | 123,461 |
-    | medium+retime | +repair_timing -setup | 2.6 | MET | +0.000 | +0.000 | 385 | 12,384 | 123,302 |
+    | medium+retime (0 moved) | compile | 2.6 | MET | +0.000 | +0.000 | 385 | 12,403 | 123,461 |
+    | medium+retime (0 moved) | +repair_timing -setup | 2.6 | MET | +0.000 | +0.000 | 385 | 12,384 | 123,302 |
 
-    Verdict: plain medium misses 2.6 ns by 0.10 ns and the extra
-    `repair_timing -setup` only narrows it; `-retime` closes it at the same
-    effort for +3 % area, so the ladder stops there without paying for high.
-    With `--find-fmax`, high effort reaches **fmax ≈ 370 MHz** on this core
-    without retiming.
+    Read the `(0 moved)`: picorv32 has no pipeline for `-retime` to move, so
+    the closure here comes from the retiming recipe itself (a fast map with
+    medium repair and the word-level datapath passes), not from retiming. The
+    report says which it was. With `--find-fmax`, high effort reaches
+    **fmax ≈ 370 MHz** on this core.
   - *Constraint and engine loop* (`references/constraint-engine-loop.md`) and
     *placement continuity* (`references/placement-continuity.md`) for suspect
     SDC, synthesis failures and QoR that moves after netlist edits.

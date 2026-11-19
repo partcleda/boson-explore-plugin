@@ -6,7 +6,8 @@ Effort ladder (each rung is one real compile + STA run; the ladder stops at
 the first rung that MEETS timing unless --full-ladder):
 
     0  -effort medium            the standard compile (map + setup/DRV repair)
-    1  -effort medium -retime    + pipeline-register retiming (same cycle behaviour)
+    1  -effort medium -retime    pipeline-register retiming (same cycle behaviour); boson's
+                                 retiming recipe maps at fast effort with medium repair
     2  -effort high              strongest map and setup repair
                                  (sets compile_allow_high_effort true)
     3  -effort high -retime      both
@@ -76,6 +77,7 @@ class Result:
     power_w: float | None = None
     wall_s: float = 0.0
     fmax_mhz: float | None = None
+    retime_moved: int | None = None
 
     def met(self): return self.ok and self.wns_ns is not None and self.wns_ns >= 0
 
@@ -162,6 +164,10 @@ class Runner:
                 r.error = "could not parse report_qor (see boson.log)"
             print(f"[ppa]   {r.stage:>22}: {r.status or 'ERROR'} WNS {r.wns_ns} ns · TNS {r.tns_ns} · {r.cells} cells · "
                   f"{r.area_um2} um² · {(r.power_w or 0) * 1e3:.1f} mW", file=sys.stderr)
+        rt = re.search(r"^retime:.*?(\d+) moved", out, re.M)
+        if rt:
+            print(f"[ppa]   retime: {rt.group(1)} register(s) moved", file=sys.stderr)
+            for r in rows: r.retime_moved = int(rt.group(1))
         print(f"[ppa]   wall {wall:.0f}s · {d}", file=sys.stderr)
         return rows
 
@@ -181,17 +187,22 @@ def _num(rx, text, cast=float):
 
 def fmt(r: Result) -> str:
     if not r.ok:
-        return f"| {r.label} | {r.stage} | {r.period_ns:g} | ERROR: {r.error[:60]} | | | | | | |"
+        return f"| {_name(r)} | {r.stage} | {r.period_ns:g} | ERROR: {r.error[:60]} | | | | | | |"
     pw = f"{r.power_w * 1e3:.1f}" if r.power_w is not None else "n/a"
     tns = f"{r.tns_ns:+.3f}" if r.tns_ns is not None else "n/a"
     cells = f"{r.cells:,}" if r.cells is not None else "n/a"
     area = f"{r.area_um2:,.0f}" if r.area_um2 is not None else "n/a"
-    return (f"| {r.label} | {r.stage} | {r.period_ns:g} | {r.status} | {r.wns_ns:+.3f} | {tns} | {r.fmax_mhz:.0f} | "
+    return (f"| {_name(r)} | {r.stage} | {r.period_ns:g} | {r.status} | {r.wns_ns:+.3f} | {tns} | {r.fmax_mhz:.0f} | "
             f"{cells} | {area} | {pw} |")
 
 
 HEADER = ("| effort | stage | period (ns) | timing | WNS (ns) | TNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |\n"
           "|---|---|---|---|---|---|---|---|---|---|")
+
+
+def _name(r: Result) -> str:
+    """The rung label, with how many registers -retime moved."""
+    return r.label + (f" ({r.retime_moved} moved)" if r.retime_moved is not None else "")
 
 
 def _better(a: Result | None, b: Result) -> bool:

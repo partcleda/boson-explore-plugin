@@ -24,7 +24,7 @@ reports again after an extra `repair_timing -setup`.
 | rung | recipe | what it buys |
 |---|---|---|
 | 0 | `compile -effort medium` | the standard compile: one technology map, then setup, design-rule and clock-gating hold repair. Same as `compile` with no `-effort` |
-| 1 | `compile -effort medium -retime` | retimes pipeline registers inside the standard compile, after the datapath is optimized and before structures are chosen, and keeps the better netlist. Preserves cycle-by-cycle behaviour, clock, enable and reset; latches are not moved. Often the cheapest big win on a pipelined design: on picorv32 at 2.6 ns it closed timing where plain medium missed by 0.10 ns, for +3 % area, at the same wall time |
+| 1 | `compile -effort medium -retime` | retimes pipeline registers after the datapath is optimized and before structures are chosen. Preserves cycle-by-cycle behaviour, clock, enable and reset; latches are not moved. It runs boson's fixed retiming recipe, not plain medium: a **fast** map with medium setup repair, with the word-level datapath passes in place of the datapath compiler. Costs about one medium compile |
 | 2 | `compile -effort high` (after `set_app_var compile_allow_high_effort true`) | the strongest map and a setup repair run until timing is met or gains stop. Costs several × medium wall time and more memory; on a large design it can run for hours, which is why boson asks for the app variable |
 | 3 | `compile -effort high -retime` | both |
 
@@ -37,10 +37,19 @@ Each rung prints two rows from the same compile:
   timing is met, so it costs little. Recommend it only when it moved the
   numbers. `--no-extra-repair` drops it.
 
-Always try `-retime` before concluding a design cannot close: it keeps the
-RTL and its latency, so it is within this skill's scope. Registers move, so
-say so in the report: register names change, and an equivalence check of the
-result needs a sequential (not combinational) check. `--no-retime` skips
+Always try `-retime` on a design with pipeline registers before concluding
+it cannot close: it keeps the RTL and its latency, so it is within this
+skill's scope. Read the log's `retime:` line before crediting retiming:
+
+- `N moved` with N > 0: registers moved. Say so in the report; register
+  names change, and an equivalence check needs a sequential (not
+  combinational) check.
+- `0 moved`: nothing was retimed. Any difference from the medium row comes
+  from the retiming recipe (fast map, word-level datapath passes), not from
+  retiming. Report it that way: it is a recipe difference worth a
+  `boson-diagnose` look, not a retiming result.
+
+The script prints the `retime:` line per rung. `--no-retime` skips
 those rungs when the user's sign-off cannot accept moved registers. It is
 not supported with `-hier-verilog`.
 
