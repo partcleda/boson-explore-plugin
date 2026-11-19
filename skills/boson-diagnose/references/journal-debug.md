@@ -61,8 +61,10 @@ on (their own compile line and effort, unchanged):
 
 ```tcl
 set_app_var decision_log_file run/decisions.jsonl
-compile ...                      ;# their usual compile
+set_app_var synth_graph_snapshot_dir run/snap   ;# optional: stage graphs, viewer.html
+compile ... -provenance          ;# their usual compile; -provenance does not change the netlist
 update_timing
+report_provenance [get_timing_paths -max_paths 5] > run/prov.rpt
 report_qor > run/qor.rpt
 report_timing -max_paths 50 -format json -file run/timing.json
 report_timing -max_paths 50 > run/timing.rpt
@@ -234,8 +236,9 @@ rejections. Missing metrics or decision records remain unknown; runtime
 alone cannot identify a rejection reason or prove repeated identical work.
 
 Check the actual flow and saved design before blaming interconnect RC.
-`compile -no_layout` disables the layout-aware loop; inspect any separate
-placement or extraction steps. Zero annotated wire capacitance still
+`compile` is logical synthesis: it prices wires on a model; inspect any
+later steps of the flow that change that. (`-no_layout` is the deprecated
+spelling of `-no_timing_loop`.) Zero annotated wire capacitance still
 leaves Liberty pin loads, output loads, slew effects and receiver-capacitance
 refinement. Resolve each repair command's effort and limits from its own
 options and the installed version; do not assume it inherits compile's.

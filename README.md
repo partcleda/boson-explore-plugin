@@ -33,47 +33,49 @@ self-contained.)
 - **`skills/boson-close-timing`** — close timing or find fmax without
   changing the RTL: constraints first, then the cheapest recipe.
   - *Effort ladder* (`references/ladder.md`) — Close timing at a target clock with the
-    *cheapest* boson recipe that works: an escalation ladder (`-effort high`
-    → `-draws 3` → `-select_candidates` → `-datapath_search`, optional
-    `eco_optimize`) that stops at the first rung meeting timing, plus an fmax
-    search. Hands back the ladder table and the recommended compile Tcl.
-    Triggers on "close timing at X ns", "what's the fmax", "which effort
-    should I use".
-    Sample run (picorv32 @ 7 ns on sky130, `--target-ns 7 --find-fmax --max-rung 2`):
-  
-    | recipe | period (ns) | timing | WNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
-    |---|---|---|---|---|---|---|---|
-    | medium | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
-    | high | 7 | VIOLATED | -0.899 | 127 | 14,365 | 139,411 | 22.0 |
-    | high+draws3 | 7 | VIOLATED | -0.899 | 127 | 14,364 | 139,405 | 22.0 |
-    | medium | 7.9 | MET | +0.001 | 127 | 14,366 | 139,414 | 19.5 |
-    | medium | 7.74 | VIOLATED | -0.159 | 127 | 14,364 | 139,406 | 19.9 |
-  
-    Verdict: no rung closes 7 ns; **fmax ≈ 127 MHz** (closes at 7.9 ns, fails at
-    7.74). On this core the extra effort and placement draws changed nothing —
-    the critical path is architectural, which is what `boson-rtl-optimize` (meet timing)
-    is for.
+    *cheapest* boson recipe that works: `compile -effort medium`, then
+    `-effort high`, each reported straight out of compile and again after an
+    optional extra `repair_timing -setup`. Stops at the first rung meeting
+    timing, plus an fmax search. Hands back the ladder table and the
+    recommended compile Tcl; when nothing closes, it points at the critical
+    path with `compile -provenance` / `report_provenance` rather than at more
+    settings. Triggers on "close timing at X ns", "what's the fmax", "which
+    effort should I use".
+    Sample run (picorv32 on sky130 tt, boson 1.1071, `--target-ns 3 --find-fmax --full-ladder --fmax-probes 6`, abridged):
+
+    | effort | stage | period (ns) | timing | WNS (ns) | TNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
+    |---|---|---|---|---|---|---|---|---|---|
+    | medium | compile | 3 | MET | +0.000 | +0.000 | 333 | 12,837 | 115,078 | 16.2 |
+    | medium | +repair_timing -setup | 3 | MET | +0.000 | +0.000 | 333 | 12,835 | 115,069 | 16.2 |
+    | high | compile | 3 | MET | +0.004 | +0.000 | 334 | 11,715 | 109,494 | 15.7 |
+    | high | +repair_timing -setup | 3 | MET | +0.004 | +0.000 | 334 | 11,620 | 108,654 | 15.6 |
+    | high | compile | 2.7 | MET | +0.000 | +0.000 | 370 | 11,997 | 112,019 | 17.8 |
+    | high | compile | 2.65 | VIOLATED | -0.183 | -4.558 | 353 | 11,953 | 112,878 | 18.2 |
+    | high | +repair_timing -setup | 2.65 | VIOLATED | -0.089 | -0.765 | 365 | 12,513 | 116,576 | 18.1 |
+
+    Verdict: medium already closes 3 ns; high closes it with 5 % less area
+    and power, and **fmax ≈ 370 MHz** (closes at 2.7 ns, fails at 2.65). The
+    extra `repair_timing -setup` is a no-op where compile met timing and
+    recovers most of the TNS where it did not.
   - *Constraint and engine loop* (`references/constraint-engine-loop.md`) and
     *placement continuity* (`references/placement-continuity.md`) for suspect
     SDC, synthesis failures and QoR that moves after netlist edits.
 - **`skills/boson-rtl-optimize`** — change the RTL with boson as the judge.
   - *Meet timing* (`references/meet-timing.md`) — When settings can't close timing
-    and the RTL has to change: `timing_probe.py` turns a fast boson compile
+    and the RTL has to change: `timing_probe.py` turns a standard boson compile
     into critical paths that map back to source (launch/capture register
     names survive synthesis, plus RTL-named nets, logic depth, slowest cells,
     fanout), and the skill drives an edit → probe → edit loop with hard rules
     — non-RTL levers first, one edit per probe, restructure before pipeline,
     ask before any latency change, clean git tree, run the project's tests,
-    confirm at medium effort. Sample probe (picorv32 @ 5 ns on sky130):
-  
+    confirm in the user's own flow. Sample probe (picorv32 @ 4 ns on sky130):
+
     ```
-    period 5 ns · effort fast · WNS -1.442 ns (VIOLATED) · 252/4234 endpoints violating · 14810 cells
-    ### path 1: slack -1.442 ns (VIOLATED), 21 logic stages, arrival 6.179 ns
-    - from `latched_store_reg/Q`
-    - to   `mem_addr_reg[31]/D`
-    - RTL-named nets on the path: `latched_store`
-    - slowest stages: sky130_fd_sc_hd__or4_1 0.659 ns, sky130_fd_sc_hd__or4_1 0.653 ns, sky130_fd_sc_hd__a22oi_4 0.498 ns
-    - high fanout: `n2972` drives 86 loads
+    period 4 ns · effort medium · WNS 0.004 ns (MET) · TNS 0.0 ns · 0/2409 endpoints violating · 11484 cells · 12s
+    ### path 1: slack 0.004 ns (MET), 11 logic stages, arrival 3.904 ns
+    - from `genblk2.pcpi_div.dividend_reg[0]`
+    - to   `genblk2.pcpi_div.pcpi_rd_reg[29]`
+    - slowest stages: sky130_fd_sc_hd__or4_1 0.487 ns, sky130_fd_sc_hd__or4_1 0.410 ns, sky130_fd_sc_hd__or4_1 0.401 ns
     ```
   - *Evolve* (`references/evolve.md`) — An evolutionary RTL-optimisation loop
     with boson as the evaluator. The objective is max Fmax
@@ -81,12 +83,18 @@ self-contained.)
     others, e.g. area ≤ +15 %. Each candidate is one hypothesis, committed,
     passed through an equivalence gate (lint, sound formal miter, lockstep
     co-simulation with directed corners), then scored by boson: compile →
-    place → repair → timing/area/power. The skill includes anti-gaming
+    timing/area/power. The skill includes anti-gaming
     rules, a results ledger and a budget. It ends with a declared final
     that is rerun and signed off. Triggers on "optimise this RTL for Fmax",
     "run an RTL optimisation loop".
 - **`skills/boson-diagnose`** — why a boson result is bad, and the evidence
-  for partcl.
+  for partcl. Every method starts by instrumenting the user's own compile:
+  `-provenance` (each cell traced to its RTL line, datapath block and the
+  passes and repairs that touched it, read with `report_provenance`),
+  `synth_graph_snapshot_dir` (the circuit after every datapath, logic and
+  repair stage, browsable in `viewer.html`) and the decision journal, none of
+  which changes the netlist; and an extra `repair_timing -setup` separates a
+  structure problem from a repair problem.
   - *Journal debug* (`references/journal-debug.md`) — Run on your own machine against a boson
     run of your design: reads the netlist, timing / QoR / check_timing
     reports, SDC, log and boson's decision journal (`decision_log_file`), ties
@@ -234,7 +242,9 @@ target, while `ENABLE_FAST_MUL` (a combinational multiplier) costs ~7K extra
 cells (+50 %) and *lowers* achieved clock to 100–120 MHz — its product path
 becomes the critical path. `TWO_CYCLE_ALU` and the C extension are within
 noise of each other. And the target matters: the same RTL lands at ~125 MHz
-with a 12 ns target because the timing-driven loop stops once it's met.
+with a 12 ns target because optimisation stops once it's met. (The demo
+videos were recorded on an earlier boson release; a current compile reaches
+much higher clocks on picorv32, see the effort-ladder sample above.)
 
 The smaller 8-point run (`ENABLE_MUL` × `BARREL_SHIFTER` × {8, 20 ns}) is
 in `demo/picorv32_sweep.{gif,mp4}`; it was made with:
@@ -242,7 +252,7 @@ in `demo/picorv32_sweep.{gif,mp4}`; it was made with:
 ```
 S=skills/boson-explore/scripts/video
 python3 $S/run_sweep.py --rtl designs/picorv32/picorv32.v --top picorv32 \
-  --liberty <sky130_fd_sc_hd__tt_025C_1v80.lib> --lef <sky130_fd_sc_hd__nom.tlef> --lef <sky130_fd_sc_hd.lef> \
+  --liberty <sky130_fd_sc_hd__tt_025C_1v80.lib> --lef <sky130_fd_sc_hd__nom.tlef> --lef <sky130_fd_sc_hd.lef> --site unithd \
   --axis ENABLE_MUL=0,1 --axis BARREL_SHIFTER=0,1 --periods 8,20 \
   --color-by ENABLE_MUL --marker-by BARREL_SHIFTER \
   --label "ENABLE_MUL:0=no multiplier" --label "ENABLE_MUL:1=hardware MUL" \
@@ -259,7 +269,7 @@ python3 $S/render_video.py --runs runs --gif demo/picorv32_sweep.gif --mp4 demo/
 | MUL · barrel shifter · 8 ns | 14,366 | 139,414 | +0.101 | 127 MHz | 19.2 mW |
 | (same four at 20 ns) | 12.4–14.3K | 120–138K | +6.2…+6.6 | 73–75 MHz | 6.8–7.6 mW |
 
-The timing-driven compile hits ~125 MHz on sky130 for every config at the
+That (earlier-release) compile hits ~125 MHz on sky130 for every config at the
 8 ns target; the multiplier and barrel shifter cost ~5–15 % area and power
 and buy no fmax here. The 20 ns points are the low-power corner (the tool
 stops optimising once timing is met, so they land at ~7 mW).
@@ -271,24 +281,24 @@ stops optimising once timing is met, so they land at ~7 mW).
 ## Sample output
 
 Real output from `--rtl designs/picorv32/picorv32.v --periods 6,20 --presets min-area,balanced,max-perf`
-against SkyWater sky130 (`sky130_fd_sc_hd`, tt corner):
+against SkyWater sky130 (`sky130_fd_sc_hd`, tt corner), boson 1.1071, `-effort medium`:
 
 | Preset | Period (ns) | Timing | WNS (ns) | Cells | Area (um^2) | Power (mW) |
 |---|---|---|---|---|---|---|
-| min-area | 6.0 | VIOLATED | -6.596 | 5310 | 52042.4 | 13.0898 |
-| min-area | 20.0 | MET | 7.404 | 5310 | 52042.4 | 3.9270 |
-| balanced | 6.0 | VIOLATED | -7.208 | 14811 | 140850.1 | 33.9246 |
-| balanced | 20.0 | MET | 6.792 | 14811 | 140850.1 | 10.1774 |
-| max-perf | 6.0 | VIOLATED | -14.467 | 18845 | 198915.8 | 38.9075 |
-| max-perf | 20.0 | VIOLATED | -0.467 | 18845 | 198915.8 | 11.6723 |
+| min-area | 6.0 | MET | 1.171 | 4287 | 40872.9 | 3.6322 |
+| min-area | 20.0 | MET | 14.810 | 4242 | 40644.0 | 1.0843 |
+| balanced | 6.0 | MET | 0.256 | 11181 | 104614.1 | 7.5335 |
+| balanced | 20.0 | MET | 13.669 | 10996 | 103127.7 | 2.2319 |
+| max-perf | 6.0 | MET | 0.016 | 16121 | 140492.2 | 9.6915 |
+| max-perf | 20.0 | MET | 11.923 | 14910 | 130844.2 | 2.7853 |
 
-The non-obvious part: `max-perf` (barrel shifter, fast multiplier, all IRQ/
-counter features on) is not "faster" here — it has the *worst* WNS at both
-periods, because those features add combinational depth to the critical
-path per cycle. `min-area` closes timing at 20ns with 3x less power and a
-third of the cells `max-perf` needs, and still can't close at 6ns. That's
-the kind of tradeoff this skill is for surfacing — real numbers, not
-intuition.
+The non-obvious part: every preset closes 6 ns, but not equally. `max-perf`
+(barrel shifter, fast multiplier, all IRQ/counter features on) has the
+*least* slack at 6 ns (+0.016 ns against `min-area`'s +1.171), for 3.4x the
+area and 2.7x the power of `min-area`: those features add combinational
+depth per cycle. And at a relaxed 20 ns, compile spends less: every preset
+sheds cells and area against its 6 ns netlist. That's the kind of tradeoff
+this skill is for surfacing — real numbers, not intuition.
 
 ## Adding your own design / skill
 

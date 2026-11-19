@@ -7,7 +7,7 @@ Run the `boson-rtl-optimize` skill in meet-timing mode (`references/meet-timing.
 rules exactly: non-RTL levers first, one edit per probe, restructuring
 before pipelining, ask before any latency-changing edit, clean git tree,
 run the project's tests after each accepted edit if there are any, and
-confirm the final fix at `--effort medium`. Report the iteration table,
+confirm the final fix in the user's own flow (their effort and steps). Report the iteration table,
 the diff, and what changed behaviourally.
 
 Arguments: $ARGUMENTS
