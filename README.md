@@ -34,29 +34,27 @@ self-contained.)
   changing the RTL: constraints first, then the cheapest recipe.
   - *Effort ladder* (`references/ladder.md`) — Close timing at a target clock with the
     *cheapest* boson recipe that works: `compile -effort medium`, then
-    `-effort high`, each reported straight out of compile and again after an
+    `-retime`, then `-effort high`, each reported straight out of compile and again after an
     optional extra `repair_timing -setup`. Stops at the first rung meeting
     timing, plus an fmax search. Hands back the ladder table and the
     recommended compile Tcl; when nothing closes, it points at the critical
     path with `compile -provenance` / `report_provenance` rather than at more
     settings. Triggers on "close timing at X ns", "what's the fmax", "which
     effort should I use".
-    Sample run (picorv32 on sky130 tt, boson 1.1071, `--target-ns 3 --find-fmax --full-ladder --fmax-probes 6`, abridged):
+    Sample run (picorv32 on sky130 tt, boson 1.1071, `--target-ns 2.6 --no-power`):
 
-    | effort | stage | period (ns) | timing | WNS (ns) | TNS (ns) | achieved (MHz) | cells | area (µm²) | power (mW) |
-    |---|---|---|---|---|---|---|---|---|---|
-    | medium | compile | 3 | MET | +0.000 | +0.000 | 333 | 12,837 | 115,078 | 16.2 |
-    | medium | +repair_timing -setup | 3 | MET | +0.000 | +0.000 | 333 | 12,835 | 115,069 | 16.2 |
-    | high | compile | 3 | MET | +0.004 | +0.000 | 334 | 11,715 | 109,494 | 15.7 |
-    | high | +repair_timing -setup | 3 | MET | +0.004 | +0.000 | 334 | 11,620 | 108,654 | 15.6 |
-    | high | compile | 2.7 | MET | +0.000 | +0.000 | 370 | 11,997 | 112,019 | 17.8 |
-    | high | compile | 2.65 | VIOLATED | -0.183 | -4.558 | 353 | 11,953 | 112,878 | 18.2 |
-    | high | +repair_timing -setup | 2.65 | VIOLATED | -0.089 | -0.765 | 365 | 12,513 | 116,576 | 18.1 |
+    | effort | stage | period (ns) | timing | WNS (ns) | TNS (ns) | achieved (MHz) | cells | area (µm²) |
+    |---|---|---|---|---|---|---|---|---|
+    | medium | compile | 2.6 | VIOLATED | -0.103 | -2.321 | 370 | 13,327 | 120,030 |
+    | medium | +repair_timing -setup | 2.6 | VIOLATED | -0.069 | -0.971 | 375 | 13,494 | 121,101 |
+    | medium+retime | compile | 2.6 | MET | +0.000 | +0.000 | 385 | 12,403 | 123,461 |
+    | medium+retime | +repair_timing -setup | 2.6 | MET | +0.000 | +0.000 | 385 | 12,384 | 123,302 |
 
-    Verdict: medium already closes 3 ns; high closes it with 5 % less area
-    and power, and **fmax ≈ 370 MHz** (closes at 2.7 ns, fails at 2.65). The
-    extra `repair_timing -setup` is a no-op where compile met timing and
-    recovers most of the TNS where it did not.
+    Verdict: plain medium misses 2.6 ns by 0.10 ns and the extra
+    `repair_timing -setup` only narrows it; `-retime` closes it at the same
+    effort for +3 % area, so the ladder stops there without paying for high.
+    With `--find-fmax`, high effort reaches **fmax ≈ 370 MHz** on this core
+    without retiming.
   - *Constraint and engine loop* (`references/constraint-engine-loop.md`) and
     *placement continuity* (`references/placement-continuity.md`) for suspect
     SDC, synthesis failures and QoR that moves after netlist edits.

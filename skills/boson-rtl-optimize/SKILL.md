@@ -18,7 +18,7 @@ Both read paths back to source with boson's native RTL traceback:
 ## Rules for both modes
 
 1. **Try the non-RTL levers first** (parameters, `boson-close-timing`'s
-   effort ladder: medium, high, an extra `repair_timing -setup`), or
+   effort ladder: medium, `-retime`, high, an extra `repair_timing -setup`), or
    confirm the user already has. Locate the critical path in source with
    `compile -provenance` and `report_provenance` before editing.
 2. **Work on a branch with a clean tree.** Every iteration ends in a diff the

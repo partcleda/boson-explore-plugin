@@ -24,7 +24,9 @@ reports again after an extra `repair_timing -setup`.
 | rung | recipe | what it buys |
 |---|---|---|
 | 0 | `compile -effort medium` | the standard compile: one technology map, then setup, design-rule and clock-gating hold repair. Same as `compile` with no `-effort` |
-| 1 | `compile -effort high` (after `set_app_var compile_allow_high_effort true`) | the strongest map and a setup repair run until timing is met or gains stop. Costs several × medium wall time and more memory; on a large design it can run for hours, which is why boson asks for the app variable |
+| 1 | `compile -effort medium -retime` | retimes pipeline registers inside the standard compile, after the datapath is optimized and before structures are chosen, and keeps the better netlist. Preserves cycle-by-cycle behaviour, clock, enable and reset; latches are not moved. Often the cheapest big win on a pipelined design: on picorv32 at 2.6 ns it closed timing where plain medium missed by 0.10 ns, for +3 % area, at the same wall time |
+| 2 | `compile -effort high` (after `set_app_var compile_allow_high_effort true`) | the strongest map and a setup repair run until timing is met or gains stop. Costs several × medium wall time and more memory; on a large design it can run for hours, which is why boson asks for the app variable |
+| 3 | `compile -effort high -retime` | both |
 
 Each rung prints two rows from the same compile:
 
@@ -35,8 +37,15 @@ Each rung prints two rows from the same compile:
   timing is met, so it costs little. Recommend it only when it moved the
   numbers. `--no-extra-repair` drops it.
 
+Always try `-retime` before concluding a design cannot close: it keeps the
+RTL and its latency, so it is within this skill's scope. Registers move, so
+say so in the report: register names change, and an equivalence check of the
+result needs a sequential (not combinational) check. `--no-retime` skips
+those rungs when the user's sign-off cannot accept moved registers. It is
+not supported with `-hier-verilog`.
+
 The ladder stops at the first rung that MEETS timing (WNS ≥ 0): the point is
-the *cheapest* recipe that works. `--full-ladder` runs both rungs anyway,
+the *cheapest* recipe that works. `--full-ladder` runs every rung anyway,
 which is how to answer "is high worth it on this design". Among met rows the
 smallest area wins.
 
@@ -93,8 +102,8 @@ winning recipe through them and report those numbers separately.
 
 ## How to use it well
 
-- Budget before launching: rung 0 is one compile; rung 1 is several × that
-  on larger designs. Tell the user the expected wall time, run it in the
+- Budget before launching: rungs 0 and 1 are one compile each; rungs 2 and
+  3 are several × that on larger designs. Tell the user the expected wall time, run it in the
   background, and report rungs as they land (the script prints each rung to
   stderr).
 - If nothing closes, the path is almost always structural. Do not reach for

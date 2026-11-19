@@ -56,10 +56,10 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. `datapath_compiler` defaults to `auto`:
-the standard compile (`compile`, `-effort medium` or `high`) optimizes the
-datapath with boson's datapath compiler instead of the word-level passes;
-the two never both run. The `DPC-001`/`DPC-002` messages in the log confirm
+First establish which optimizer ran. `datapath_compiler` defaults to `auto`,
+which uses boson's datapath compiler where the effort's compile settings do
+(medium, the default) and the word-level passes otherwise; the two never both
+run. `datapath_compiler true` forces it at any effort of the standard compile. The `DPC-001`/`DPC-002` messages in the log confirm
 it ran and name each pass. A compile that takes the general path (the
 `-timing_driven` loop, `-map_engine extern`) keeps the word-level passes and
 refuses `datapath_compiler true` (SYN-453). Check `help datapath_compiler`
