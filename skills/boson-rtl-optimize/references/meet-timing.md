@@ -79,7 +79,6 @@ python3 $S/timing_probe.py ... --json probe1.json --diff probe0.json
 # repeat until WNS >= 0; if the user's flow runs -effort high, confirm there:
 python3 $S/timing_probe.py ... --effort high --diff probeN.json
 # --extra-repair adds a repair_timing -setup after compile when the flow has one
-# before pipelining by hand, check `--compile-extra -retime`: boson retimes registers without changing latency
 ```
 
 Its `--json probe.json` is the helper's own schema, parsed from

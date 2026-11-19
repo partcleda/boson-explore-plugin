@@ -34,7 +34,7 @@ self-contained.)
   changing the RTL: constraints first, then the cheapest recipe.
   - *Effort ladder* (`references/ladder.md`) — Close timing at a target clock with the
     *cheapest* boson recipe that works: `compile -effort medium`, then
-    `-retime`, then `-effort high`, each reported straight out of compile and again after an
+    `-effort high`, each reported straight out of compile and again after an
     optional extra `repair_timing -setup`. Stops at the first rung meeting
     timing, plus an fmax search. Hands back the ladder table and the
     recommended compile Tcl; when nothing closes, it points at the critical
@@ -47,13 +47,9 @@ self-contained.)
     |---|---|---|---|---|---|---|---|---|
     | medium | compile | 2.6 | VIOLATED | -0.103 | -2.321 | 370 | 13,327 | 120,030 |
     | medium | +repair_timing -setup | 2.6 | VIOLATED | -0.069 | -0.971 | 375 | 13,494 | 121,101 |
-    | medium+retime (0 moved) | compile | 2.6 | MET | +0.000 | +0.000 | 385 | 12,403 | 123,461 |
-    | medium+retime (0 moved) | +repair_timing -setup | 2.6 | MET | +0.000 | +0.000 | 385 | 12,384 | 123,302 |
 
-    Read the `(0 moved)`: picorv32 has no pipeline for `-retime` to move, so
-    the closure here comes from the retiming recipe itself (a fast map with
-    medium repair and the word-level datapath passes), not from retiming. The
-    report says which it was. With `--find-fmax`, high effort reaches
+    Medium misses 2.6 ns by 69 ps even after the extra repair, so the ladder
+    goes on to `-effort high`. With `--find-fmax`, high effort reaches
     **fmax ≈ 370 MHz** on this core.
   - *Constraint and engine loop* (`references/constraint-engine-loop.md`) and
     *placement continuity* (`references/placement-continuity.md`) for suspect

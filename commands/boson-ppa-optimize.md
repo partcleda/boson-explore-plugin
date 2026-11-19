@@ -1,6 +1,6 @@
 ---
-description: Close timing at a target clock with the cheapest boson recipe that works (compile -effort medium → medium -retime → high → high -retime, each with an optional extra repair_timing -setup), and/or find fmax.
-argument-hint: --rtl path --top name [--target-ns T] [--find-fmax] [--full-ladder] [--no-retime] [--provenance]
+description: Close timing at a target clock with the cheapest boson recipe that works (compile -effort medium → high, each with an optional extra repair_timing -setup), and/or find fmax.
+argument-hint: --rtl path --top name [--target-ns T] [--find-fmax] [--full-ladder] [--provenance]
 ---
 
 Run the `boson-close-timing` skill's effort ladder (`references/ladder.md`): `scripts/ppa_optimize.py` with the
