@@ -92,20 +92,26 @@ set_dont_use <the flow's dont_use list>
 #   set_clock_uncertainty <U> [all_clocks]
 #   set_input_delay 0 -clock clk [remove_from_collection [all_inputs] [get_ports <clk port>]]
 #   set_output_delay 0 -clock clk [all_outputs]
-compile -f design.f -top <module> -G <PARAM>=<instance value> -sdc repro.sdc -effort fast -provenance
-report_timing -max_paths 10 > fast.rpt
+set_app_var synth_graph_snapshot_dir repro_snap   ;# stage graphs; open repro_snap/viewer.html
+compile -f design.f -top <module> -G <PARAM>=<instance value> -sdc repro.sdc -effort medium -provenance
+report_timing -max_paths 10 -input_pins -nets > medium.rpt
+report_provenance [get_timing_paths -max_paths 1] > medium_prov.rpt
 ```
 
 If the module has too much else in it, wrap only the construct: put registers
 on its inputs and outputs, so its own logic is the register-to-register path.
 
-Run it twice: `-effort fast` (one map and a short repair: the structure as
-built) and the flow's effort (usually `medium`). `-fast` reports a zero-wire
-WNS, so compare it by depth, not slack. If medium is much shallower than fast,
-optimization is doing the work. If both are as deep as the full design, the
-structure is set at mapping. Then run the datapath audit ([datapath-audit.md](datapath-audit.md)) on the medium
-compile. It shows, per arithmetic or priority block, the architecture boson
-chose and which logic passes rewrote it.
+Compile it at the flow's effort (usually `medium`), then follow it with an
+extra `repair_timing -setup` and compare the depth and slack of the worst path
+before and after. If repair shortens it a lot, the repair is doing the work. If
+neither compile nor repair gets it near the full design's depth, the structure
+is set at mapping or in the datapath. Find where in the snapshots: open
+`repro_snap/viewer.html` and walk the path's logic back from the mapped stage
+to the pass that built it. `medium_prov.rpt` names the RTL line, datapath
+block and passes per stage. Then run the datapath audit
+([datapath-audit.md](datapath-audit.md)) on the medium compile. It shows, per
+arithmetic or priority block, the architecture boson chose and which logic
+passes rewrote it.
 
 Check rule 5 now: does the repro's worst path match the full design's?
 

@@ -1,12 +1,52 @@
 ---
 name: boson-diagnose
-description: Use when a boson result is bad and the question is why, or when partcl should get the evidence — "what did boson do wrong", "why is my netlist bad", "why did timing get worse after layout", "is this my RTL, my constraints or boson", "why is this path 59 levels", "did it pick Han-Carlson or ripple", "why is boson's area bigger than the other tool's / Design Compiler's", "why did the new boson version regress", "boson can't parse my lib", "invalid constraint table", "does boson read every table in my Liberty correctly", "prepare a debug bundle for partcl without leaking IP". Reads boson's netlist, reports, log and decision journal, compares against a reference netlist, or tests every Liberty table shape against boson, and ends in evidence-backed findings.
+description: Use when a boson result is bad and the question is why, or when partcl should get the evidence — "what did boson do wrong", "why is my netlist bad", "why did timing get worse after layout", "is this my RTL, my constraints or boson", "why is this path 59 levels", "did it pick Han-Carlson or ripple", "why is boson's area bigger than the other tool's / Design Compiler's", "why did the new boson version regress", "boson can't parse my lib", "invalid constraint table", "does boson read every table in my Liberty correctly", "prepare a debug bundle for partcl without leaking IP". Instruments the run first (compile -provenance + report_provenance, synth_graph_snapshot_dir stage graphs, the decision journal, an extra repair_timing to separate structure from repair), then reads boson's netlist, reports, log and journal, compares against a reference netlist, or tests every Liberty table shape against boson, and ends in evidence-backed findings.
 ---
 
 # Diagnosing a boson result
 
 Every method here ends in findings that cite numbers from files (path ids,
 journal seq numbers, cell counts and areas on both sides), never impressions.
+
+Diagnose from the circuit, not from summary numbers. Read the netlist and
+the real timing gate by gate before changing any setting; a settings sweep
+confirms a diagnosis, it never finds one.
+
+## Instrument the run first
+
+Whatever the method, ask for (or rerun) the user's own compile with boson's
+built-in instruments on. None of them changes the netlist, so the rerun is
+the same design:
+
+```tcl
+set_app_var decision_log_file      run/decisions.jsonl   ;# what boson decided and why
+set_app_var synth_graph_snapshot_dir run/snap            ;# the circuit at every synthesis stage
+compile ... -provenance                                  ;# their compile line, unchanged, plus -provenance
+report_provenance [get_timing_paths -max_paths 1] > run/prov_worst.rpt
+report_timing -max_paths 20 -input_pins -nets -capacitance -transition_time > run/timing.rpt
+report_timing -max_paths 50 -format json -file run/timing.json
+```
+
+| instrument | what it answers |
+|---|---|
+| `compile -provenance` + `report_provenance <cells or paths>` | for every cell on a path: its RTL file and line, module instance, the elaborated construct and datapath block it implements, the word-level rewrites and logic passes that built it, and each later edit (buffering, sizing, repair) with the cell's timing before it. Start here for "why is this path slow" and "which RTL is this" |
+| `synth_graph_snapshot_dir <dir>` | the design after elaboration, after each datapath-compiler and word-level pass and selection stage, as gates, as the AIG after each optimization, and mapped (with an STA setup overlay), then after each repair pass. Open `<dir>/viewer.html`; `index.js` and `stages/*.js` hold the same data for scripts. Follow the slow logic back stage by stage to the pass that built it or should have improved it. `synth_graph_snapshot_probes true` also records the trial syntheses that measure candidate structures |
+| `decision_log_file <path>` | the decision journal: each choice boson made (architecture, mapping, repair) with its alternatives and measured numbers. See [journal-schema.md](references/journal-schema.md) |
+| `report_timing ... -input_pins -nets -capacitance -transition_time` | the stage-by-stage account: cell and drive strength, arc delay, slew, load, fanout and wire delay. Name the stages that should not be there |
+
+Then separate synthesis from repair. `compile` maps once and repairs setup,
+design rules and clock-gating hold. Rerun an extra `repair_timing -setup`
+(and `repair_design` for design-rule violations) on the compiled netlist and
+compare:
+
+- if the extra repair closes most of the gap, the structure was fine and
+  the question is repair (check the repair summary lines in the log, and the
+  repair records in the journal and provenance);
+- if it barely moves, the structure was set at mapping or in the datapath:
+  go to the snapshots and the datapath audit.
+
+Report both numbers. The extra repair is a probe and an optional fix, not a
+required stage of the user's flow.
 
 ## Pick the method, then read its reference
 

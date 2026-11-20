@@ -10,12 +10,12 @@ something different is not a result.
 - **Objective**, pick one: max Fmax, min area, or min power. Optionally add
   caps on the others (e.g. maximise Fmax with area ≤ baseline + 15 %).
   - Fmax = 1 / (T − WNS), with T the clock period and WNS the worst setup
-    slack on the **placed** design, both in ns.
+    slack after the frozen flow, both in ns.
   - Tie-break: among candidates within ~0.5 % of the best objective, take
     the one that is best on the secondary metric.
 - **Budget**: a fixed number of scored evaluations, plus a wall-clock cap.
   Gate-only runs (no boson) are free.
-- **Freeze** the SDC, the clock, the Liberty/LEF set and the flow script.
+- **Freeze** the SDC, the clock, the Liberty set and the flow script.
   Record their hashes. Only the design's own RTL files are editable.
 - **Pick the clock so the baseline clearly misses it** (tens of percent
   short). Repair stops once timing is met, so at a loose clock every good
@@ -133,13 +133,8 @@ the candidate commit and frozen input hashes:
 
 ```tcl
 foreach lib $LIBS { read_liberty $lib }
-read_lef tech.lef ; read_lef cells.lef         ;# placement needs footprints
-# set_wire_rc ...                              ;# calibrate RC for your PDK
 compile rtl/a.sv rtl/b.sv -top TOP -sdc design.sdc -effort medium
-create_floorplan -utilization 50
-place_design -density 0.6
-repair_design -max_fanout 32
-repair_timing -setup
+# repair_timing -setup                         ;# optional extra repair; freeze the choice
 update_timing
 if {[report_timing_status -quiet] ne "complete"} { error "Timing did not complete" }
 puts [report_qor]                ;# setup WNS / TNS -> Fmax
@@ -147,11 +142,14 @@ puts [report_timing -format rtl -max_paths 10]
 report_timing -format json -max_paths 10 -file timing.json
 puts [report_area]               ;# total cell area
 puts [report_power -vcd sim.vcd] ;# add -vcd_rtl if the VCD names RTL signals
-write_verilog placed.v
+write_verilog netlist.v
 ```
 
-- `compile` maps and runs setup repair. It does not place, so
-  `place_design` follows. Without `-effort` it does a one-shot fast map.
+- `compile` maps once and runs setup, design-rule and clock-gating hold
+  repair; no `-effort` is the same as `-effort medium`. An extra
+  `repair_timing -setup` after it is optional; decide once, before the
+  baseline, and keep it the same for every candidate. When the user's flow
+  continues past synthesis, append their steps unchanged.
 - Power without activity is leakage only. For a power objective, use a
   VCD (or SAIF) from the **same workload** for every candidate, and
   regenerate it from that candidate's own simulation.
@@ -162,7 +160,7 @@ write_verilog placed.v
 
 ## Optional: cross-check the final
 
-If a second synthesis and place-and-route flow is available, run the
+If a second synthesis flow is available, run the
 baseline and the final through it too. RTL tuned against one evaluator
 doesn't always transfer to another. Report both, and don't claim a
 general win from one flow.

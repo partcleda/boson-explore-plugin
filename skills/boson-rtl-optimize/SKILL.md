@@ -17,16 +17,18 @@ Both read paths back to source with boson's native RTL traceback:
 
 ## Rules for both modes
 
-1. **Try the non-RTL levers first** (parameters, effort, `boson-close-timing`'s
-   ladder), or confirm the user already has.
+1. **Try the non-RTL levers first** (parameters, `boson-close-timing`'s
+   effort ladder: medium, `-retime`, high, an extra `repair_timing -setup`), or
+   confirm the user already has. Locate the critical path in source with
+   `compile -provenance` and `report_provenance` before editing.
 2. **Work on a branch with a clean tree.** Every iteration ends in a diff the
    user can read.
 3. **Never change behaviour silently.** A pipeline stage or any latency,
    port or reset change needs the user's explicit OK. Say plainly what was
    verified (tests, lint, equivalence) and what was not.
 4. **One change per scored run**, so each result is attributable.
-5. **Confirm the winner in the target flow** (baseline effort and layout
-   mode), and report unplaced numbers as unplaced.
+5. **Confirm the winner in the target flow** (the baseline effort and
+   steps), and say which flow produced each number.
 6. When the question is whether a deep path is the RTL's fault or boson's,
    run `boson-diagnose` (minimal repro) before editing.
 7. **Ask boson first.** For any command, flag or error, search boson's own

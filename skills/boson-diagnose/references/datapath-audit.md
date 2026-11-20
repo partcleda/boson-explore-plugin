@@ -56,12 +56,14 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
-The `DPC-002` messages name the passes that actually ran.
+First establish which optimizer ran. `datapath_compiler` defaults to `auto`,
+which uses boson's datapath compiler where the effort's compile settings do
+(medium, the default) and the word-level passes otherwise; the two never both
+run. `datapath_compiler true` forces it at any effort of the standard compile. The `DPC-001`/`DPC-002` messages in the log confirm
+it ran and name each pass. A compile that takes the general path (the
+`-timing_driven` loop, `-map_engine extern`) keeps the word-level passes and
+refuses `datapath_compiler true` (SYN-453). Check `help datapath_compiler`
+on the installed build when the log disagrees.
 
 Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
 snapshot index against the compiler's enabled pass list, including repeated

@@ -56,7 +56,8 @@ def safe(s: str) -> str:
 
 def build_flow(out: Path, rtl: Path, top: str, libs: list[Path], lefs: list[Path], extra_tcl: Path | None,
                period_ps: int, clock_port: str, sdc_extra: Path | None, gparams: dict[str, str],
-               effort: str, compile_extra: str, vcd_cycles: int, tag: str) -> tuple[str, str]:
+               effort: str, compile_extra: str, vcd_cycles: int, tag: str,
+               utilization: float = 40, site: str | None = None) -> tuple[str, str]:
     """Returns (flow.tcl text, display command)."""
     sdc = out / f"clk_{period_ps}ps.sdc"
     sdc_lines = [f"create_clock -name clk -period {period_ps / 1000.0:g} [get_ports {clock_port}]"]
@@ -72,9 +73,16 @@ def build_flow(out: Path, rtl: Path, top: str, libs: list[Path], lefs: list[Path
     lines += [f"read_lef {l}" for l in lefs]
     if extra_tcl:
         lines.append(f"source {extra_tcl}")
+    if effort == "high":
+        lines.append("set_app_var compile_allow_high_effort true")
     lines += [
         f'puts "SWEEP: start {tag}"',
         real_cmd,
+        # compile is logical; place its netlist so the video has a placement to draw
+        f"create_floorplan -utilization {utilization:g}" + (f" -site {site}" if site else ""),
+        "place_design",
+        "repair_design",
+        "repair_timing -setup",
         "update_timing",
         f"report_qor > {out / 'qor.rpt'}",
         f"report_area > {out / 'synth.rpt'}",
@@ -98,7 +106,9 @@ def main() -> int:
     ap.add_argument("--periods", default="10", help="Clock periods in ns, comma-separated")
     ap.add_argument("--clock-port", default="clk")
     ap.add_argument("--sdc-extra", type=Path, default=None, help="Extra SDC lines appended after create_clock")
-    ap.add_argument("--effort", default="medium", choices=["fast", "low", "medium", "high"])
+    ap.add_argument("--effort", default="medium", choices=["medium", "high"])
+    ap.add_argument("--utilization", type=float, default=40, help="create_floorplan -utilization for each point (percent)")
+    ap.add_argument("--site", default=None, help="core site for the rows when the LEF defines several (sky130 hd: unithd)")
     ap.add_argument("--compile-extra", default="", help="Extra verbatim compile flags (e.g. '-blackbox foo')")
     ap.add_argument("--vcd-cycles", type=int, default=500)
     ap.add_argument("--runs", type=Path, default=Path("runs"), help="Output root (must be under cwd for containerised boson)")
@@ -154,7 +164,8 @@ def main() -> int:
         out.mkdir(exist_ok=True)
         flow, show_cmd = build_flow(out, a.rtl.resolve(), a.top, [l.resolve() for l in libs], [l.resolve() for l in a.lef],
                                     a.extra_tcl.resolve() if a.extra_tcl else None, period_ps, a.clock_port,
-                                    a.sdc_extra, gparams, a.effort, a.compile_extra, a.vcd_cycles, tag)
+                                    a.sdc_extra, gparams, a.effort, a.compile_extra, a.vcd_cycles, tag,
+                                    a.utilization, a.site)
         (out / "flow.tcl").write_text(flow)
         cfg = [f"{k}={v}" for k, v in gparams.items()] + [f"period_ps={period_ps}", f"effort={a.effort}", f"cmd={show_cmd}"]
         (out / "config.txt").write_text("\n".join(cfg) + "\n")

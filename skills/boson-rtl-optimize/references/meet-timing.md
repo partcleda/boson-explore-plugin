@@ -27,11 +27,12 @@ You are going to change the design, so the rules come first.
    simulation command, run it after every accepted edit (ask for the
    command if you don't know it). boson checks timing, not function; say
    plainly that no equivalence check was run unless one was.
-6. **Confirm in the target flow.** Use `compile -fast` for a short probe
-   when appropriate, then re-run the accepted change at the baseline effort
-   and layout mode. Effort alone does not enable placement: `-physical`
-   needs the appropriate LEF/RC inputs. Report unplaced results as unplaced,
-   and check the installed command help before changing the recipe.
+6. **Confirm in the target flow.** Probe at the flow's own effort (the
+   probe defaults to `-effort medium`, the standard compile), so the number
+   you iterate on is the number you ship. Re-run the accepted change exactly
+   as the user's flow does (their effort and any steps after compile).
+   Say which flow produced each number, and check the
+   installed command help before changing the recipe.
 
 ## The loop
 
@@ -75,8 +76,10 @@ python3 $S/timing_probe.py --rtl <files> --top <top> --liberty <lib> \
 # inspect the text-derived path summary, decide ONE edit (rules 1-3), make it
 python3 $S/timing_probe.py ... --json probe1.json --diff probe0.json
 # WNS better and no new worst endpoint? keep; else revert (git checkout) and try the next idea
-# repeat until WNS >= 0 at fast, then:
-python3 $S/timing_probe.py ... --effort medium --lef <tech.tlef> --lef <cells.lef> --diff probeN.json
+# repeat until WNS >= 0; if the user's flow runs -effort high, confirm there:
+python3 $S/timing_probe.py ... --effort high --diff probeN.json
+# --extra-repair adds a repair_timing -setup after compile when the flow has one
+# before pipelining by hand, check `--compile-extra -retime`: boson retimes registers without changing latency
 ```
 
 Its `--json probe.json` is the helper's own schema, parsed from

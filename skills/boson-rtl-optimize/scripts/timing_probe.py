@@ -4,12 +4,13 @@ form that maps to RTL: for each of the worst N paths, the launching and
 capturing REGISTERS (synthesis keeps their RTL names), the logic depth, the
 RTL-named nets the path passes through, and the slack.
 
-Fast by default (`-effort fast`, layout-blind) so an edit-probe-edit loop
-turns around in well under a minute on a small core; confirm a fix with
-`--effort medium` (the timing-driven layout loop, several minutes).
+Runs the standard compile (`-effort medium`, the same flow the user ships),
+so every probe is scored on the number that counts. Confirm an accepted fix
+at `--effort high` only when the user's flow uses high.
 
     timing_probe.py --rtl design.v --top top --liberty cells.lib --period-ns 5 \\
-        [--paths 5] [--effort fast|medium] [-G NAME=VALUE] [--json probe.json] [--diff prev.json]
+        [--paths 5] [--effort medium|high] [--extra-repair] [-G NAME=VALUE] \\
+        [--json probe.json] [--diff prev.json]
 """
 from __future__ import annotations
 
@@ -85,11 +86,12 @@ def main() -> int:
     ap.add_argument("--rtl", required=True, type=Path, nargs="+", help="RTL file(s)")
     ap.add_argument("--top", required=True)
     ap.add_argument("--liberty", action="append", type=Path, default=None)
-    ap.add_argument("--lef", action="append", type=Path, default=[], help="Only needed with --effort medium/high (placement)")
     ap.add_argument("--period-ns", type=float, required=True); ap.add_argument("--clock-port", default="clk")
     ap.add_argument("--sdc-extra", type=Path, default=None)
     ap.add_argument("-G", action="append", default=[], metavar="NAME=VALUE")
-    ap.add_argument("--effort", default="fast", choices=["fast", "low", "medium", "high"])
+    ap.add_argument("--effort", default="medium", choices=["medium", "high"])
+    ap.add_argument("--extra-repair", action="store_true", help="Run an extra `repair_timing -setup` after compile")
+    ap.add_argument("--extra-tcl", type=Path, default=None, help="Tcl sourced before compile (dont_use, app variables)")
     ap.add_argument("--compile-extra", default="")
     ap.add_argument("--paths", type=int, default=5)
     ap.add_argument("--json", type=Path, default=None, help="Write the structured probe here")
@@ -100,7 +102,7 @@ def main() -> int:
     a = ap.parse_args()
     libs = a.liberty or ([Path(os.environ["BOSON_LIBERTY"])] if os.environ.get("BOSON_LIBERTY") else [])
     if not libs: ap.error("no liberty: --liberty or $BOSON_LIBERTY")
-    for f in [*a.rtl, *libs, *a.lef]:
+    for f in [*a.rtl, *libs] + ([a.extra_tcl] if a.extra_tcl else []):
         if not f.exists(): ap.error(f"not found: {f}")
     if shutil.which(a.boson_bin) is None and not Path(a.boson_bin).exists():
         ap.error(f"boson binary not found ({a.boson_bin!r}); see https://partcl.com")
@@ -110,8 +112,15 @@ def main() -> int:
     sdc.write_text(f"create_clock -name clk -period {a.period_ns:g} [get_ports {a.clock_port}]\n" + (a.sdc_extra.read_text() if a.sdc_extra else ""))
     gflags = " ".join(f"-G {g}" for g in a.G)
     rtl = " ".join(str(f.resolve()) for f in a.rtl)
-    tcl = [f"read_liberty {l.resolve()}" for l in libs] + [f"read_lef {l.resolve()}" for l in a.lef] + [
-        f"compile {rtl} -top {a.top} {gflags} -sdc {sdc} -effort {a.effort} {a.compile_extra}".replace("  ", " "),
+    tcl = [f"read_liberty {l.resolve()}" for l in libs]
+    if a.extra_tcl:
+        tcl.append(f"source {a.extra_tcl.resolve()}")
+    if a.effort == "high":
+        tcl.append("set_app_var compile_allow_high_effort true")
+    tcl += [f"compile {rtl} -top {a.top} {gflags} -sdc {sdc} -effort {a.effort} {a.compile_extra}".replace("  ", " ").strip()]
+    if a.extra_repair:
+        tcl.append("repair_timing -setup")
+    tcl += [
         "update_timing", 'puts "===QOR==="', "puts [report_qor]", 'puts "===AREA==="', "puts [report_area]",
         f"report_timing -max_paths {a.paths} -format pt -file {d / 'timing.rpt'}",
     ]

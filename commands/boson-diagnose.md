@@ -5,7 +5,9 @@ argument-hint: <what you have: run dir, netlist, reports, journal, reference net
 
 Run the `boson-diagnose` skill on the inputs below. Pick the method from its
 routing table by what the user has and asks, read only that method's
-reference, and follow the skill's rules: evidence for every finding, like
+reference, and follow the skill's rules: instrument the run first (`-provenance`,
+`synth_graph_snapshot_dir`, the decision journal; none changes the netlist),
+separate synthesis from repair with an extra `repair_timing -setup`, evidence for every finding, like
 for like in every comparison, anonymize anything meant for partcl, and never
 send anything yourself. Finish with the method's reporting format and the
 skill feedback section.

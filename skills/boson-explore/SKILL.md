@@ -23,6 +23,8 @@ Read only the reference for the chosen mode.
 - A `boson` binary (`$BOSON_BIN`, `--boson-bin` or on `PATH`) and a Liberty
   file are required; the video also needs LEF, because placement is what it
   draws. boson is not shipped here; if it is missing, say so and stop.
+- Every point runs the standard compile (`-effort medium`); `high` is for
+  re-checking the interesting points.
 - `designs/picorv32/picorv32.v` is a bundled example with real
   synthesis-affecting parameters, verified on sky130.
 - One clock, or a sweep of one clock's period. A multi-clock flow is a

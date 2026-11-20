@@ -107,14 +107,18 @@ def build_tcl(
     gparams: dict[str, int],
     effort: str,
     vcd_path: Path,
+    extra_repair: bool = False,
 ) -> str:
+    # compile needs its constraints before synthesis: it refuses to run without a clock.
     sdc = f"create_clock -name clk -period {period_ns} [get_ports clk]"
     gflags = " ".join(f"-G {name}={value}" for name, value in gparams.items())
+    pre = "set_app_var compile_allow_high_effort true\n" if effort == "high" else ""
+    post = "repair_timing -setup\n" if extra_repair else ""
     return f"""\
 read_liberty {liberty}
-compile {rtl} -top {top} {gflags} -effort {effort}
 {sdc}
-update_timing
+{pre}compile {rtl} -top {top} {gflags} -effort {effort}
+{post}update_timing
 puts "===QOR==="
 puts [report_qor]
 puts "===AREA==="
@@ -134,23 +138,25 @@ def run_point(
     period_ns: float,
     effort: str,
     workdir: Path,
+    extra_repair: bool = False,
+    timeout: int = 3600,
 ) -> SweepPoint:
     point = SweepPoint(preset=preset, period_ns=period_ns)
     gparams = PARAM_PRESETS[preset]
     vcd_path = workdir / f"{preset}_{period_ns}.vcd"
-    tcl = build_tcl(rtl, top, liberty, period_ns, gparams, effort, vcd_path)
+    tcl = build_tcl(rtl, top, liberty, period_ns, gparams, effort, vcd_path, extra_repair)
     tcl_path = workdir / f"{preset}_{period_ns}.tcl"
     tcl_path.write_text(tcl)
 
     try:
         proc = subprocess.run(
-            [boson_bin, "-f", str(tcl_path)],
+            [boson_bin, "--no-color", "-f", str(tcl_path)],
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired:
-        point.error = "boson run timed out after 600s"
+        point.error = f"boson run timed out after {timeout}s"
         return point
 
     out = proc.stdout + "\n" + proc.stderr
@@ -217,7 +223,11 @@ def main() -> int:
     ap.add_argument("--boson-bin", default=os.environ.get("BOSON_BIN", "boson"), help="Path to the boson binary; defaults to $BOSON_BIN or 'boson' on PATH")
     ap.add_argument("--periods", default="8,12,20", help="Comma-separated clock periods in ns")
     ap.add_argument("--presets", default="min-area,balanced,max-perf", help="Comma-separated presets from: " + ", ".join(PARAM_PRESETS))
-    ap.add_argument("--effort", default="medium", choices=["fast", "low", "medium", "high"])
+    ap.add_argument("--effort", default="medium", choices=["medium", "high"],
+                    help="compile effort per point: medium (default) or high (sets compile_allow_high_effort)")
+    ap.add_argument("--extra-repair", action="store_true",
+                    help="run an extra `repair_timing -setup` after compile (optional; it can recover a little WNS)")
+    ap.add_argument("--timeout", type=int, default=3600, help="per-point timeout in seconds")
     ap.add_argument("--out", type=Path, default=None, help="Write the Markdown table here (default: stdout only)")
     ap.add_argument("--keep-workdir", action="store_true", help="Don't delete the temp dir of generated .tcl/.vcd files")
     args = ap.parse_args()
@@ -252,7 +262,7 @@ def main() -> int:
                 print(f"[boson_dse] {preset} @ {period}ns ...", file=sys.stderr)
                 point = run_point(
                     args.boson_bin, args.rtl.resolve(), args.top, args.liberty.resolve(),
-                    preset, period, args.effort, workdir,
+                    preset, period, args.effort, workdir, args.extra_repair, args.timeout,
                 )
                 points.append(point)
                 status = "ok" if point.ok else f"FAILED: {point.error}"

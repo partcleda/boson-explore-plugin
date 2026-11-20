@@ -4,7 +4,8 @@ Three scripts, run in order, all under `scripts/video/` in this skill's director
 
 1. `run_sweep.py` — runs the cartesian product of `--axis NAME=v1,v2` RTL
    parameter axes and `--periods` clock periods through boson. Each point is
-   one real session: `compile` (synthesis + timing-driven placement),
+   one real session: `compile`, then `place_design` with `repair_design`
+   and `repair_timing -setup` so there is a placement to draw, then
    `report_qor`, `report_area`, `write_def`, random-activity `report_power`.
    Writes `<runs>/<tag>/` (logs, reports, DEF) plus `<runs>/space.json`.
    Restart-safe — re-running skips points whose `rc.txt` is `0`.
@@ -21,7 +22,7 @@ Three scripts, run in order, all under `scripts/video/` in this skill's director
 ```
 S=skills/boson-explore/scripts/video
 python3 $S/run_sweep.py --rtl designs/picorv32/picorv32.v --top picorv32 \
-  --liberty <cells.lib> --lef <tech.tlef> --lef <cells.lef> \
+  --liberty <cells.lib> --lef <tech.tlef> --lef <cells.lef> --site unithd \
   --axis ENABLE_MUL=0,1 --axis BARREL_SHIFTER=0,1 --periods 8,20 \
   --color-by ENABLE_MUL --marker-by BARREL_SHIFTER \
   --label "ENABLE_MUL:1=hardware MUL" --title "picorv32 · sky130 · design space" \
@@ -65,6 +66,9 @@ python3 $S/render_video.py --runs runs --gif demo/sweep.gif --mp4 demo/sweep.mp4
 - `--label AXIS:VALUE=text` turns raw parameter values into readable
   captions ("hardware MUL" instead of `ENABLE_MUL=1`); worth doing for the
   final video.
+- `--effort medium|high` (default medium) is the compile effort;
+  `--utilization` (default 40) sizes each point's floorplan; `--site`
+  names the row site when the LEF defines several (sky130 hd: `unithd`).
 - Extra library setup (e.g. a `set_layer_rc` deck) goes in `--extra-tcl`;
   extra SDC (IO delays, false paths) in `--sdc-extra`; extra compile flags
   (`-blackbox`, `-compat vcs`) in `--compile-extra`.
@@ -79,7 +83,7 @@ python3 $S/render_video.py --runs runs --gif demo/sweep.gif --mp4 demo/sweep.mp4
 - `--compute-note` replaces the closing "N GPU-hours total" line when the
   user wants to name the hardware; otherwise it's derived from wall time.
 - Everything on screen is real: the terminal lines are the point's own
-  `[compile]`/`[layout-loop]` progress lines, the numbers are from the
+  `[compile]` progress lines, the numbers are from the
   reports, the thumbnails are the written DEFs. Don't hand-edit the frames
   to make a point look better.
 

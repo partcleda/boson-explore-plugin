@@ -53,9 +53,13 @@ python3 scripts/boson_dse.py \
   the speed features on). For a design other than picorv32, edit
   `PARAM_PRESETS` in the script (or pass `-G NAME=VALUE` overrides directly
   if you're driving boson yourself rather than through this script).
-- `--effort fast|low|medium|high`: synthesis effort per point. `medium`
-  (the default) is a reasonable balance; use `fast` for a quick first pass
-  over many points, then re-run the interesting ones at `high`.
+- `--effort medium|high`: compile effort per point. `medium` (the default)
+  is the standard compile; re-run the interesting points at `high` (the
+  script sets `compile_allow_high_effort` for it) only when the user wants
+  to know whether high pays on them.
+- `--extra-repair`: an extra `repair_timing -setup` after each compile.
+  Compile already repairs setup, so it is optional; it can recover a little
+  WNS or area at points that are close to the target.
 
 Each point takes anywhere from a few seconds to a couple minutes depending
 on design size and effort — a 3-preset x 4-period sweep is 12 real compiles,
