@@ -34,6 +34,14 @@ paths), `timing.json` (native `report_timing -format json`), and
 and RTL origins). The text trace ranks delay by source; a `~` origin is
 propagated attribution, not an exact match. Inspect it before ranking arithmetic.
 
+Path limits can apply separately to each clock group. Rank the complete
+reported sample by constrained slack before choosing a global worst path;
+the first path in the file need not be the worst. The audit's `--stages N`
+does this ranking and excludes unconstrained paths. Preserve report order
+when slacks tie, and retain the endpoint, transition, arrival and setup
+requirement: a WNS difference can come from the endpoint check even when
+the data arrival barely changes.
+
 The collector requires timing-point attributes and path provenance support.
 It writes timing first so an unsupported provenance API leaves diagnostic
 evidence. A zero-cell collection or a failed command means the audit failed;
@@ -56,30 +64,79 @@ profile spans as independent work.
 
 ## Auditing the datapath compiler pass by pass
 
-First establish which optimizer ran. On builds that expose
-`datapath_compiler`, its default is `false`: a plain medium compile uses the
-legacy word-level passes. Set `datapath_compiler true` before the plain
-`compile -effort medium` command to investigate the `datapath/` crate. Keep
-the command on that recipe; other compile modes may refuse this setting.
-The `DPC-002` messages name the passes that actually ran.
+Use the build's actual app-variable catalogue and `DPC-002` messages to
+establish which compiler and passes ran. Older builds may expose
+`datapath_compiler`; newer builds have one compiler and remove this variable.
+Do not assume its availability or default, or set a removed variable.
 
-Do not assume `synth_graph_snapshot_dir` captures those passes. Check the
-snapshot index against the compiler's enabled pass list, including repeated
-passes. Some builds record only the graph stamped after the datapath
-compiler finishes. Likewise, `report_elaborated -full` may read the original
-elaboration tape even after `dp_<pass>` commands changed the working design.
-An unchanged report is then missing observation, not evidence of a no-op.
+Set `synth_graph_snapshot_dir <directory>` before compiling. Inspect `index.js`
+for the stages actually recorded. Native word-level stages use the
+`datapath_compiler` level; the stamped backend graph uses `datapath`. Pass names
+can repeat, and probe snapshots are separate from the main compile.
 
-When the shell lacks intermediate snapshots, use the matching checkout's
-Rust API. `compile_datapath` with `DatapathOptSettings.take_snapshots = true`
-returns a tape after each enabled pass. Alternatively, run the enabled pass
-list over `Design` and dump `design.to_tape()` after each pass with
-`boson_elab_tape::dump_tape_text`. Add a sequence number to every filename:
-pass names can repeat. Retain the initial tape, complete intermediate tapes,
-operator widths and fanins, live-node counts by kind, and the final tape.
-Validate every tape. The runner must match the checkout and API under test;
-record the commit, dirty diff, binary identity, seed, constraints, library
-and enabled pass order beside its output.
+Trace a literal origin across native stages with the archive reader:
+
+```sh
+python3 <plugin>/skills/boson-diagnose/scripts/datapath/snapshot_trace.py snapshots \
+  --level datapath_compiler --origin 'unit.sv:12'
+```
+
+Inspect a signal's combinational fanin cone at one stage:
+
+```sh
+python3 <plugin>/skills/boson-diagnose/scripts/datapath/snapshot_trace.py snapshots \
+  --node-name result --kind PORT_OUT --stage sum_equal > cone.json
+```
+
+A repeated stage name requires `--seq` from the index. Cone names are literal,
+not patterns; `--kind` disambiguates a port and wire with the same name. The
+report follows aliases, counts reachable kinds and bits, and stops at nodes classified as input,
+register, memory or blackbox. Native memories use the register class; native
+BBOX nodes have no incoming operands. Node ids belong to that snapshot only;
+compaction can renumber them between stages. Reachability and kind counts do
+not establish mapped delay or area, and a register cut does not report its D
+cone.
+
+Check the index against the enabled pass list, including repeated passes. An
+unchanged `report_elaborated -full` may describe the original elaboration tape
+rather than a working design modified by `dp_<pass>` commands.
+
+A `dp_<pass>` command after `read_sdc` is not necessarily a replay of compile's
+priced decisions. Check the matching adapter: versions that call
+`datapath_timing(None)` build a fresh timing model without the loaded compile
+constraints. Prefer the full compile's recorded stages for that comparison.
+A pass-disable app var can also make the native compiler refuse the recipe
+with `SYN-453`; keep that refusal and build a source variant with only the
+implicated scheduled pass removed. Do not switch compilers to obtain an
+ablation of a native pass.
+
+If the matching build lacks intermediate snapshots, run its enabled passes
+through the Rust API. Use `passes::enabled(&settings)` and
+`Pass::run_timed_with_settings` with the production library and constraints
+for a characterized run; `Pass::run_with_settings` runs without that model.
+Serialize `datapath_ir::snapshot::graph(&design).finish(Level::DatapathCompiler, stage, design.top_module())`
+after each pass, or dump and validate each `to_tape()` result with
+`boson_elab_tape::dump_tape_text`. Retain sequence numbers, operator widths,
+fanins and live counts by kind. Do not assume a `take_snapshots` settings
+field exists. Record the commit, dirty diff, binary, seed, constraints,
+library and enabled pass order beside the output.
+
+If only an archived cone is available, retain operator kinds, widths,
+operand roles and constant bit order when importing it. A Verilog export
+can change signed extension, shift or priority-select semantics during
+elaboration. Check the imported cone against an independent evaluation of
+the archive before using it to diagnose a pass. Cut registers and unrelated
+inputs at explicit boundaries; a cone replay with a fixture library does
+not reproduce the full design's timing or the production model's verdict.
+
+A capped timing trial is an incomplete evaluation. Record total visits,
+distinct nodes, pending work and operator counts at the limit. Complete the
+affected timing and removed-area cones before ranking the alternatives.
+Removing the limit can admit harmful transformations: compare the actual
+before/after stages and trace newly retained operators back to the pass
+that copied them. Neither acceptance by the estimator nor a module-local
+trial proves better full-chip timing; validate the surviving graph and
+repaired STA with the production boundaries, loads and constraints.
 
 For every generated RTL case, inspect the stages that change the implicated
 cone, then compile it through mapping and collect timing and provenance as
@@ -100,6 +157,28 @@ treating estimated improvements as measured timing gains.
 
 ## Comparing word-level graphs
 
+For archived `synth_graph_snapshot_dir` output, trace recorded node properties
+across word-level stages with
+`python3 scripts/datapath/snapshot_trace.py <snapshot-dir> --origin 'file.sv:123'`.
+Repeat `--origin` for additional locations. The JSON retains stage sequence,
+node IDs, kinds, widths, details and origin labels, and emits a row when the
+matching properties change or disappear. These are recorded properties, not
+an equivalence check; verify connectivity and timing before attributing a gain.
+Add `--summary` to report only changes in operator counts and widths. This
+omits detail and label changes, so use the full trace when the counts stay
+equal but the connectivity or selected implementation may differ.
+
+Match the complete compile recipe before attributing different gates to a
+pass: compiler selection, ABC script, clock gating (including
+`-no_gate_clock`), recovery and VT sizing, libraries, SDC, and source revision.
+Set recovery and VT sizing explicitly in both comparison arms rather than
+relying on defaults that may differ between revisions. A diagnostic snapshot
+run supplies structural evidence; measure the final timing with snapshots off.
+Verify the executed ABC schedule in each run's profiling records, including
+full-graph and cover-remap trials. A source merge can restore a default script
+without changing an older experiment label; a label saying DC2 is disabled
+does not establish that DC2 never ran.
+
 A word-level graph can contain a cycle even when its bit-level circuit is
 acyclic: a wide routing or select node can read a disjoint slice of its own
 result. A whole-node topological walk can therefore loop or exhaust memory
@@ -116,6 +195,10 @@ mismatch alone is not a different register. Exact structural signatures also
 need operand extension, constant routing and commutativity normalization;
 unequal signatures do not prove functional inequivalence or explain a timing
 regression. Confirm the candidate difference in connectivity and mapped STA.
+A provenance block's width alone does not establish word-level register
+grouping. Resolve the named state bits to register nodes and inspect their
+widths, data operands, clocks, enables and resets before attributing a split
+to a pass.
 
 For an addition with a late one-bit operand, measure that operand's own path
 through the carry network. Compare it with the equivalent carry-in form of

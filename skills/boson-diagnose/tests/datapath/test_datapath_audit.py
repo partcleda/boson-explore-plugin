@@ -124,6 +124,32 @@ class AuditTests(unittest.TestCase):
         self.assertEqual([(g["cells"], g["exact_cells"]) for g in path["segments"]], [(2, 2), (1, 0)])
         self.assertAlmostEqual(sum(g["ps"] for g in path["segments"]), 30.0)
 
+    def test_stages_rank_all_clock_groups_before_limiting(self):
+        t = timing("a")
+        t["paths"] = []
+        for clock, slack in (("clk_a", .2), ("clk_b", -.3), ("clk_c", -.1)):
+            path = timing("a")["paths"][0]
+            path.update(startpoint=clock + "/in", endpoint=clock + "/out", slack_ns=slack)
+            for point in path["points"]:
+                point["arrival_ns"] = .01
+            t["paths"].append(path)
+        original = copy.deepcopy(t)
+        selected = stages([story("a", [block()])], t, count=2)
+        self.assertEqual([p["endpoint"] for p in selected], ["clk_b/out", "clk_c/out"])
+        self.assertEqual(t, original)
+
+    def test_stages_exclude_paths_without_constrained_slack(self):
+        t = timing("a")
+        for point in t["paths"][0]["points"]:
+            point["arrival_ns"] = .01
+        missing, unconstrained, usable = [copy.deepcopy(t["paths"][0]) for _ in range(3)]
+        missing.update(endpoint="missing", slack_ns=None)
+        unconstrained.update(endpoint="unconstrained", slack_ns=-1, unconstrained=True)
+        usable.update(endpoint="usable", slack_ns=.1)
+        t["paths"] = [missing, unconstrained, usable]
+        selected = stages([story("a", [block()])], t, count=1)
+        self.assertEqual([p["endpoint"] for p in selected], ["usable"])
+
 
 if __name__ == "__main__":
     unittest.main()
