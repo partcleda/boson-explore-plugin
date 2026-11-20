@@ -6,8 +6,12 @@ Effort ladder (each rung is one real compile + STA run; the ladder stops at
 the first rung that MEETS timing unless --full-ladder):
 
     0  -effort medium            the standard compile (map + setup/DRV repair)
-    1  -effort high              strongest map and setup repair
+    1  -effort medium -retime    pipeline-register retiming (same cycle behaviour): word-level
+                                 before mapping, then the mapped netlist when setup repair
+                                 leaves timing unmet; same map as medium
+    2  -effort high              strongest map and setup repair
                                  (sets compile_allow_high_effort true)
+    3  -effort high -retime      both
 
 Each rung reports two rows from one compile: the netlist as `compile` returns
 it, and the same netlist after an extra `repair_timing -setup`. Compile already
@@ -39,7 +43,9 @@ from pathlib import Path
 # (label, compile flags, Tcl run before compile)
 LADDER = [
     ("medium", "-effort medium", []),
+    ("medium+retime", "-effort medium -retime", []),
     ("high", "-effort high", ["set_app_var compile_allow_high_effort true"]),
+    ("high+retime", "-effort high -retime", ["set_app_var compile_allow_high_effort true"]),
 ]
 REPAIR = "repair_timing -setup"
 
@@ -72,6 +78,7 @@ class Result:
     power_w: float | None = None
     wall_s: float = 0.0
     fmax_mhz: float | None = None
+    retime: str | None = None
 
     def met(self): return self.ok and self.wns_ns is not None and self.wns_ns >= 0
 
@@ -158,6 +165,10 @@ class Runner:
                 r.error = "could not parse report_qor (see boson.log)"
             print(f"[ppa]   {r.stage:>22}: {r.status or 'ERROR'} WNS {r.wns_ns} ns · TNS {r.tns_ns} · {r.cells} cells · "
                   f"{r.area_um2} um² · {(r.power_w or 0) * 1e3:.1f} mW", file=sys.stderr)
+        if "-retime" in flags:
+            note = _retime_note(out)
+            print(f"[ppa]   retime: {note}", file=sys.stderr)
+            for r in rows: r.retime = note
         print(f"[ppa]   wall {wall:.0f}s · {d}", file=sys.stderr)
         return rows
 
@@ -190,9 +201,21 @@ HEADER = ("| effort | stage | period (ns) | timing | WNS (ns) | TNS (ns) | achie
           "|---|---|---|---|---|---|---|---|---|---|")
 
 
+def _retime_note(out: str) -> str:
+    """What -retime did, from the log: word-level moves before mapping, then the mapped-netlist pass."""
+    word = re.search(r"^retime:.*?(\d+) moved", out, re.M)
+    net = re.search(r"^netlist retime:.*?(\d+) cells moved", out, re.M)
+    met = re.search(r"^netlist retime: timing is met", out, re.M)
+    parts = [f"{word.group(1)} word-level" if word else "word-level not run",
+             f"{net.group(1)} netlist" if net else
+             "netlist met first" if met else
+             "0 netlist" if re.search(r"^netlist retime:", out, re.M) else "netlist not run"]
+    return "moved: " + ", ".join(parts)
+
+
 def _name(r: Result) -> str:
-    """The rung label."""
-    return r.label
+    """The rung label, with what -retime moved."""
+    return r.label + (f" ({r.retime})" if r.retime else "")
 
 
 def _better(a: Result | None, b: Result) -> bool:
@@ -214,6 +237,8 @@ def main() -> int:
     ap.add_argument("--fmax-probes", type=int, default=3, help="Max period probes for --find-fmax")
     ap.add_argument("--start-rung", type=int, default=0); ap.add_argument("--max-rung", type=int, default=len(LADDER) - 1)
     ap.add_argument("--full-ladder", action="store_true", help="Run every rung even after one meets timing")
+    ap.add_argument("--no-retime", action="store_true",
+                    help="Skip the -retime rungs (e.g. a flow whose sign-off cannot accept moved registers)")
     ap.add_argument("--no-extra-repair", action="store_true",
                     help=f"Skip the extra `{REPAIR}` after compile (report the compile row only)")
     ap.add_argument("--provenance", action="store_true",
@@ -246,6 +271,7 @@ def main() -> int:
         report += [f"## Closing timing at {target:g} ns", "", HEADER]
         for i, (label, flags, pre) in enumerate(LADDER):
             if i < a.start_rung or i > a.max_rung: continue
+            if a.no_retime and "-retime" in flags: continue
             rows = R.run(label, target, flags, pre); results += rows
             report += [fmt(r) for r in rows]
             for r in rows:

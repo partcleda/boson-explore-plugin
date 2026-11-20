@@ -1,6 +1,6 @@
 ---
 name: boson-close-timing
-description: Use when timing has to close, or fmax has to be found, without changing the design's RTL — "close timing at X ns", "what's the fmax", "which effort should I use", "clean up the SDC before optimizing", "synthesis fails / boson crashes on this design", "timing got worse after resizing or buffering". Fixes constraints first, then runs the effort ladder (compile -effort medium, then high, each with an optional extra repair_timing -setup) and stops at the first rung that closes; when nothing closes, reads the critical path with provenance instead of reaching for more settings.
+description: Use when timing has to close, or fmax has to be found, without changing the design's RTL — "close timing at X ns", "what's the fmax", "which effort should I use", "clean up the SDC before optimizing", "synthesis fails / boson crashes on this design", "timing got worse after resizing or buffering". Fixes constraints first, then runs the effort ladder (compile -effort medium, medium -retime, high, high -retime, each with an optional extra repair_timing -setup) and stops at the first rung that closes; when nothing closes, reads the critical path with provenance instead of reaching for more settings.
 ---
 
 # Closing timing without touching the RTL
@@ -23,7 +23,8 @@ and boson's own engine are what may change. Changing the RTL is
   a multi-clock or mode-specific flow, iterate their Tcl directly.
 - Say which rung, setting and flow stage produced every number.
 - Recommend only the supported recipe: `compile -effort medium` (the
-  default), `-effort high` when it measurably pays, and an extra
+  default), `-retime` (try it on any design with pipeline registers; it keeps
+  cycle behaviour), `-effort high` when it measurably pays, and an extra
   `repair_timing -setup` after compile when it helps. Loop and legacy flags
   (`-timing_driven`, `-draws`, `-select_candidates`, `-portfolio`,
   `-datapath_search`, `eco_optimize`) are not recipes; the ladder reference

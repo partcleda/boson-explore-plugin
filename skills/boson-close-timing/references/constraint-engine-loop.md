@@ -70,7 +70,7 @@ test. Preserve incomplete attempts and rerun both arms with the measured
 resource requirement when paging prevents a useful comparison.
 
 Record when the mode constraints take effect. An overlay sourced after
-`compile` corrects the final timing report, but cannot correct a
+`compile -retime` corrects the final timing report, but cannot correct a
 candidate-selection decision already made inside `compile`. Likewise, repair
 after candidate selection does not measure the repaired candidates against
 each other. Inspect the selection log before interpreting a rollback as a

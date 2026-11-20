@@ -2,7 +2,8 @@
 
 For an existing design with suspect constraints or a request to fix the synthesis
 engine, follow the [constraint and engine iteration workflow](constraint-engine-loop.md)
-before raising effort. Preserve the user's RTL and latency requirements.
+before raising effort. Preserve the user's RTL and latency requirements;
+an engine-retiming request does not authorize hand-pipelining the design.
 
 The helper below is a single-clock recipe generator. It creates a clock SDC;
 `--sdc-extra` appends text, rather than replacing that generated clock. For an
@@ -23,7 +24,9 @@ reports again after an extra `repair_timing -setup`.
 | rung | recipe | what it buys |
 |---|---|---|
 | 0 | `compile -effort medium` | the standard compile: one technology map, then setup, design-rule and clock-gating hold repair. Same as `compile` with no `-effort` |
-| 1 | `compile -effort high` (after `set_app_var compile_allow_high_effort true`) | the strongest map and a setup repair run until timing is met or gains stop. Costs several × medium wall time and more memory; on a large design it can run for hours, which is why boson asks for the app variable |
+| 1 | `compile -effort medium -retime` | the medium compile plus retiming in two places: registers move across datapath operators before mapping, and, only when setup repair leaves timing unmet, flops move in the mapped netlist toward the clock period with the fewest added registers, followed by one more setup repair. Preserves cycle-by-cycle behaviour, clocks, clock gating, enables and resets; latches are not moved. A design medium closes comes out the same as medium. When the clock is out of reach, `compile_retime_register_growth` (default 0.3) caps the added register bits |
+| 2 | `compile -effort high` (after `set_app_var compile_allow_high_effort true`) | the strongest map and a setup repair run until timing is met or gains stop. Costs several × medium wall time and more memory; on a large design it can run for hours, which is why boson asks for the app variable |
+| 3 | `compile -effort high -retime` | both |
 
 Each rung prints two rows from the same compile:
 
@@ -33,6 +36,32 @@ Each rung prints two rows from the same compile:
   It is usually equal or slightly better, and it stops immediately when
   timing is met, so it costs little. Recommend it only when it moved the
   numbers. `--no-extra-repair` drops it.
+
+Always try `-retime` before concluding a design with pipeline registers
+cannot close: it keeps the RTL and its latency, so it is within this skill's
+scope. It costs nothing where medium already closes, and where medium misses it
+moves only as many flops as the clock needs (measured: cv32e40p on ASAP7
+-84 → -74 ps for +7% area; a 32-bit pipelined MAC on ASAP7 -208 → -7 ps;
+picorv32 on sky130 at 2.6 ns -298 → -130 ps for +3.6% area). Read the two
+log lines before crediting retiming; the script prints both per rung and
+labels the row `moved: N word-level, M netlist` (or `netlist met first`):
+
+- `retime: ... N moved`: word-level registers moved before mapping.
+- `netlist retime: ... N cells moved, ... flops A -> B cells`: flops moved
+  across N gates of the mapped netlist, turning A flop cells into B.
+  `netlist retime: timing is met ...; nothing to retime` means setup repair
+  closed it first. `graph slack ... (STA WNS ...)` shows how close the
+  retiming model is to STA before any move.
+
+When anything moved, say so in the report: register names change, and an
+equivalence check must be sequential, not combinational. When nothing moved,
+the row equals medium's. The netlist pass stops short when backward moves
+would need reset values it cannot justify (the `netlist retime:` line counts
+the gates held `for reset values`); that is a limit of the engine, not of the
+design.
+
+`--no-retime` skips those rungs when the user's sign-off cannot accept moved
+registers. `-retime` is not supported with `-hier-verilog`.
 
 The ladder stops at the first rung that MEETS timing (WNS ≥ 0): the point is
 the *cheapest* recipe that works. `--full-ladder` runs every rung anyway,
