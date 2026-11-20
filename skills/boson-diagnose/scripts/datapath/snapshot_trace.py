@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from dataclasses import dataclass
+from graphlib import TopologicalSorter
 import json
 import sys
 from pathlib import Path
@@ -91,6 +92,8 @@ class ConeQuery:
     sequence: int | None = None
     level: str = "datapath_compiler"
     kind: str | None = None
+    launch: str | None = None
+    capture_pin: str | None = None
 
 
 def fanin(directory, query):
@@ -128,6 +131,9 @@ def fanin(directory, query):
                  if name == query.name and (query.kind is None or kinds[node]["name"] == query.kind)]
         if len(roots) != 1:
             raise ValueError(f"expected one literal node-name match; got {roots}; select --kind")
+        if query.launch is not None:
+            directed = directed_path(graph, kinds, operands, roots[0], query)
+            return {"seq": sequence, "stage": entry["stage"], "file": entry["file"], "path": directed}
         visited = set()
         pending = roots[:]
         cuts = {"input", "register", "memory", "blackbox"}
@@ -147,6 +153,56 @@ def fanin(directory, query):
     return {"seq": sequence, "stage": entry["stage"], "file": entry["file"], "root": roots[0],
             "node_count": len(rows), "bit_count": sum(row["width"] for row in rows),
             "kinds": dict(sorted(Counter(row["kind"] for row in rows).items())), "nodes": rows}
+
+
+def directed_path(graph, kinds, operands, capture, query):
+    names = graph["nodes"]["name"]
+    launches = [node for node, name in enumerate(names) if name == query.launch]
+    if len(launches) != 1:
+        raise ValueError(f"expected one literal launch-name match; got {launches}")
+    launch, = launches
+    edges = graph["edges"]
+    capture_inputs = operands[capture]
+    if query.capture_pin is not None:
+        destinations = edges["dst"]
+        pins = edges["dst_pin"]
+        if len(pins) != len(destinations):
+            raise ValueError("edge destination pins have a different length than destinations")
+        capture_inputs = [source for source, target, pin in zip(edges["src"], destinations, pins)
+                          if target == capture and lookup(edges["pins"], pin) == query.capture_pin]
+        if not capture_inputs:
+            raise ValueError(f"no edges into capture pin {query.capture_pin!r}")
+    elif kinds[capture]["class"] == "register":
+        raise ValueError("a register capture requires --capture-pin")
+
+    reachable = {}
+    pending = capture_inputs[:]
+    cuts = {"input", "register", "memory", "blackbox"}
+    while pending:
+        node = pending.pop()
+        if node not in reachable:
+            sources = [] if node == launch or kinds[node]["class"] in cuts else operands[node]
+            reachable[node] = sources
+            pending.extend(sources)
+
+    distances = {launch: 0}
+    predecessors = {}
+    for node in TopologicalSorter(reachable).static_order():
+        if node == launch:
+            continue
+        source = max((i for i in reachable[node] if i in distances), key=distances.get, default=None)
+        if source is not None:
+            distances[node] = distances[source] + 1
+            predecessors[node] = source
+    last = max((i for i in capture_inputs if i in distances), key=distances.get, default=None)
+    if last is None:
+        return None
+    path = [capture, last]
+    while path[-1] in predecessors:
+        path.append(predecessors[path[-1]])
+    fanout = Counter(edges["src"])
+    return [{"id": node, "name": names[node], "kind": kinds[node]["name"], "fanout": fanout[node]}
+            for node in reversed(path)]
 
 
 def matching_nodes(graph, origins):
@@ -185,18 +241,24 @@ def main():
     parser.add_argument("--stage", help="pass name for a cone; repeated passes require --seq")
     parser.add_argument("--seq", type=int, help="exact snapshot sequence for a cone")
     parser.add_argument("--kind", help="disambiguate identical node names by operator kind")
+    parser.add_argument("--launch-name", help="literal launch node for the longest structural path to --node-name")
+    parser.add_argument("--capture-pin", help="limit the path to edges entering this named capture pin")
     parser.add_argument("--summary", action="store_true", help="report changes in origin-matched operator counts and widths")
     args = parser.parse_args()
     if args.node_name is not None and args.stage is None and args.seq is None:
         parser.error("--node-name needs --stage or --seq")
     if args.origin is not None and any(value is not None for value in (args.stage, args.seq, args.kind)):
         parser.error("--stage, --seq and --kind require --node-name")
+    if args.launch_name is not None and args.node_name is None:
+        parser.error("--launch-name requires --node-name")
+    if args.capture_pin is not None and args.launch_name is None:
+        parser.error("--capture-pin requires --launch-name")
     if args.summary and args.origin is None:
         parser.error("--summary requires --origin")
     try:
         if args.node_name is not None:
             rows = fanin(args.directory, ConeQuery(args.node_name, args.stage, args.seq,
-                         args.level or "datapath_compiler", args.kind))
+                         args.level or "datapath_compiler", args.kind, args.launch_name, args.capture_pin))
         else:
             rows = trace(args.directory, args.origin, args.level or "datapath")
             if args.summary:

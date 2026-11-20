@@ -44,6 +44,21 @@ class ConeTests(unittest.TestCase):
             self.assertEqual(report["nodes"][-1]["inputs"], [])
             self.assertNotIn("unused", [node["name"] for node in report["nodes"]])
 
+    def test_directed_path_uses_data_pin_and_cuts_registers(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            snapshot = graph()
+            snapshot["edges"] = {"src": [0, 4, 1, 2, 5, 2], "dst": [1, 1, 2, 3, 4, 4],
+                                 "pins": ["", "D", "CP"], "dst_pin": [0, 0, 0, 0, 2, 1]}
+            archive(directory, [snapshot])
+            data = fanin(directory, ConeQuery("state", "fold", launch="state", capture_pin="D"))
+            self.assertEqual([node["id"] for node in data["path"]], [4, 1, 2, 4])
+            self.assertEqual(data["path"][2]["fanout"], 2)
+            clock = fanin(directory, ConeQuery("state", "fold", launch="state", capture_pin="CP"))
+            self.assertIsNone(clock["path"])
+            with self.assertRaisesRegex(ValueError, "no edges into capture pin"):
+                fanin(directory, ConeQuery("state", "fold", launch="input", capture_pin="Q"))
+
     def test_names_are_literal_and_ambiguous_names_fail(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)
