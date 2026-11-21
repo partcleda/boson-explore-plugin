@@ -186,6 +186,17 @@ an empty log as evidence. If one subtree reaches a bound, check whether keeping
 its original function can preserve simplifications proved elsewhere; test
 equivalence, shared consumers and idempotence without widening the bound.
 
+For cyclic request reads, record the recognized positions and whether they
+cover the full cycle. An unchanged snapshot can follow either an incomplete
+family or a complete family whose downstream proof exceeds its budget. For a
+complete family, record the downstream cone's nodes and bit widths, then
+multiply each by the number of proof contexts, including the no-hit case.
+Compare both totals with the active limits. A proof of the individual read
+positions can justify sharing a rotation before the downstream selection
+logic changes. Include out-of-range indices, inversion of zero-filled reads
+and any observable upper bits in the check. Verify the reduced bank of reads
+after cleanup and confirm equivalence and mapped timing.
+
 Inspect fanout at the stage where the rewrite runs. Later cleanup can make a
 shared predicate appear private. A private-cone rewrite can pass a small test
 and miss the real shared case. Preserve an observable shared output in the
